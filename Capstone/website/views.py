@@ -35,30 +35,24 @@ def branches():
 def select_branch(branch_name):
     """Handles branch selection and redirects to the dashboard."""
     if 'username' in session:
-        # Optional: Store selected branch name in session
-        session['selected_branch'] = branch_name
-        flash(f'Branch "{branch_name}" selected.', 'info') # Optional feedback
-        # Redirect to the dashboard
-        return redirect(url_for('main.dashboard'))
+        # Store selected branch name in session
+        session['selected_branch'] = branch_name # <-- This stores the selected branch
+        flash(f'Branch "{branch_name}" selected.', 'info')
+        return redirect(url_for('main.dashboard')) # <-- Redirects to dashboard
     else:
-        # If not logged in, redirect to login page
         flash('You need to be logged in to select a branch.', 'error')
         return redirect(url_for('auth.login'))
-
 
 # The dashboard route requires login
 @main.route('/dashboard')
 def dashboard():
     """Displays the dashboard if the user is logged in."""
-    # Check if the user is in the session (i.e., if they are logged in)
     if 'username' in session:
         username = session['username']
-        # Optional: Get selected branch from session to display on dashboard
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        # Pass username and selected_branch to template
-        return render_template('dashboard.html', username=username, selected_branch=selected_branch)
+        # Retrieve selected branch from session
+        selected_branch = session.get('selected_branch', 'No specific branch selected') # <-- This retrieves it
+        # Pass username AND selected_branch to template
+        return render_template('dashboard.html', username=username, selected_branch=selected_branch) # <-- This passes it
     else:
-        # If not logged in, flash message and redirect to login page
         flash('You need to be logged in to see this page.', 'error')
-        # Redirect to the login endpoint in the 'auth' blueprint
         return redirect(url_for('auth.login'))

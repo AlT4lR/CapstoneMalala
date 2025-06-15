@@ -457,3 +457,11 @@ form input {
 .branch-link:hover {
     background-color: #e0e3d4; /* Light hover background */
 }
+
+.dashboard-branch-title {
+    color: #2f4f2f; /* Dark forest green */
+    margin-top: 0; /* Remove default margin-top */
+    margin-bottom: 30px; /* Add space below the title */
+    font-size: 2em; /* Make it prominent */
+    text-align: center; /* Center the title */
+}
