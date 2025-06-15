@@ -311,3 +311,149 @@ form input {
 .main-content .flash {
     margin-bottom: 20px; /* Add margin above content */
 }
+/* Keep .branches-page-container and .branches-content basic styles */
+.branches-page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80%;
+    max-width: 600px; /* Adjust max width for the list layout */
+    margin: 50px auto;
+    background: #f6f6e9;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    min-height: 500px;
+    padding: 40px 20px; /* Adjust padding for potential scrollbar */
+    position: relative;
+    /* Remove padding-bottom if footer is removed */
+}
+
+.branches-content {
+    flex-grow: 1;
+    text-align: center;
+    width: 100%;
+}
+
+.branches-content h1 {
+    color: #4a6842;
+    margin-bottom: 30px;
+    font-size: 2em;
+}
+
+/* --- New Styles for Branch List --- */
+.branch-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%; /* List takes full width of content area */
+}
+
+.branch-list-item {
+    border-bottom: 1px solid #d3d6c4; /* Separator line like in chat apps */
+    margin-bottom: 0; /* No bottom margin */
+    padding: 0; /* No padding on li */
+}
+
+.branch-list-item:last-child {
+    border-bottom: none; /* No border on the last item */
+}
+
+.branch-link {
+    display: flex; /* Arrange icon and text side-by-side */
+    align-items: center; /* Vertically center items */
+    padding: 15px 10px; /* Padding inside the clickable area */
+    text-decoration: none; /* Remove underline from link */
+    color: #2f4f2f; /* Default text color */
+    transition: background-color 0.2s ease; /* Smooth hover effect */
+    border-radius: 4px; /* Slight rounding on hover background */
+}
+
+.branch-link:hover {
+    background-color: #e0e3d4; /* Light hover background */
+}
+
+.branch-icon-container {
+    width: 50px; /* Size of the icon container */
+    height: 50px;
+    border-radius: 50%; /* Make it round */
+    background-color: #adcaa2; /* Light green background for the circle */
+    display: flex; /* Center the icon/image inside */
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px; /* Space between circle and text */
+    overflow: hidden; /* Hide parts of the image/icon if it's not round */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Style for Font Awesome icon inside the circle */
+.branch-icon-container .fas {
+    font-size: 1.5em;
+    color: #4a6842; /* Dark green icon color */
+}
+
+/* If using an <img>, style it to fit and be round */
+.branch-icon-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the container without distorting */
+    border-radius: 50%; /* Ensure the image itself is round if container isn't enough */
+}
+
+
+.branch-name {
+    flex-grow: 1; /* Allow the name text to take up space */
+    font-size: 1.1em;
+    font-weight: bold;
+    /* Optional: add styles for subtitle if you add one */
+    /* display: flex; flex-direction: column; */
+}
+
+/* Optional: Style for the flash messages container */
+.flash-messages-container {
+    margin-bottom: 20px;
+    /* You can add padding, borders, etc. here */
+}
+
+.google-btn {
+    background-color: #adcaa2;
+    color: white; /* Or a darker color for better contrast with hover */
+    padding: 12px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    /* Add a transition for smooth animation */
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.google-btn:hover {
+    background-color: #9cb791; /* Slightly darker green on hover */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+    transform: translateY(-1px); /* Lift the button slightly */
+}
+
+/* Ensure other buttons also have hover effects if you want them */
+.login-btn:hover {
+     background-color: #3a5234; /* Example: Make login button slightly darker on hover */
+     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+     transform: translateY(-1px);
+}
+
+/* For the Register button on the left side (if it's an <a>) */
+.left .register-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Example: subtle background on hover */
+    border-color: #fff; /* Keep border white */
+}
+
+/* Ensure sidebar links have a visible hover effect */
+.sidebar-nav a:hover {
+     background-color: #d3d6c4; /* Lighter background on hover */
+     color: #2f4f2f;
+}
+
+/* Ensure branch list links have a visible hover effect */
+.branch-link:hover {
+    background-color: #e0e3d4; /* Light hover background */
+}

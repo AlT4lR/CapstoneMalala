@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Branch - DecoOffice</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Optional: Include Font Awesome for icon placeholders #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="branches-page-container">
+        <div class="branches-content">
+            <h1>BRANCHES</h1>
+
+            {# Add the block to display flashed messages #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages-container">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <ul class="branch-list">
+                {% for branch in branches %} {# Loop through the updated branches list #}
+                    <li class="branch-list-item">
+                        {# The link now uses the branch.name in the URL #}
+                        <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="branch-link">
+                            <div class="branch-icon-container">
+                                {# This will display the same icon for all branches with the current setup #}
+                                <i class="fas fa-building"></i>
+                                {# If you have specific images, use an <img> tag here #}
+                                {# Example using the icon name from views.py: #}
+                                {# <img src="{{ url_for('static', filename='icons/' + branch.icon) }}" alt="{{ branch.name }} Icon"> #}
+                            </div>
+                            {# This will display the full name/address from views.py #}
+                            <div class="branch-name">{{ branch.name }}</div>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+
+             {# Removed the separate footer address div from previous versions #}
+
+        </div>
+    </div>
+
+    {# Optional: Link to Font Awesome if you use icons #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    {# Link to your custom JS if you added it #}
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
+</body>
+</html>

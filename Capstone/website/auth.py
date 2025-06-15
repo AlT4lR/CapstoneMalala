@@ -3,9 +3,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 # Import the dummy user data and functions from our models file
 from .models import users, add_user, get_user_by_username
+# Import the create_app function (needed for password hashing if you implement it here)
+# from . import create_app # Uncomment if needed
+
+# Import password hashing utilities (if you've installed Werkzeug)
+# from werkzeug.security import generate_password_hash, check_password_hash
 
 # Define the blueprint. The name 'auth' is used when calling url_for('auth.endpoint_name').
-# url_prefix could be used here, e.g., url_prefix='/auth', but we'll register at '/' in __init__.py
 auth = Blueprint('auth', __name__)
 
 # Route for the login page (handles both GET requests and the root path)
@@ -13,10 +17,10 @@ auth = Blueprint('auth', __name__)
 @auth.route('/', methods=['GET']) # Also handle the root URL
 def login():
     """Displays the login page or redirects to dashboard if logged in."""
-    # If user is already logged in, redirect to dashboard
+    # If user is already logged in, redirect to the branches page
     if 'username' in session:
-        # Redirect to the 'dashboard' endpoint in the 'main' blueprint
-        return redirect(url_for('main.dashboard'))
+        # Redirect to the 'branches' endpoint in the 'main' blueprint
+        return redirect(url_for('main.branches')) # Changed from main.dashboard
     # Otherwise, show the login page
     return render_template('login.html')
 
@@ -30,12 +34,13 @@ def auth_post():
     user_data = get_user_by_username(username)
 
     # Check if user exists and password is correct (compare hashed passwords in production!)
+    # In production: if user_data and check_password_hash(user_data['password_hash'], password):
     if user_data and user_data['password'] == password:
         # Login successful: Store username in session
         session['username'] = username
-        # Redirect to the dashboard endpoint in the 'main' blueprint
+        # Redirect to the branches endpoint in the 'main' blueprint
         flash('Login successful!', 'success') # Optional: add a success message
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.branches')) # Changed from main.dashboard
     else:
         # Login failed: Flash error message
         flash('Invalid username or password', 'error')
@@ -49,10 +54,13 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
-        password = request.form.get('password') # Remember to hash passwords!
+        password = request.form.get('password') # Get password
 
-        # Basic validation and add user
-        if add_user(username, email, password):
+        # Hash password in production!
+        # hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        # Basic validation and add user (add hashed_password in production)
+        if add_user(username, email, password): # Update add_user to accept hashed password
             flash('Registration successful! Please log in.', 'success')
             # Redirect to the login page (using the blueprint endpoint name)
             return redirect(url_for('auth.login'))
