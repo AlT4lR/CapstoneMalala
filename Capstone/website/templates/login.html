@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="left">
+            <h2>Hello, Welcome!</h2>
+            <p>Need an account? Click below.</p>
+            <!-- Use url_for with blueprint name 'auth' -->
+            <a href="{{ url_for('auth.register') }}" class="register-btn">Register</a>
+        </div>
+        <div class="right">
+            <h2>Login</h2>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Use url_for with blueprint name 'auth' and the function name 'auth_post' -->
+            <form action="{{ url_for('auth.auth_post') }}" method="POST">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <a href="#" class="forgot">Forgot your password?</a> <!-- Placeholder link -->
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+            <p class="alt">or login with</p>
+            <button class="google-btn">Continue with Google</button> <!-- Placeholder button -->
+        </div>
+    </div>
+</body>
+</html>

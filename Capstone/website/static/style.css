@@ -1,0 +1,313 @@
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: #1f1f1f;
+}
+
+.container {
+    display: flex;
+    width: 80%;
+    max-width: 900px;
+    margin: 50px auto;
+    background: #f6f6e9;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.left, .right {
+    flex: 1;
+    padding: 40px;
+}
+
+.left {
+    background-color: #4a6842;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+.left h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.left .register-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top: 20px;
+    border: 1px solid #fff;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.right h2 {
+    color: #2f4f2f;
+    margin-bottom: 20px;
+}
+
+form input {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #4a6842;
+    border-radius: 6px;
+}
+
+.forgot {
+    font-size: 0.9em;
+    color: #9cad9c;
+    text-decoration: underline;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.login-btn {
+    background-color: #4a6842;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    width: 100%;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.alt {
+    text-align: center;
+    margin: 20px 0 10px;
+}
+
+.google-btn {
+    background-color: #adcaa2;
+    color: white;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.flash {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    text-align: center;
+    color: #fff;
+}
+
+.flash.success {
+    background-color: #4a6842; /* Green for success */
+}
+
+.flash.error {
+    background-color: #d9534f; /* Red for error */
+}
+
+/* Basic Reset for the dashboard layout */
+.dashboard-container {
+    display: flex; /* Use flexbox for sidebar and main content layout */
+    width: 95%; /* Adjust container width */
+    max-width: 1200px; /* Max width for the dashboard */
+    margin: 20px auto; /* Center the container and add some margin */
+    background: #f6f6e9; /* Light beige background from the image */
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 80vh; /* Give it a minimum height */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.sidebar {
+    width: 250px; /* Fixed width for the sidebar */
+    background-color: #e0e3d4; /* Slightly darker beige for sidebar */
+    padding: 20px;
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    color: #4a6842; /* Dark green text */
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.logo-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #4a6842; /* Dark green border */
+    margin-right: 10px;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    margin-bottom: 10px;
+    border-radius: 8px; /* Rounded corners for list items */
+    overflow: hidden; /* Needed for gradient */
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: #2f4f2f; /* Dark forest green for text */
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-nav a i {
+    margin-right: 10px;
+    font-size: 1.1em;
+}
+
+/* Style for the active 'Home' item with gradient */
+.sidebar-nav li.active {
+    background: linear-gradient(to right, #4a6842, #adcaa2); /* Gradient from dark to light green */
+}
+
+.sidebar-nav li.active a {
+     color: #fff; /* White text for active item */
+}
+
+.sidebar-nav a:hover {
+    background-color: #adcaa2; /* Lighter green on hover */
+    color: #2f4f2f;
+}
+
+.sidebar-nav li.active a:hover {
+     /* No hover effect on active item background if you want it static */
+     background: linear-gradient(to right, #4a6842, #adcaa2);
+     color: #fff;
+}
+
+.logged-in-user {
+    margin-top: auto; /* Pushes this element to the bottom */
+    padding: 10px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #607d8b; /* A subtle color */
+    border-top: 1px solid #d3d6c4; /* Separator line */
+}
+
+
+/* Main Content Styles */
+.main-content {
+    flex-grow: 1; /* Allows content to take up remaining space */
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px; /* Space between sections */
+}
+
+.main-content h2 {
+    color: #4a6842; /* Dark green heading color */
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #d3d6c4; /* Separator under heading */
+    padding-bottom: 5px;
+}
+
+/* Invoice Section */
+.invoice-cards {
+    display: flex;
+    gap: 20px; /* Space between cards */
+}
+
+.invoice-card {
+    flex: 1; /* Allows cards to grow and shrink */
+    background-color: #adcaa2; /* Light green card background */
+    border-radius: 8px;
+    height: 150px; /* Fixed height for cards */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Push label to the bottom */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Card shadow */
+    position: relative; /* Needed for absolute positioning of label */
+}
+
+/* Style variations for paid, on-going, declined */
+.invoice-card.paid { background-color: #adcaa2; }
+.invoice-card.on-going { background-color: #adcaa2; }
+.invoice-card.declined { background-color: #adcaa2; } /* Use distinct colors if desired */
+
+.invoice-card .card-content {
+    flex-grow: 1; /* Content area takes up space above label */
+    /* Add styles here for any content inside the cards */
+}
+
+.invoice-card .card-label {
+    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background for label */
+    color: #4a6842; /* Dark green label text */
+    padding: 5px 15px;
+    border-radius: 20px; /* Pill shape */
+    font-size: 0.9em;
+    font-weight: bold;
+    text-align: center;
+    align-self: center; /* Center the label horizontally */
+    margin-top: 10px; /* Space above label */
+    /* Position label at the bottom center if needed, but centering within flex works well */
+}
+
+
+/* Budget Section */
+.budget-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between budget items */
+}
+
+.budget-item {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Space between label and bar */
+}
+
+.budget-label {
+    width: 100px; /* Fixed width for labels */
+    font-weight: bold;
+    color: #2f4f2f; /* Dark forest green */
+    text-align: right; /* Align labels to the right */
+}
+
+.bar-container {
+    flex-grow: 1; /* Container takes up remaining space */
+    background-color: #d3d6c4; /* Lighter background for the track */
+    border-radius: 6px;
+    height: 20px; /* Height of the bar */
+    overflow: hidden; /* Hide overflowing bar */
+}
+
+.budget-bar {
+    height: 100%;
+    background-color: #4a6842; /* Dark green bar color */
+    border-radius: 6px;
+    /* Add widths here to represent data - these are placeholders */
+    /* Example: width: 70%; for 70% full bar */
+    transition: width 0.5s ease; /* Smooth animation if width changes */
+}
+
+/* Placeholder widths to match the visual appearance */
+.income-bar { width: 60%; }
+.spent-bar { width: 85%; }
+.savings-bar { width: 70%; }
+.scheduled-bar { width: 75%; }
+
+/* Optional: Style for the flash messages on dashboard if any */
+.main-content .flash {
+    margin-bottom: 20px; /* Add margin above content */
+}

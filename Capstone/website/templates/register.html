@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <div class="right">
+        <h2>Registration</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Use url_for with blueprint name 'auth' and the function name 'register' -->
+        <form action="{{ url_for('auth.register') }}" method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit" class="login-btn">Register</button>
+        </form>
+        <p class="alt">or register with</p>
+        <button class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" style="width: 20px; vertical-align: middle; margin-right: 8px;">
+            Continue with Google
+        </button> <!-- Placeholder button -->
+    </div>
+    <div class="left">
+        <h2>Hello, Welcome!</h2>
+        <!-- Use url_for with blueprint name 'auth' and the function name 'login' -->
+        <a href="{{ url_for('auth.login') }}" class="register-btn">Login</a>
+    </div>
+</div>
+</body>
+</html>
