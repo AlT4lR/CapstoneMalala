@@ -1,4 +1,4 @@
-# run.py
+# main.py
 # This file is located *outside* the 'website' package folder
 
 from website import create_app # Import create_app from your package

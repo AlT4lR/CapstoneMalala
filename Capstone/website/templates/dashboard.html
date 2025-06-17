@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Dashboard - DecoOffice</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Optional: Include a font-awesome library for icons if you want them #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -15,31 +17,43 @@
             </div>
             <nav class="sidebar-nav">
                 <ul>
+                    {# Home link is active on the dashboard page #}
                     <li class="active"><a href="{{ url_for('main.dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
-                    <li><a href="#"><i class="fas fa-exchange-alt"></i> Transaction</a></li> <!-- Placeholder -->
+                    {# Corrected link to the transactions page #}
+                    <li><a href="{{ url_for('main.transactions') }}"><i class="fas fa-exchange-alt"></i> Transaction</a></li>
                     <li><a href="#"><i class="fas fa-wallet"></i> Wallet</a></li> <!-- Placeholder -->
                     <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li> <!-- Placeholder -->
                     <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
                 </ul>
             </nav>
-             {# Optional: Display username if passed from Flask #}
+             {# Display username if passed from Flask #}
              {% if username %}
                 <div class="logged-in-user">Logged in as: {{ username }}</div>
              {% endif %}
+             {# Optional: Display selected branch in sidebar if desired #}
+             {# {% if selected_branch %} <div class="logged-in-user">Branch: {{ selected_branch }}</div> {% endif %} #}
         </div>
 
         <!-- Main Content Area -->
         <div class="main-content">
 
-            {# ADDED: Block to display and consume flashed messages on the dashboard #}
+            {# Block to display and consume flashed messages #}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">{{ message }}</div>
-                    {% endfor %}
+                    <div class="flash-messages-container">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             {% endwith %}
-            {# END ADDED BLOCK #}
+
+            {# Display the name of the selected branch prominently #}
+            {% if selected_branch %}
+                <h1 class="dashboard-branch-title">Dashboard for {{ selected_branch }}</h1>
+            {% else %}
+                 <h1 class="dashboard-branch-title">Dashboard</h1> {# Default if no branch selected #}
+            {% endif %}
 
 
             <div class="section">
@@ -84,7 +98,9 @@
         </div>
     </div>
 
-    {# Optional: Include a font-awesome library for icons if you want them #}
+    {# Optional: Include Font Awesome if you use icons #}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    {# Link to your custom JS if you added it #}
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>

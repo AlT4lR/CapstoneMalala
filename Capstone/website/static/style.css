@@ -1,10 +1,11 @@
+/* General Body and Container Styles */
 body {
     margin: 0;
     font-family: 'Arial', sans-serif;
     background: #1f1f1f;
 }
 
-.container {
+.container { /* Used for Login and Register pages */
     display: flex;
     width: 80%;
     max-width: 900px;
@@ -14,12 +15,12 @@ body {
     overflow: hidden;
 }
 
-.left, .right {
+.left, .right { /* Used for Login and Register pages */
     flex: 1;
     padding: 40px;
 }
 
-.left {
+.left { /* Used for Login and Register pages */
     background-color: #4a6842;
     color: #fff;
     display: flex;
@@ -28,12 +29,12 @@ body {
     text-align: center;
 }
 
-.left h2 {
+.left h2 { /* Used for Login and Register pages */
     font-size: 24px;
     margin-bottom: 10px;
 }
 
-.left .register-btn {
+.left .register-btn { /* Used for Login page */
     display: inline-block;
     padding: 10px 20px;
     margin-top: 20px;
@@ -41,14 +42,20 @@ body {
     color: #fff;
     text-decoration: none;
     border-radius: 6px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.right h2 {
+.left .register-btn:hover { /* Used for Login page */
+    background-color: rgba(255, 255, 255, 0.1); /* subtle background on hover */
+    border-color: #fff; /* Keep border white */
+}
+
+.right h2 { /* Used for Login and Register pages */
     color: #2f4f2f;
     margin-bottom: 20px;
 }
 
-form input {
+form input { /* Used for Login and Register pages */
     display: block;
     width: 100%;
     padding: 12px;
@@ -57,7 +64,7 @@ form input {
     border-radius: 6px;
 }
 
-.forgot {
+.forgot { /* Used for Login page */
     font-size: 0.9em;
     color: #9cad9c;
     text-decoration: underline;
@@ -65,7 +72,7 @@ form input {
     margin-bottom: 20px;
 }
 
-.login-btn {
+.login-btn { /* Used for Login and Register forms */
     background-color: #4a6842;
     color: #fff;
     border: none;
@@ -74,348 +81,21 @@ form input {
     border-radius: 6px;
     font-weight: bold;
     cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.alt {
+.login-btn:hover { /* Used for Login and Register forms */
+    background-color: #3a5234; /* Make login button slightly darker on hover */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.alt { /* Used for Login and Register pages */
     text-align: center;
     margin: 20px 0 10px;
 }
 
-.google-btn {
-    background-color: #adcaa2;
-    color: white;
-    padding: 12px;
-    width: 100%;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.flash {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 6px;
-    text-align: center;
-    color: #fff;
-}
-
-.flash.success {
-    background-color: #4a6842; /* Green for success */
-}
-
-.flash.error {
-    background-color: #d9534f; /* Red for error */
-}
-
-/* Basic Reset for the dashboard layout */
-.dashboard-container {
-    display: flex; /* Use flexbox for sidebar and main content layout */
-    width: 95%; /* Adjust container width */
-    max-width: 1200px; /* Max width for the dashboard */
-    margin: 20px auto; /* Center the container and add some margin */
-    background: #f6f6e9; /* Light beige background from the image */
-    border-radius: 12px;
-    overflow: hidden;
-    min-height: 80vh; /* Give it a minimum height */
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-}
-
-.sidebar {
-    width: 250px; /* Fixed width for the sidebar */
-    background-color: #e0e3d4; /* Slightly darker beige for sidebar */
-    padding: 20px;
-    flex-shrink: 0; /* Prevent sidebar from shrinking */
-    display: flex;
-    flex-direction: column;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    margin-bottom: 30px;
-    color: #4a6842; /* Dark green text */
-    font-size: 1.5em;
-    font-weight: bold;
-}
-
-.logo-circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 2px solid #4a6842; /* Dark green border */
-    margin-right: 10px;
-}
-
-.sidebar-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.sidebar-nav li {
-    margin-bottom: 10px;
-    border-radius: 8px; /* Rounded corners for list items */
-    overflow: hidden; /* Needed for gradient */
-}
-
-.sidebar-nav a {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    text-decoration: none;
-    color: #2f4f2f; /* Dark forest green for text */
-    font-weight: bold;
-    transition: background-color 0.2s ease;
-}
-
-.sidebar-nav a i {
-    margin-right: 10px;
-    font-size: 1.1em;
-}
-
-/* Style for the active 'Home' item with gradient */
-.sidebar-nav li.active {
-    background: linear-gradient(to right, #4a6842, #adcaa2); /* Gradient from dark to light green */
-}
-
-.sidebar-nav li.active a {
-     color: #fff; /* White text for active item */
-}
-
-.sidebar-nav a:hover {
-    background-color: #adcaa2; /* Lighter green on hover */
-    color: #2f4f2f;
-}
-
-.sidebar-nav li.active a:hover {
-     /* No hover effect on active item background if you want it static */
-     background: linear-gradient(to right, #4a6842, #adcaa2);
-     color: #fff;
-}
-
-.logged-in-user {
-    margin-top: auto; /* Pushes this element to the bottom */
-    padding: 10px;
-    text-align: center;
-    font-size: 0.9em;
-    color: #607d8b; /* A subtle color */
-    border-top: 1px solid #d3d6c4; /* Separator line */
-}
-
-
-/* Main Content Styles */
-.main-content {
-    flex-grow: 1; /* Allows content to take up remaining space */
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 30px; /* Space between sections */
-}
-
-.main-content h2 {
-    color: #4a6842; /* Dark green heading color */
-    margin-bottom: 20px;
-    font-size: 1.8em;
-    border-bottom: 2px solid #d3d6c4; /* Separator under heading */
-    padding-bottom: 5px;
-}
-
-/* Invoice Section */
-.invoice-cards {
-    display: flex;
-    gap: 20px; /* Space between cards */
-}
-
-.invoice-card {
-    flex: 1; /* Allows cards to grow and shrink */
-    background-color: #adcaa2; /* Light green card background */
-    border-radius: 8px;
-    height: 150px; /* Fixed height for cards */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Push label to the bottom */
-    padding: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Card shadow */
-    position: relative; /* Needed for absolute positioning of label */
-}
-
-/* Style variations for paid, on-going, declined */
-.invoice-card.paid { background-color: #adcaa2; }
-.invoice-card.on-going { background-color: #adcaa2; }
-.invoice-card.declined { background-color: #adcaa2; } /* Use distinct colors if desired */
-
-.invoice-card .card-content {
-    flex-grow: 1; /* Content area takes up space above label */
-    /* Add styles here for any content inside the cards */
-}
-
-.invoice-card .card-label {
-    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background for label */
-    color: #4a6842; /* Dark green label text */
-    padding: 5px 15px;
-    border-radius: 20px; /* Pill shape */
-    font-size: 0.9em;
-    font-weight: bold;
-    text-align: center;
-    align-self: center; /* Center the label horizontally */
-    margin-top: 10px; /* Space above label */
-    /* Position label at the bottom center if needed, but centering within flex works well */
-}
-
-
-/* Budget Section */
-.budget-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 15px; /* Space between budget items */
-}
-
-.budget-item {
-    display: flex;
-    align-items: center;
-    gap: 15px; /* Space between label and bar */
-}
-
-.budget-label {
-    width: 100px; /* Fixed width for labels */
-    font-weight: bold;
-    color: #2f4f2f; /* Dark forest green */
-    text-align: right; /* Align labels to the right */
-}
-
-.bar-container {
-    flex-grow: 1; /* Container takes up remaining space */
-    background-color: #d3d6c4; /* Lighter background for the track */
-    border-radius: 6px;
-    height: 20px; /* Height of the bar */
-    overflow: hidden; /* Hide overflowing bar */
-}
-
-.budget-bar {
-    height: 100%;
-    background-color: #4a6842; /* Dark green bar color */
-    border-radius: 6px;
-    /* Add widths here to represent data - these are placeholders */
-    /* Example: width: 70%; for 70% full bar */
-    transition: width 0.5s ease; /* Smooth animation if width changes */
-}
-
-/* Placeholder widths to match the visual appearance */
-.income-bar { width: 60%; }
-.spent-bar { width: 85%; }
-.savings-bar { width: 70%; }
-.scheduled-bar { width: 75%; }
-
-/* Optional: Style for the flash messages on dashboard if any */
-.main-content .flash {
-    margin-bottom: 20px; /* Add margin above content */
-}
-/* Keep .branches-page-container and .branches-content basic styles */
-.branches-page-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 80%;
-    max-width: 600px; /* Adjust max width for the list layout */
-    margin: 50px auto;
-    background: #f6f6e9;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    min-height: 500px;
-    padding: 40px 20px; /* Adjust padding for potential scrollbar */
-    position: relative;
-    /* Remove padding-bottom if footer is removed */
-}
-
-.branches-content {
-    flex-grow: 1;
-    text-align: center;
-    width: 100%;
-}
-
-.branches-content h1 {
-    color: #4a6842;
-    margin-bottom: 30px;
-    font-size: 2em;
-}
-
-/* --- New Styles for Branch List --- */
-.branch-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%; /* List takes full width of content area */
-}
-
-.branch-list-item {
-    border-bottom: 1px solid #d3d6c4; /* Separator line like in chat apps */
-    margin-bottom: 0; /* No bottom margin */
-    padding: 0; /* No padding on li */
-}
-
-.branch-list-item:last-child {
-    border-bottom: none; /* No border on the last item */
-}
-
-.branch-link {
-    display: flex; /* Arrange icon and text side-by-side */
-    align-items: center; /* Vertically center items */
-    padding: 15px 10px; /* Padding inside the clickable area */
-    text-decoration: none; /* Remove underline from link */
-    color: #2f4f2f; /* Default text color */
-    transition: background-color 0.2s ease; /* Smooth hover effect */
-    border-radius: 4px; /* Slight rounding on hover background */
-}
-
-.branch-link:hover {
-    background-color: #e0e3d4; /* Light hover background */
-}
-
-.branch-icon-container {
-    width: 50px; /* Size of the icon container */
-    height: 50px;
-    border-radius: 50%; /* Make it round */
-    background-color: #adcaa2; /* Light green background for the circle */
-    display: flex; /* Center the icon/image inside */
-    justify-content: center;
-    align-items: center;
-    margin-right: 15px; /* Space between circle and text */
-    overflow: hidden; /* Hide parts of the image/icon if it's not round */
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-/* Style for Font Awesome icon inside the circle */
-.branch-icon-container .fas {
-    font-size: 1.5em;
-    color: #4a6842; /* Dark green icon color */
-}
-
-/* If using an <img>, style it to fit and be round */
-.branch-icon-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Cover the container without distorting */
-    border-radius: 50%; /* Ensure the image itself is round if container isn't enough */
-}
-
-
-.branch-name {
-    flex-grow: 1; /* Allow the name text to take up space */
-    font-size: 1.1em;
-    font-weight: bold;
-    /* Optional: add styles for subtitle if you add one */
-    /* display: flex; flex-direction: column; */
-}
-
-/* Optional: Style for the flash messages container */
-.flash-messages-container {
-    margin-bottom: 20px;
-    /* You can add padding, borders, etc. here */
-}
-
-.google-btn {
+.google-btn { /* Used for Login and Register pages */
     background-color: #adcaa2;
     color: white; /* Or a darker color for better contrast with hover */
     padding: 12px;
@@ -424,44 +104,573 @@ form input {
     border-radius: 6px;
     font-weight: bold;
     cursor: pointer;
-    /* Add a transition for smooth animation */
     transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.google-btn:hover {
+.google-btn:hover { /* Used for Login and Register pages */
     background-color: #9cb791; /* Slightly darker green on hover */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
     transform: translateY(-1px); /* Lift the button slightly */
 }
 
-/* Ensure other buttons also have hover effects if you want them */
-.login-btn:hover {
-     background-color: #3a5234; /* Example: Make login button slightly darker on hover */
-     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-     transform: translateY(-1px);
+.flash { /* Used for flashed messages */
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    text-align: center;
+    color: #fff;
 }
 
-/* For the Register button on the left side (if it's an <a>) */
-.left .register-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1); /* Example: subtle background on hover */
-    border-color: #fff; /* Keep border white */
+.flash.success { /* Used for successful flash messages */
+    background-color: #4a6842; /* Green for success */
 }
 
-/* Ensure sidebar links have a visible hover effect */
-.sidebar-nav a:hover {
-     background-color: #d3d6c4; /* Lighter background on hover */
-     color: #2f4f2f;
+.flash.error { /* Used for error flash messages */
+    background-color: #d9534f; /* Red for error */
 }
 
-/* Ensure branch list links have a visible hover effect */
-.branch-link:hover {
-    background-color: #e0e3d4; /* Light hover background */
+.flash-messages-container { /* Container for flashed messages */
+    margin-bottom: 20px;
+    /* You can add padding, borders, etc. here */
 }
 
-.dashboard-branch-title {
-    color: #2f4f2f; /* Dark forest green */
-    margin-top: 0; /* Remove default margin-top */
-    margin-bottom: 30px; /* Add space below the title */
-    font-size: 2em; /* Make it prominent */
-    text-align: center; /* Center the title */
+
+/* Styles for the Dashboard and Transaction Layout */
+.dashboard-container { /* Main container for Dashboard and Transaction pages */
+    display: flex;
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+    background: #f6f6e9;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 80vh;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar { /* Sidebar on Dashboard and Transaction pages */
+    width: 250px;
+    background-color: #e0e3d4;
+    padding: 20px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo { /* Logo in the sidebar */
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    color: #4a6842;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.logo-circle { /* Circle part of the logo */
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #4a6842;
+    margin-right: 10px;
+}
+
+.sidebar-nav ul { /* Navigation list in the sidebar */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li { /* List items in sidebar navigation */
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sidebar-nav a { /* Links in sidebar navigation */
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: #2f4f2f;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-nav a i { /* Icons in sidebar navigation */
+    margin-right: 10px;
+    font-size: 1.1em;
+}
+
+.sidebar-nav li.active { /* Style for the active sidebar item */
+    background: linear-gradient(to right, #4a6842, #adcaa2); /* Gradient */
+}
+
+.sidebar-nav li.active a { /* Text color for the active sidebar item */
+    color: #fff;
+}
+
+.sidebar-nav a:hover { /* Hover effect for sidebar links */
+    background-color: #d3d6c4; /* Lighter background on hover */
+    color: #2f4f2f;
+}
+
+.sidebar-nav li.active a:hover { /* Hover effect for the active sidebar item (keeps gradient) */
+    background: linear-gradient(to right, #4a6842, #adcaa2);
+    color: #fff;
+}
+
+.logged-in-user { /* Displays logged-in username in sidebar */
+    margin-top: auto; /* Pushes to the bottom */
+    padding: 10px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #607d8b;
+    border-top: 1px solid #d3d6c4;
+}
+
+.main-content { /* Main content area next to sidebar */
+    flex-grow: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px; /* Space between sections */
+}
+
+.main-content h2 { /* Section headings in main content */
+    color: #4a6842;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #d3d6c4;
+    padding-bottom: 5px;
+}
+
+/* Styles for the Branches Page */
+.branches-page-container { /* Main container for the Branches page */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80%;
+    max-width: 600px; /* Adjust max width as needed */
+    margin: 50px auto;
+    background: #f6f6e9;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    min-height: 500px;
+    padding: 40px 20px;
+    position: relative;
+    text-align: center;
+}
+
+.branches-content { /* Content area on the Branches page */
+    flex-grow: 1;
+    width: 100%;
+}
+
+.branches-content h1 { /* Heading on the Branches page */
+    color: #4a6842;
+    margin-bottom: 30px;
+    font-size: 2em;
+    border-bottom: 2px solid #d3d6c4;
+    padding-bottom: 10px;
+    display: inline-block;
+}
+
+.branches-page-container .flash-messages-container { /* Flash messages on Branches page */
+    margin-bottom: 20px;
+    width: 95%;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Styles for the Branch Selection Grid/Cards (Optional: Use if showing cards) */
+.branch-selection-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    padding: 20px 0;
+}
+
+.branch-selection-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 200px;
+    text-align: center;
+}
+
+.branch-selection-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.branch-card {
+    width: 180px;
+    height: 250px;
+    background-color: #adcaa2;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+}
+
+.branch-name-text {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #2f4f2f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.branch-name-text i {
+    margin-left: 8px;
+    font-size: 0.9em;
+}
+
+/* Styles for the Branches List (Messenger Style - Optional: Use if showing list) */
+.branch-list-messenger-style {
+    width: 100%;
+    background-color: #e0e3d4;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.branch-messenger-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #d3d6c4;
+    transition: background-color 0.2s ease;
+}
+
+.branch-messenger-item:last-child {
+    border-bottom: none;
+}
+
+.branch-messenger-item:hover {
+    background-color: #d3d6c4;
+}
+
+.branch-icon-container-messenger {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: #adcaa2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.branch-icon-container-messenger .fas {
+    font-size: 1.8em;
+    color: #4a6842;
+}
+
+.branch-info-messenger {
+    flex-grow: 1;
+    margin-right: 10px;
+    overflow: hidden;
+}
+
+.branch-name-messenger {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #2f4f2f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.branch-subtitle-messenger {
+    font-size: 0.9em;
+    color: #607d8b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.branch-arrow-messenger {
+    font-size: 1em;
+    color: #4a6842;
+    flex-shrink: 0;
+}
+
+.logout-link-branches { /* Logout link on Branches page */
+    margin-top: 40px;
+}
+
+.logout-link-branches a {
+    color: #4a6842;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.logout-link-branches a:hover {
+    color: #2f4f2f;
+    text-decoration: underline;
+}
+
+
+/* Styles for the Dashboard Page */
+.dashboard-branch-title { /* Title on the Dashboard page */
+    color: #2f4f2f;
+    margin-top: 0;
+    margin-bottom: 30px;
+    font-size: 2em;
+    text-align: center;
+}
+
+/* Styles for the Transaction List Page */
+.transactions-controls { /* Controls section on Transaction page */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.control-group { /* Grouping for controls */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-button { /* Buttons in transaction controls */
+    background-color: #e0e3d4;
+    border: 1px solid #d3d6c4;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 1em;
+    color: #2f4f2f;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.control-button:hover {
+    background-color: #d3d6c4;
+    border-color: #c1c4b5;
+}
+
+.control-select { /* Select dropdown in transaction controls */
+    border: 1px solid #d3d6c4;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 1em;
+    color: #2f4f2f;
+    background-color: #f6f6e9;
+    cursor: pointer;
+}
+
+.control-search { /* Search input in transaction controls */
+    border: 1px solid #d3d6c4;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 1em;
+    color: #2f4f2f;
+    background-color: #f6f6e9;
+    width: 150px;
+}
+
+.transaction-details-button { /* "Transaction Details" button */
+    background-color: #4a6842;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-details-button:hover {
+    background-color: #3a5234;
+}
+
+.transaction-table-container { /* Container for the transaction table */
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.transaction-table { /* The transaction table */
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #e0e3d4;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.transaction-table th,
+.transaction-table td { /* Table headers and data cells */
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #d3d6c4;
+    color: #2f4f2f;
+}
+
+.transaction-table th { /* Table headers specifically */
+    background-color: #adcaa2;
+    font-weight: bold;
+    color: #4a6842;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+.transaction-table tbody tr:last-child td { /* No border on the last row */
+    border-bottom: none;
+}
+
+.transaction-row { /* Individual transaction rows */
+    transition: background-color 0.2s ease;
+}
+
+.transaction-row:hover { /* Hover effect for transaction rows */
+    background-color: #d3d6c4;
+}
+
+.transaction-type-options { /* Placeholder for transaction type options */
+    margin-top: 20px;
+    font-size: 0.9em;
+    color: #607d8b;
+    text-align: right;
+    padding-right: 15px;
+}
+
+/* Styles for the Transaction Details Page */
+.transaction-details-container { /* Main container for Transaction Details */
+    width: 90%;
+    max-width: 500px;
+    margin: 50px auto;
+    background: #f6f6e9;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    position: relative;
+    font-family: 'Arial', sans-serif;
+    color: #2f4f2f;
+}
+
+.transaction-details-header { /* Header section of Transaction Details */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #d3d6c4;
+}
+
+.transaction-details-header h2 { /* Heading in Transaction Details header */
+    color: #4a6842;
+    font-size: 1.5em;
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.close-button { /* Close button in Transaction Details header */
+    color: #d9534f;
+    font-size: 1.5em;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.close-button:hover {
+    color: #c9302c;
+}
+
+.transaction-status-box { /* Status box (checkmark, text, amount) */
+    background-color: #adcaa2;
+    border-radius: 8px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    color: #2f4f2f;
+}
+
+.status-icon .fas { /* Icon in status box */
+    color: #4a6842;
+    font-size: 1.8em;
+}
+
+.status-text { /* Text in status box */
+    flex-grow: 1;
+    font-size: 1.1em;
+}
+
+.transaction-amount { /* Amount in status box */
+    font-size: 1.2em;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.details-section,
+.notes-section { /* Sections for details and notes */
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #d3d6c4;
+}
+
+.notes-section { /* Notes section specifically (no bottom border) */
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.details-section h3,
+.notes-section h3 { /* Subheadings in details and notes sections */
+    color: #4a6842;
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.detail-item { /* Individual detail items (label and value) */
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 1em;
+    color: #2f4f2f;
+}
+
+.detail-label { /* Label part of detail item */
+    font-weight: bold;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.detail-value { /* Value part of detail item */
+    text-align: right;
+    flex-grow: 1;
+    word-break: break-all;
+}
+
+.notes-box { /* Box containing notes text */
+    background-color: #e0e3d4;
+    border: 1px solid #d3d6c4;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 80px;
+    color: #2f4f2f;
+    font-size: 1em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }

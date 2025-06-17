@@ -2,38 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - DecoOffice</title>
+    <title>Select Branch - DecoOffice</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    {# Optional: Include a font-awesome library for icons if you want them #}
+    {# Include Font Awesome for icons #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <div class="logo-circle"></div>
-                <span>DecoOffice</span>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="active"><a href="{{ url_for('main.dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
-                    <li><a href="#"><i class="fas fa-exchange-alt"></i> Transaction</a></li> <!-- Placeholder -->
-                    <li><a href="#"><i class="fas fa-wallet"></i> Wallet</a></li> <!-- Placeholder -->
-                    <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li> <!-- Placeholder -->
-                    <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
-                </ul>
-            </nav>
-             {# Display username if passed from Flask #}
-             {% if username %}
-                <div class="logged-in-user">Logged in as: {{ username }}</div>
-             {% endif %}
-             {# Optional: Display selected branch in sidebar if desired #}
-             {# {% if selected_branch %} <div class="logged-in-user">Branch: {{ selected_branch }}</div> {% endif %} #}
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="main-content">
+    {# Use the existing branches page container #}
+    <div class="branches-page-container">
+        <div class="branches-content">
+            <h1>BRANCHES</h1>
 
             {# Block to display and consume flashed messages #}
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -46,60 +24,40 @@
                 {% endif %}
             {% endwith %}
 
-            {# ADDED: Display the name of the selected branch prominently #}
-            {% if selected_branch %}
-                <h1 class="dashboard-branch-title">Dashboard for {{ selected_branch }}</h1>
-            {% else %}
-                 <h1 class="dashboard-branch-title">Dashboard</h1> {# Default if no branch selected #}
-            {% endif %}
-            {# END ADDED #}
-
-
-            <div class="section">
-                <h2>INVOICES</h2>
-                <div class="invoice-cards">
-                    <div class="invoice-card paid">
-                        <div class="card-content"></div> {# Placeholder for potential content #}
-                        <span class="card-label">paid</span>
-                    </div>
-                    <div class="invoice-card on-going">
-                         <div class="card-content"></div> {# Placeholder #}
-                        <span class="card-label">on-going</span>
-                    </div>
-                    <div class="invoice-card declined">
-                         <div class="card-content"></div> {# Placeholder #}
-                        <span class="card-label">declined</span>
-                    </div>
-                </div>
+            <!-- Container for the list of branches in Messenger style -->
+            <div class="branch-list-messenger-style">
+                {% for branch in branches %}
+                    <!-- Each branch item styled like a messenger list item -->
+                    <a href="{{ url_for('main.select_branch', branch_name=branch['name']) }}" class="branch-messenger-item">
+                        <div class="branch-icon-container-messenger">
+                            {# Use a generic building icon or replace with branch-specific icons #}
+                             <i class="fas fa-building"></i>
+                            {# Optional: Add an online status indicator if branches had a status #}
+                            {# <div class="online-status-indicator online"></div> #}
+                        </div>
+                        <div class="branch-info-messenger">
+                            <!-- Branch Name as the main title -->
+                            <div class="branch-name-messenger">{{ branch['name'] }}</div>
+                            <!-- Optional: Add a subtitle or brief description for the branch -->
+                            {# <div class="branch-subtitle-messenger">Select to view details</div> #}
+                        </div>
+                         {# Optional: Add a status indicator on the right if branches had a status #}
+                         {# <div class="status-indicator"></div> #}
+                         <!-- Add the arrow icon on the right -->
+                         <div class="branch-arrow-messenger"><i class="fas fa-arrow-right"></i></div>
+                    </a>
+                {% endfor %}
             </div>
 
-            <div class="section">
-                <h2>BUDGET</h2>
-                <div class="budget-bars">
-                    <div class="budget-item">
-                        <span class="budget-label">income</span>
-                        <div class="bar-container"><div class="budget-bar income-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">spent</span>
-                        <div class="bar-container"><div class="budget-bar spent-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">savings</span>
-                        <div class="bar-container"><div class="budget-bar savings-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">scheduled</span>
-                        <div class="bar-container"><div class="budget-bar scheduled-bar"></div></div>
-                    </div>
-                </div>
-            </div>
+            {# Optional: Add a logout link here #}
+            <p class="logout-link-branches"><a href="{{ url_for('auth.logout') }}">Logout</a></p>
+
         </div>
     </div>
 
-    {# Optional: Include Font Awesome if you use icons #}
+    {# Include Font Awesome JS #}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
-    {# Link to your custom JS if you added it #}
+    {# Link to your custom JS #}
     <script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>

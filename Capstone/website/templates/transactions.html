@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transactions - DecoOffice</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Optional: Include a font-awesome library for icons if you want them #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <div class="logo-circle"></div>
+                <span>DecoOffice</span>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    {# Link back to the dashboard/home page #}
+                    <li><a href="{{ url_for('main.dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+                    {# Set the Transactions link as active #}
+                    <li class="active"><a href="{{ url_for('main.transactions') }}"><i class="fas fa-exchange-alt"></i> Transactions</a></li>
+                    <li><a href="#"><i class="fas fa-wallet"></i> Wallet</a></li> <!-- Placeholder -->
+                    <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li> <!-- Placeholder -->
+                    <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
+                </ul>
+            </nav>
+             {# Display username if passed from Flask #}
+             {% if username %}
+                <div class="logged-in-user">Logged in as: {{ username }}</div>
+             {% endif %}
+             {# Optional: Display selected branch in sidebar if desired #}
+             {# {% if selected_branch %} <div class="logged-in-user">Branch: {{ selected_branch }}</div> {% endif %} #}
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+
+            {# Block to display and consume flashed messages #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages-container">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <h1 class="dashboard-branch-title">TRANSACTIONS</h1> {# Title for the Transactions page #}
+
+            <!-- Transaction Controls/Filters Section -->
+            <div class="transactions-controls">
+                 <div class="control-group">
+                    <button class="control-button"><i class="fas fa-sync-alt"></i></button> {# Refresh #}
+                    <button class="control-button"><i class="fas fa-minus-circle"></i></button> {# Zoom Out #}
+                 </div>
+                 <div class="control-group">
+                    <select class="control-select">
+                        <option value="">Sort By</option> {# Placeholder #}
+                    </select>
+                 </div>
+                 <div class="control-group">
+                    <button class="control-button"><i class="fas fa-filter"></i></button> {# Filter #}
+                    <input type="text" placeholder="Search..." class="control-search"> {# Search Input #}
+                    <button class="control-button"><i class="fas fa-search"></i></button> {# Search Button #}
+                 </div>
+                 <div class="control-group">
+                     {# The button below is likely a placeholder or for a different function #}
+                     {# The table rows themselves are now clickable to view details #}
+                     <button class="transaction-details-button">Transaction Details</button>
+                 </div>
+            </div>
+
+            <!-- Transaction Table Section -->
+            <div class="transaction-table-container">
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Names</th>
+                            <th>Transaction Type</th>
+                            <th>Transaction ID</th>
+                            <th>Date & Time</th>
+                            <th>Amount</th>
+                            <th>Payment</th>
+                             {# Add more headers as needed #}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {# Loop through the transactions passed from the Flask route #}
+                        {% for transaction in transactions %}
+                            {# Make each row a clickable link to the transaction_details route #}
+                            <tr class="transaction-row" onclick="window.location='{{ url_for('main.transaction_details', transaction_id=transaction.id) }}';">
+                                <td>{{ transaction.recipient }}</td>
+                                <td>{{ transaction.type }}</td>
+                                <td>{{ transaction.id }}</td>
+                                <td>{{ transaction.date }} {{ transaction.time }}</td> {# Display date and time #}
+                                <td>₱ {{ "{:,.2f}".format(transaction.amount) }}</td> {# Format and display amount #}
+                                <td>{{ transaction.payment_method }}</td> {# Display payment method #}
+                                 {# Add more data cells as needed #}
+                            </tr>
+                        {% else %}
+                            {# Message to display if there are no transactions #}
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No transactions found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                 {# Placeholder for transaction type options as seen in the image #}
+                 <div class="transaction-type-options">
+                    deposit<br>
+                    refund<br>
+                    transfer<br>
+                 </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    {# Optional: Include Font Awesome if you use icons #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    {# Link to your custom JS if you added it #}
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
+</body>
+</html>
