@@ -26,7 +26,7 @@
                     <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
                 </ul>
             </nav>
-             {# Display username if passed from Flask #}
+             {# Optional: Display username if passed from Flask #}
              {% if username %}
                 <div class="logged-in-user">Logged in as: {{ username }}</div>
              {% endif %}
@@ -57,7 +57,7 @@
 
 
             <div class="section">
-                <h2>INVOICES</h2>
+                <h2>INVOICES STATUS</h2> {# Updated heading to match image #}
                 <div class="invoice-cards">
                     <div class="invoice-card paid">
                         <div class="card-content"></div> {# Placeholder for potential content #}
@@ -76,6 +76,35 @@
 
             <div class="section">
                 <h2>BUDGET</h2>
+                {# Budget time period buttons #}
+                <div class="budget-time-selectors">
+                    <button class="time-button">TODAY</button>
+                    <button class="time-button">WEEK</button>
+                    <button class="time-button active">MONTH</button> {# 'MONTH' is active in the image #}
+                </div>
+
+                {# Budget Legend #}
+                <div class="budget-legend">
+                    <span class="legend-item"><span class="legend-color income"></span> Income</span>
+                    <span class="legend-item"><span class="legend-color spent"></span> Spent</span>
+                    <span class="legend-item"><span class="legend-color savings"></span> Savings</span>
+                    <span class="legend-item"><span class="legend-color scheduled"></span> Scheduled</span>
+                </div>
+
+                {# Pie Chart Area #}
+                <div class="pie-chart-container">
+                    <div class="pie-chart">
+                        {# The pie chart segments will be created and styled purely with CSS conic gradients #}
+                        {# Add text labels positioned over the chart using CSS #}
+                        <div class="chart-label income-label">10%</div>
+                        <div class="chart-label spent-label">20%</div>
+                        <div class="chart-label savings-label">30%</div>
+                        <div class="chart-label scheduled-label">40%</div>
+                    </div>
+                </div>
+
+                {# Removed the old budget bars section #}
+                {#
                 <div class="budget-bars">
                     <div class="budget-item">
                         <span class="budget-label">income</span>
@@ -94,6 +123,7 @@
                         <div class="bar-container"><div class="budget-bar scheduled-bar"></div></div>
                     </div>
                 </div>
+                #}
             </div>
         </div>
     </div>

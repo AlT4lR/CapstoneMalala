@@ -244,7 +244,8 @@ form input { /* Used for Login and Register pages */
     padding-bottom: 5px;
 }
 
-/* Styles for the Branches Page */
+
+/* Styles for the Branches Page Container and Content */
 .branches-page-container { /* Main container for the Branches page */
     display: flex;
     flex-direction: column;
@@ -674,3 +675,148 @@ form input { /* Used for Login and Register pages */
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+/*
+.budget-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.budget-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.budget-label {
+    width: 100px;
+    font-weight: bold;
+    color: #2f4f2f;
+    text-align: right;
+}
+
+.bar-container {
+    flex-grow: 1;
+    background-color: #d3d6c4;
+    border-radius: 6px;
+    height: 20px;
+    overflow: hidden;
+}
+
+.budget-bar {
+    height: 100%;
+    background-color: #4a6842;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+}
+
+.income-bar { width: 60%; }
+.spent-bar { width: 85%; }
+.savings-bar { width: 70%; }
+.scheduled-bar { width: 75%; }
+*/
+
+/* --- New Styles for the Budget Section with Pie Chart --- */
+
+.budget-time-selectors {
+    display: flex;
+    justify-content: center; /* Center the buttons */
+    margin-bottom: 20px;
+    background-color: #e0e3d4; /* Lighter background for the button group */
+    border-radius: 20px; /* Pill shape for the container */
+    padding: 5px;
+    gap: 5px; /* Space between buttons */
+}
+
+.time-button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 15px; /* Pill shape for buttons */
+    background-color: transparent; /* Default transparent background */
+    color: #2f4f2f; /* Dark green text color */
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.time-button.active {
+    background-color: #4a6842; /* Dark green background for active button */
+    color: #fff; /* White text for active button */
+}
+
+.time-button:hover:not(.active) {
+    background-color: #d3d6c4; /* Hover effect for non-active buttons */
+}
+
+.budget-legend {
+    display: flex;
+    justify-content: center; /* Center the legend items */
+    flex-wrap: wrap; /* Allow legend items to wrap */
+    gap: 20px; /* Space between legend items */
+    margin-bottom: 30px;
+    font-size: 0.9em;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    color: #2f4f2f; /* Dark green text for legend items */
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px; /* Size of the color square/circle */
+    height: 12px;
+    border-radius: 50%; /* Make it round */
+    margin-right: 5px;
+}
+
+/* Specific colors for legend items - match chart colors */
+.legend-color.income { background-color: #ffeb3b; /* Yellow */ }
+.legend-color.spent { background-color: #9c27b0; /* Purple */ }
+.legend-color.savings { background-color: #e91e63; /* Pink */ }
+.legend-color.scheduled { background-color: #2196f3; /* Blue */ }
+
+
+.pie-chart-container {
+    display: flex;
+    justify-content: center; /* Center the pie chart */
+    align-items: center; /* Center content vertically */
+    position: relative; /* Needed to position labels over the chart */
+    width: 250px; /* Set a width for the container */
+    height: 250px; /* Set a height for the container */
+    margin: 0 auto; /* Center the container block */
+}
+
+.pie-chart {
+    width: 100%; /* Make pie chart fill its container */
+    height: 100%;
+    border-radius: 50%; /* Make it round */
+    /* Define the pie chart segments using conic-gradient */
+    /* Percentages from the image: Income 10%, Spent 20%, Savings 30%, Scheduled 40% */
+    /* Order: Income (10%), Spent (20%), Savings (30%), Scheduled (40%) */
+    background: conic-gradient(
+        #ffeb3b 0% 10%,         /* Income (Yellow) */
+        #9c27b0 10% 30%,         /* Spent (Purple) - 10% + 20% = 30% */
+        #e91e63 30% 60%,         /* Savings (Pink) - 30% + 30% = 60% */
+        #2196f3 60% 100%         /* Scheduled (Blue) - 60% + 40% = 100% */
+    );
+     /* Add a subtle shadow to the pie chart */
+     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles to position the percentage labels over the pie chart */
+/* These positions are approximate and may need fine-tuning based on exact size */
+.chart-label {
+    position: absolute;
+    font-weight: bold;
+    color: #fff; /* White text for labels */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Add text shadow for readability */
+    font-size: 1em;
+}
+
+.income-label { top: 10%; left: 60%; }    /* Position for 10% (Income) */
+.spent-label { top: 30%; left: 70%; }     /* Position for 20% (Spent) */
+.savings-label { bottom: 25%; left: 60%; } /* Position for 30% (Savings) */
+.scheduled-label { bottom: 30%; left: 25%; }/* Position for 40% (Scheduled) */
