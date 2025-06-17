@@ -96,34 +96,6 @@ Follow these steps to get your development environment set up and running.
 
 4.  **Navigate:** Use the links in the sidebar (after selecting a branch) to explore the dashboard and transactions pages.
 
----
-
-## File Structure (Optional but helpful)
-Use code with caution.
-Markdown
-.
-├── main.py # Entry point of the application
-├── website/ # Flask application package
-│ ├── init.py # Initializes the Flask app and registers blueprints
-│ ├── auth.py # Handles authentication routes (login, register, logout)
-│ ├── models.py # Data models (dummy users for now)
-│ ├── views.py # Handles main application routes (dashboard, branches, transactions)
-│ ├── static/ # Static files (CSS, JS, images)
-│ │ ├── style.css
-│ │ ├── index.js
-│ │ └── images/ # Optional: folder for images like logos, icons, screenshots
-│ └── templates/ # HTML templates
-│ ├── branches.html
-│ ├── dashboard.html
-│ ├── login.html
-│ ├── register.html
-│ ├── transactions.html
-│ └── transaction_details.html # Added transaction details template
-├── requirements.txt # Project dependencies
-├── .gitignore # Files to ignore in Git
-└── README.md # This file
-Generated code
----
 
 ## Contributing
 
