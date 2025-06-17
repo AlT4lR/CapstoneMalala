@@ -16,11 +16,11 @@ auth = Blueprint('auth', __name__)
 @auth.route('/login', methods=['GET'])
 @auth.route('/', methods=['GET']) # Also handle the root URL
 def login():
-    """Displays the login page or redirects to dashboard if logged in."""
+    """Displays the login page or redirects to branches if logged in."""
     # If user is already logged in, redirect to the branches page
     if 'username' in session:
         # Redirect to the 'branches' endpoint in the 'main' blueprint
-        return redirect(url_for('main.branches')) # Changed from main.dashboard
+        return redirect(url_for('main.branches'))
     # Otherwise, show the login page
     return render_template('login.html')
 
@@ -40,7 +40,7 @@ def auth_post():
         session['username'] = username
         # Redirect to the branches endpoint in the 'main' blueprint
         flash('Login successful!', 'success') # Optional: add a success message
-        return redirect(url_for('main.branches')) # Changed from main.dashboard
+        return redirect(url_for('main.branches'))
     else:
         # Login failed: Flash error message
         flash('Invalid username or password', 'error')
