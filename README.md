@@ -68,11 +68,11 @@ Follow these steps to get your development environment set up and running.
     ```bash
     pip install -r requirements.txt
     ```
-    (Make sure you have a `requirements.txt` file generated using `pip freeze > requirements.txt` if you haven't already). If you don't have a `requirements.txt`, you can install Flask directly:
+You can Install Flask directly
     ```bash
     pip install Flask
     ```
-    (And any other libraries you added, like `Werkzeug` for password hashing if you use it).
+
 
 ---
 
@@ -92,7 +92,7 @@ Follow these steps to get your development environment set up and running.
 
     *   **Username:** `admin`
     *   **Password:** `admin`
-    *(Note: In a real application, never use hardcoded default passwords and always use hashed passwords!)*
+
 
 4.  **Navigate:** Use the links in the sidebar (after selecting a branch) to explore the dashboard and transactions pages.
 
