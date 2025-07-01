@@ -3,190 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard - DecoOffice</title>
-    {# Link to the generated Tailwind CSS file #}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {# Optional: Include a font-awesome library for icons if you want them #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-dark-bg"> {# Apply the body background color using a custom color class #}
-
-    {# Corresponds to .dashboard-container #}
-    <div class="flex w-11/12 max-w-screen-xl mx-auto mt-5 bg-light-beige rounded-xl overflow-hidden shadow-xl min-h-screen"> {# display: flex, width: 95% (w-11/12 - approximate), max-width: 1200px (max-w-screen-xl), margin: 20px auto (mx-auto mt-5), background: #f6f6e9 (bg-light-beige), border-radius: 12px (rounded-xl), overflow: hidden, min-height: 80vh (min-h-screen - adjusting for full screen), box-shadow (shadow-xl) #}
-
+<body>
+    <div class="dashboard-container">
         <!-- Sidebar -->
-        {# Corresponds to .sidebar #}
-        <div class="w-64 bg-sidebar-bg p-5 flex flex-col flex-shrink-0"> {# width: 250px (w-64), background-color: #e0e3d4 (bg-sidebar-bg), padding: 20px (p-5), flex-shrink: 0, display: flex, flex-direction: column #}
-            {# Corresponds to .logo #}
-            <div class="flex items-center mb-8 text-dark-green text-xl font-bold"> {# display: flex, align-items: center, margin-bottom: 30px (mb-8), color: #4a6842 (text-dark-green), font-size: 1.5em (text-xl), font-weight: bold #}
-                {# Corresponds to .logo-circle #}
-                <div class="w-7.5 h-7.5 rounded-full border-2 border-dark-green mr-2.5"></div> {# width: 30px (w-7.5), height: 30px (h-7.5), border-radius: 50% (rounded-full), border-2, border-dark-green, margin-right: 10px (mr-2.5) #}
+        <div class="sidebar">
+            <div class="logo">
+                <div class="logo-circle"></div>
                 <span>DecoOffice</span>
             </div>
-            {# Corresponds to .sidebar-nav ul #}
-            <nav class="sidebar-nav"> {# Keeping .sidebar-nav class for specific child styles if needed #}
-                <ul class="list-none p-0 m-0"> {# list-style: none, padding: 0, margin: 0 #}
-                    {# Corresponds to .sidebar-nav li and .sidebar-nav li.active #}
-                    <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg"> {# margin-bottom: 10px (mb-2.5), border-radius: 8px (rounded-lg), overflow: hidden, active:background (gradient using custom colors) #}
-                        {# Corresponds to .sidebar-nav a and .sidebar-nav li.active a #}
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg"> {# display: flex, align-items: center, padding: 12px 15px (px-4 py-3), text-decoration: none (no-underline), color: #2f4f2f (text-forest-green), font-weight: bold, transition duration-200, hover:background-color: #d3d6c4 (hover:bg-sidebar-hover), active:color: #fff (active:text-white), active:hover:background (gradient hover effect) #}
-                            {# Corresponds to .sidebar-nav a i #}
-                            <i class="fas fa-home mr-2.5 text-lg"></i> {# margin-right: 10px (mr-2.5), font-size: 1.1em (text-lg) #}
-                            Home
-                        </a>
-                    </li>
-                     <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg">
-                        <a href="{{ url_for('main.transactions') }}" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg">
-                            <i class="fas fa-exchange-alt mr-2.5 text-lg"></i>
-                            Transaction
-                        </a>
-                    </li>
-                     <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg">
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg">
-                            <i class="fas fa-wallet mr-2.5 text-lg"></i>
-                            Wallet
-                        </a>
-                    </li>
-                     <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg">
-                        <a href="{{ url_for('main.notifications') }}" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg">
-                             <i class="fas fa-bell mr-2.5 text-lg"></i>
-                             Notifications
-                         </a>
-                     </li>
-                    <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg">
-                         <a href="#" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg">
-                             <i class="fas fa-chart-line mr-2.5 text-lg"></i>
-                             Analytics
-                         </a>
-                     </li>
-                    <li class="mb-2.5 rounded-lg overflow-hidden active:bg-gradient-to-r active:from-dark-green active:to-light-green-bg">
-                        <a href="{{ url_for('auth.logout') }}" class="flex items-center px-4 py-3 no-underline font-bold text-forest-green transition duration-200 hover:bg-sidebar-hover active:text-white active:hover:bg-gradient-to-r active:hover:from-dark-green active:hover:to-light-green-bg">
-                            <i class="fas fa-sign-out-alt mr-2.5 text-lg"></i>
-                            Logout
-                        </a>
-                    </li>
+            <nav class="sidebar-nav">
+                <ul>
+                    {# Home link is active on the dashboard page #}
+                    <li class="active"><a href="{{ url_for('main.dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+                    {# Corrected link to the transactions page #}
+                    <li><a href="{{ url_for('main.transactions') }}"><i class="fas fa-exchange-alt"></i> Transaction</a></li>
+                    <li><a href="#"><i class="fas fa-wallet"></i> Wallet</a></li> <!-- Placeholder -->
+                    <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li> <!-- Placeholder -->
+                    <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
                 </ul>
             </nav>
-             {# Display username if passed from Flask #}
-             {# Corresponds to .logged-in-user #}
+             {# Optional: Display username if passed from Flask #}
              {% if username %}
-                <div class="mt-auto p-2.5 text-center text-muted-text text-sm border-t border-subtle-beige">Logged in as: {{ username }}</div> {# margin-top: auto (mt-auto), padding: 10px (p-2.5), text-align: center, color: #607d8b (text-muted-text), font-size: 0.9em (text-sm), border-top, border-color: #d3d6c4 (border-subtle-beige) #}
+                <div class="logged-in-user">Logged in as: {{ username }}</div>
              {% endif %}
              {# Optional: Display selected branch in sidebar if desired #}
              {# {% if selected_branch %} <div class="logged-in-user">Branch: {{ selected_branch }}</div> {% endif %} #}
         </div>
 
         <!-- Main Content Area -->
-        {# Corresponds to .main-content #}
-        <div class="flex-grow p-10 flex flex-col gap-8"> {# flex-grow: 1, padding: 40px (p-10), display: flex, flex-direction: column, gap: 30px (gap-8) #}
+        <div class="main-content">
 
             {# Block to display and consume flashed messages #}
-            {# Corresponds to .flash-messages-container and .main-content .flash #}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div class="mb-5"> {# margin-bottom: 20px (mb-5) #}
+                    <div class="flash-messages-container">
                         {% for category, message in messages %}
-                            {# Corresponds to .flash and .flash.success, .flash.error #}
-                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-dark-green' if category == 'success' else 'bg-red-error' }}"> {# padding: 10px (p-2.5), margin-bottom: 15px (mb-4), border-radius: 6px (rounded-md), text-align: center, color: #fff (text-white), background-color (conditional using custom colors) #}
-                                {{ message }}
-                            </div>
+                            <div class="flash {{ category }}">{{ message }}</div>
                         {% endfor %}
                     </div>
                 {% endif %}
             {% endwith %}
 
             {# Display the name of the selected branch prominently #}
-            {# Corresponds to .dashboard-branch-title #}
             {% if selected_branch %}
-                <h1 class="text-forest-green mt-0 mb-8 text-2xl text-center font-bold">Dashboard for {{ selected_branch }}</h1> {# color: #2f4f2f (text-forest-green), margin-top: 0, margin-bottom: 30px (mb-8), font-size: 2em (text-2xl), text-align: center, font-weight: bold #}
+                <h1 class="dashboard-branch-title">Dashboard for {{ selected_branch }}</h1>
             {% else %}
-                 <h1 class="text-forest-green mt-0 mb-8 text-2xl text-center font-bold">Dashboard</h1> {# Default if no branch selected #}
+                 <h1 class="dashboard-branch-title">Dashboard</h1> {# Default if no branch selected #}
             {% endif %}
 
-            {# Corresponds to .section #}
-            <div class="section"> {# Keeping .section class for potential custom grouping styles #}
-                {# Corresponds to .main-content h2 #}
-                <h2 class="text-dark-green mb-5 text-2xl border-b-2 border-subtle-beige pb-1.5 font-bold">INVOICES STATUS</h2> {# color: #4a6842 (text-dark-green), margin-bottom: 20px (mb-5), font-size: 1.8em (text-2xl), border-bottom: 2px solid #d3d6c4 (border-b-2 border-subtle-beige), padding-bottom: 5px (pb-1.5), font-weight: bold #}
-                {# Corresponds to .invoice-cards #}
-                <div class="flex gap-5"> {# display: flex, gap: 20px (gap-5) #}
-                    {# Corresponds to .invoice-card and .invoice-card.paid/on-going/declined #}
-                    <div class="flex-1 bg-light-green-bg rounded-lg h-36 flex flex-col justify-end p-4 shadow-md relative"> {# flex: 1, background-color: #adcaa2 (bg-light-green-bg), border-radius: 8px (rounded-lg), height: 150px (h-36), display: flex, flex-direction: column, justify-content: flex-end, padding: 15px (p-4), box-shadow (shadow-md), position: relative #}
-                        {# Corresponds to .invoice-card .card-content #}
-                        <div class="flex-grow"></div> {# flex-grow: 1 #}
-                        {# Corresponds to .invoice-card .card-label #}
-                        <span class="bg-white/80 text-dark-green px-4 py-1.5 rounded-full font-bold text-sm text-center self-center mt-2.5">paid</span> {# background-color: rgba(255, 255, 255, 0.8) (bg-white/80), color: #4a6842 (text-dark-green), padding: 5px 15px (px-4 py-1.5), border-radius: 20px (rounded-full), font-size: 0.9em (text-sm), font-weight: bold, text-align: center, align-self: center, margin-top: 10px (mt-2.5) #}
+
+            <div class="section">
+                <h2>INVOICES STATUS</h2> {# Updated heading to match image #}
+                <div class="invoice-cards">
+                    <div class="invoice-card paid">
+                        <div class="card-content"></div> {# Placeholder for potential content #}
+                        <span class="card-label">paid</span>
                     </div>
-                    <div class="flex-1 bg-light-green-bg rounded-lg h-36 flex flex-col justify-end p-4 shadow-md relative">
-                         <div class="flex-grow"></div>
-                        <span class="bg-white/80 text-dark-green px-4 py-1.5 rounded-full font-bold text-sm text-center self-center mt-2.5">on-going</span>
+                    <div class="invoice-card on-going">
+                         <div class="card-content"></div> {# Placeholder #}
+                        <span class="card-label">on-going</span>
                     </div>
-                    <div class="flex-1 bg-light-green-bg rounded-lg h-36 flex flex-col justify-end p-4 shadow-md relative">
-                         <div class="flex-grow"></div>
-                        <span class="bg-white/80 text-dark-green px-4 py-1.5 rounded-full font-bold text-sm text-center self-center mt-2.5">declined</span>
+                    <div class="invoice-card declined">
+                         <div class="card-content"></div> {# Placeholder #}
+                        <span class="card-label">declined</span>
                     </div>
                 </div>
             </div>
 
-            {# Corresponds to .section #}
-            <div class="section"> {# Keeping .section class #}
-                {# Corresponds to .main-content h2 #}
-                <h2 class="text-dark-green mb-5 text-2xl border-b-2 border-subtle-beige pb-1.5 font-bold">BUDGET</h2> {# Same styling as INVOICES heading #}
-
+            <div class="section">
+                <h2>BUDGET</h2>
                 {# Budget time period buttons #}
-                {# Corresponds to .budget-time-selectors #}
-                <div class="flex justify-center mb-5 bg-sidebar-bg rounded-full p-1 gap-1"> {# display: flex, justify-content: center, margin-bottom: 20px (mb-5), background-color: #e0e3d4 (bg-sidebar-bg), border-radius: 20px (rounded-full), padding: 5px (p-1), gap: 5px #}
-                    {# Corresponds to .time-button #}
-                    <button class="px-4 py-2 border-none rounded-full font-bold cursor-pointer text-forest-green transition duration-200 hover:bg-subtle-beige not(.active):hover:bg-subtle-beige">TODAY</button> {# padding: 8px 15px (px-4 py-2), border: none (border-none), border-radius: 15px (rounded-full), font-weight: bold, cursor: pointer, color: #2f4f2f (text-forest-green), transition duration-200, hover:background-color: #d3d6c4 (hover:bg-subtle-beige), not(.active):hover:background-color: #d3d6c4 (ensure hover works only when not active) #}
-                    <button class="px-4 py-2 border-none rounded-full font-bold cursor-pointer text-forest-green transition duration-200 hover:bg-subtle-beige not(.active):hover:bg-subtle-beige">WEEK</button>
-                    {# Corresponds to .time-button.active #}
-                    <button class="px-4 py-2 border-none rounded-full font-bold cursor-pointer transition duration-200 hover:bg-subtle-beige not(.active):hover:bg-subtle-beige active:bg-dark-green active:text-white">MONTH</button> {# active:background-color: #4a6842 (active:bg-dark-green), active:color: #fff (active:text-white) #}
+                <div class="budget-time-selectors">
+                    <button class="time-button">TODAY</button>
+                    <button class="time-button">WEEK</button>
+                    <button class="time-button active">MONTH</button> {# 'MONTH' is active in the image #}
                 </div>
 
                 {# Budget Legend #}
-                {# Corresponds to .budget-legend #}
-                <div class="flex justify-center flex-wrap gap-5 mb-8 text-sm text-forest-green"> {# display: flex, justify-content: center, flex-wrap: wrap, gap: 20px (gap-5), margin-bottom: 30px (mb-8), font-size: 0.9em (text-sm), color: #2f4f2f (text-forest-green) #}
-                    {# Corresponds to .legend-item #}
-                    <span class="flex items-center"> {# display: flex, align-items: center #}
-                        {# Corresponds to .legend-color and .legend-color.income/spent/savings/scheduled #}
-                        {# Using arbitrary background colors for legend dots as these weren't explicitly in config #}
-                        <span class="inline-block w-3 h-3 rounded-full mr-1.5 bg-[#ffeb3b]"></span> {# display: inline-block, width: 12px (w-3), height: 12px (h-3), border-radius: 50% (rounded-full), margin-right: 5px (mr-1.5), background-color #}
-                        Income
-                    </span>
-                    <span class="flex items-center">
-                        <span class="inline-block w-3 h-3 rounded-full mr-1.5 bg-[#9c27b0]"></span>
-                        Spent
-                    </span>
-                    <span class="flex items-center">
-                        <span class="inline-block w-3 h-3 rounded-full mr-1.5 bg-[#e91e63]"></span>
-                        Savings
-                    </span>
-                    <span class="flex items-center">
-                        <span class="inline-block w-3 h-3 rounded-full mr-1.5 bg-[#2196f3]"></span>
-                        Scheduled
-                    </span>
+                <div class="budget-legend">
+                    <span class="legend-item"><span class="legend-color income"></span> Income</span>
+                    <span class="legend-item"><span class="legend-color spent"></span> Spent</span>
+                    <span class="legend-item"><span class="legend-color savings"></span> Savings</span>
+                    <span class="legend-item"><span class="legend-color scheduled"></span> Scheduled</span>
                 </div>
 
                 {# Pie Chart Area #}
-                {# Corresponds to .pie-chart-container #}
-                <div class="flex justify-center items-center relative w-64 h-64 mx-auto"> {# display: flex, justify-content: center, align-items: center, position: relative, width: 250px (w-64), height: 250px (h-64), margin: 0 auto (mx-auto) #}
-                    {# Corresponds to .pie-chart #}
-                    {# The conic gradient requires custom CSS or a custom utility in tailwind.config.js #}
-                    <div class="pie-chart w-full h-full rounded-full shadow-md"> {# width: 100%, height: 100%, border-radius: 50% (rounded-full), box-shadow (shadow-md) #}
-                         {# The conic gradient background is applied via custom CSS using the .pie-chart class #}
+                <div class="pie-chart-container">
+                    <div class="pie-chart">
+                        {# The pie chart segments will be created and styled purely with CSS conic gradients #}
+                        {# Add text labels positioned over the chart using CSS #}
+                        <div class="chart-label income-label">10%</div>
+                        <div class="chart-label spent-label">20%</div>
+                        <div class="chart-label savings-label">30%</div>
+                        <div class="chart-label scheduled-label">40%</div>
                     </div>
-
-                    {# Labels positioned over the pie chart #}
-                    {# Corresponds to .chart-label and .income-label, .spent-label, etc. #}
-                    {# Absolute positioning with exact percentages requires custom CSS or arbitrary values #}
-                    {# Using arbitrary values for positioning for demonstration #}
-                    <div class="absolute font-bold text-white text-base drop-shadow top-[10%] left-[60%]">10%</div> {# position: absolute, font-weight: bold, color: #fff (text-white), font-size: 1em (text-base), text-shadow (drop-shadow), positioning #}
-                    <div class="absolute font-bold text-white text-base drop-shadow top-[30%] left-[70%]">20%</div>
-                    <div class="absolute font-bold text-white text-base drop-shadow bottom-[25%] left-[60%]">30%</div>
-                    <div class="absolute font-bold text-white text-base drop-shadow bottom-[30%] left-[25%]">40%</div>
-                     {# The exact positioning might need fine-tuning #}
                 </div>
 
                 {# Removed the old budget bars section #}
-
+                {#
+                <div class="budget-bars">
+                    <div class="budget-item">
+                        <span class="budget-label">income</span>
+                        <div class="bar-container"><div class="budget-bar income-bar"></div></div>
+                    </div>
+                    <div class="budget-item">
+                        <span class="budget-label">spent</span>
+                        <div class="bar-container"><div class="budget-bar spent-bar"></div></div>
+                    </div>
+                    <div class="budget-item">
+                        <span class="budget-label">savings</span>
+                        <div class="bar-container"><div class="budget-bar savings-bar"></div></div>
+                    </div>
+                    <div class="budget-item">
+                        <span class="budget-label">scheduled</span>
+                        <div class="bar-container"><div class="budget-bar scheduled-bar"></div></div>
+                    </div>
+                </div>
+                #}
             </div>
         </div>
     </div>

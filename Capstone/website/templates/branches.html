@@ -8,71 +8,69 @@
     {# Include Font Awesome for icons #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#1f1f1f]"> {# Apply the background color to the body #}
+{# Apply the background color to the body using estimated hex #}
+<body class="bg-[#1f1f1f]">
 
     {# Container for the branches page content, styled with Tailwind #}
-    {# Corresponds to .branches-page-container #}
-    <div class="flex flex-col items-center w-11/12 max-w-xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-[500px] p-8 text-center"> {# flex flex-col items-center, width: 80% (w-11/12 - approximate), max-width: 600px (max-w-xl), margin: 50px auto (mx-auto mt-12), background: #f6f6e9 (bg-[#f6f6e9]), border-radius: 12px (rounded-xl), overflow: hidden, box-shadow (shadow-xl), min-height: 500px (min-h-[500px]), padding: 40px 20px (p-8 - approximate), text-align: center #}
+    {# INCREASED MAX WIDTH HERE FROM max-w-xl to max-w-3xl #}
+    {# Use estimated light beige background via hex #}
+    <div class="flex flex-col items-center w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-[500px] p-8 text-center">
 
         {# Corresponds to .branches-content #}
-        <div class="flex-grow w-full"> {# flex-grow: 1, width: 100% #}
-            {# Corresponds to .branches-content h1 #}
-            <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1> {# color: #4a6842 (text-[#4a6842]), margin-bottom: 30px (mb-8), font-size: 2em (text-2xl), font-weight: bold, border-bottom: 2px solid #d3d6c4 (border-b-2 border-[#d3d6c4]), padding-bottom: 10px (pb-2), display: inline-block #}
+        <div class="flex-grow w-full">
+            {# Heading using estimated forest green hex and border color #}
+            <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
 
             {# Block to display and consume flashed messages #}
-            {# Corresponds to .branches-page-container .flash-messages-container and .flash #}
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-5 w-11/12 max-w-sm mx-auto"> {# margin-bottom: 20px (mb-5), width: 95% (w-11/12), max-width: 400px (max-w-sm), margin-left/right: auto (mx-auto) #}
-                        {% for category, message in messages %}
-                            {# Corresponds to .flash and .flash.success, .flash.error #}
-                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}"> {# padding: 10px (p-2.5), margin-bottom: 15px (mb-4), border-radius: 6px (rounded-md), text-align: center, color: #fff (text-white), background-color (conditional) #}
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+            {# Use estimated hex codes for flash message backgrounds #}
+            {# Flash message container width adjusted slightly relative to its parent's new size #}
+            <div class="mb-5 w-full max-w-lg mx-auto"> {# w-full and a potentially larger max-w for flash messages #}
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="mb-5 w-full"> {# Flash container takes full width of its parent (.max-w-lg div) #}
+                            {% for category, message in messages %}
+                                <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}"> {# estimated success green, estimated error red #}
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
 
-            <!-- Container for the list of branches in Messenger style -->
-            {# Corresponds to .branch-list-messenger-style #}
-            <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm"> {# width: 100%, background-color: #e0e3d4 (bg-[#e0e3d4]), border-radius: 8px (rounded-lg), overflow: hidden, box-shadow #}
+
+            <!-- Container for the list of branches -->
+            {# This container already uses w-full, so it will now expand to the new max-w-3xl of its parent #}
+            {# Use estimated light background for the list container #}
+            <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
                 {% for branch in branches %}
-                    <!-- Each branch item styled like a messenger list item -->
-                    {# Corresponds to .branch-messenger-item #}
-                    <a href="{{ url_for('main.select_branch', branch_name=branch['name']) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]"> {# display: flex, align-items: center, padding: 12px 15px (p-3.5 - approximate), text-decoration: none (text-inherit), color: inherit (text-inherit), border-bottom: 1px solid #d3d6c4 (border-b border-[#d3d6c4]), transition duration-200, hover:background-color: #d3d6c4 (hover:bg-[#d3d6c4]) #}
-                         {# Corresponds to .branch-messenger-item:last-child (handled by border-b on all except last) #}
-
-                        {# Corresponds to .branch-icon-container-messenger #}
-                        <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden"> {# width: 45px (w-11), height: 45px (h-11), border-radius: 50% (rounded-full), background-color: #adcaa2 (bg-[#adcaa2]), display: flex, justify-content: center, align-items: center, margin-right: 15px (mr-4), flex-shrink: 0, position: relative, overflow: hidden #}
-                            {# Corresponds to .branch-icon-container-messenger .fas #}
-                             <i class="fas fa-building text-[#4a6842] text-xl"></i> {# font-size: 1.8em (text-xl - approximate), color: #4a6842 (text-[#4a6842]) #}
-                            {# Optional: Add an online status indicator if branches had a status #}
-                            {# <div class="online-status-indicator online"></div> #}
+                    <!-- Each branch item -->
+                    {# Link to select the branch. Assumes 'branch' object has a 'name' attribute/key #}
+                    {# Estimated border color and hover background #}
+                    {# These list items already take the full width of their parent (.w-full list container) #}
+                    <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
+                        {# Icon container using estimated light green hex background #}
+                        <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
+                            {# Font Awesome building icon using estimated forest green hex #}
+                             <i class="fas fa-building text-[#4a6842] text-xl"></i>
                         </div>
 
-                        {# Corresponds to .branch-info-messenger #}
-                        <div class="flex-grow mr-2 overflow-hidden"> {# flex-grow: 1, margin-right: 10px (mr-2), overflow: hidden #}
+                        {# Branch Info Container - Flex grow ensures it takes available space #}
+                        <div class="flex-grow mr-2 overflow-hidden text-left"> {# Added text-left to align text like the image #}
                             <!-- Branch Name as the main title -->
-                            {# Corresponds to .branch-name-messenger #}
-                            <div class="font-bold text-[#2f4f2f] text-base truncate"></div> {# font-weight: bold, color: #2f4f2f (text-[#2f4f2f]), font-size: 1.1em (text-base - approximate), white-space: nowrap, overflow: hidden, text-overflow: ellipsis (truncate) #}
-                            <!-- Optional: Add a subtitle or brief description for the branch -->
-                            {# Corresponds to .branch-subtitle-messenger #}
-                            {# <div class="text-gray-600 text-sm truncate">Select to view details</div> #}
+                            {# Displaying the branch name here using estimated text color #}
+                            {# Assumes 'branch' object has a 'name' attribute/key #}
+                            <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
                         </div>
-                         {# Optional: Add a status indicator on the right if branches had a status #}
-                         {# <div class="status-indicator"></div> #}
-                         <!-- Add the arrow icon on the right -->
-                         {# Corresponds to .branch-arrow-messenger #}
-                         <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div> {# font-size: 1em (text-base), color: #4a6842 (text-[#4a6842]), flex-shrink: 0 #}
+                         <!-- Add the arrow icon on the right - Flex shrink keeps it from growing -->
+                         {# Arrow icon using estimated forest green hex #}
+                         <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
                     </a>
-                     {# Corresponds to .branch-messenger-item:last-child (handled by the loop and border-b) #}
                 {% endfor %}
             </div>
 
-            {# Optional: Add a logout link here #}
-            {# Corresponds to .logout-link-branches #}
-            <p class="mt-8"><a href="{{ url_for('auth.logout') }}" class="text-[#4a6842] font-bold hover:text-[#2f4f2f] hover:underline transition duration-200">Logout</a></p> {# margin-top: 40px (mt-8), color: #4a6842 (text-[#4a6842]), text-decoration: none (handled by default link styles or utility if needed), font-weight: bold, transition duration-200, hover:color: #2f4f2f (hover:text-[#2f4f2f]), hover:text-decoration: underline (hover:underline) #}
+            {# Logout link using estimated forest green hex for color and hover #}
+            <p class="mt-8"><a href="{{ url_for('auth.logout') }}" class="text-[#4a6842] font-bold hover:text-[#2f4f2f] hover:underline transition duration-200">Logout</a></p>
 
         </div>
     </div>
