@@ -24,7 +24,7 @@ The application is structured using the Flask framework and follows a modular de
 *   **Branch Selection:** Users can select a specific store branch to view relevant data.
 *   **Dashboard:** Overview of key metrics (e.g., invoices, budget summary) for the selected branch.
 *   **Transaction Viewing:** Browse a list of transactions and view individual transaction details.
-*   [Add more features here as you implement them, e.g., Inventory Management, Sales Reporting, User Management]
+
 
 ---
 
@@ -108,13 +108,13 @@ Contributions are welcome! If you'd like to contribute, please follow these step
 5.  Push to the branch (`git push origin feature/your-feature-name`).
 6.  Open a Pull Request.
 
-Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details (create this file if you don't have one).
+Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 
 ---
 
