@@ -3,37 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Link to the generated Tailwind CSS file #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    {# Optional: Include Font Awesome if you use icons (though not in login.html currently) #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="container">
-        <div class="left">
-            <h2>Hello, Welcome!</h2>
+<body class="bg-[#1f1f1f]"> {# Apply the background color to the body #}
+
+    {# Corresponds to .container #}
+    <div class="flex w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl"> {# flex, width: 80% (w-11/12 - approximate), max-width: 900px (max-w-3xl), margin: 50px auto (mx-auto mt-12), background: #f6f6e9 (bg-[#f6f6e9]), border-radius: 12px (rounded-xl), overflow: hidden, box-shadow (shadow-xl) #}
+
+        {# Corresponds to .left #}
+        <div class="flex-1 p-10 bg-[#4a6842] text-white flex flex-col justify-center text-center"> {# flex: 1, padding: 40px (p-10), background-color: #4a6842 (bg-[#4a6842]), color: #fff (text-white), display: flex, flex-direction: column, justify-content: center, text-align: center #}
+            {# Corresponds to .left h2 #}
+            <h2 class="text-2xl mb-2.5 font-bold">Hello, Welcome!</h2> {# font-size: 24px (text-2xl), margin-bottom: 10px (mb-2.5), font-weight: bold #}
             <p>Need an account? Click below.</p>
             <!-- Use url_for with blueprint name 'auth' -->
-            <a href="{{ url_for('auth.register') }}" class="register-btn">Register</a>
+            {# Corresponds to .left .register-btn #}
+            <a href="{{ url_for('auth.register') }}" class="inline-block px-5 py-2.5 mt-5 border border-white text-white no-underline rounded-md transition duration-200 hover:bg-white/10 hover:border-white">Register</a> {# display: inline-block, padding: 10px 20px (py-2.5 px-5), margin-top: 20px (mt-5), border, border-white, color: #fff (text-white), text-decoration: none (no-underline), border-radius: 6px (rounded-md), transition duration-200, hover:background-color: rgba(255, 255, 255, 0.1) (hover:bg-white/10), hover:border-color: #fff (hover:border-white) #}
         </div>
-        <div class="right">
-            <h2>Login</h2>
 
+        {# Corresponds to .right #}
+        <div class="flex-1 p-10"> {# flex: 1, padding: 40px (p-10) #}
+             {# Corresponds to .right h2 #}
+            <h2 class="text-[#2f4f2f] mb-5 font-bold">Login</h2> {# color: #2f4f2f (text-[#2f4f2f]), margin-bottom: 20px (mb-5), font-weight: bold #}
+
+            {# Block to display and consume flashed messages #}
+            {# Corresponds to .flash-messages-container #}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash {{ category }}">{{ message }}</div>
-                    {% endfor %}
+                    <div class="mb-5"> {# margin-bottom: 20px (mb-5) #}
+                        {% for category, message in messages %}
+                            {# Corresponds to .flash and .flash.success, .flash.error #}
+                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}"> {# padding: 10px (p-2.5), margin-bottom: 15px (mb-4), border-radius: 6px (rounded-md), text-align: center, color: #fff (text-white), background-color (conditional) #}
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             {% endwith %}
 
             <!-- Use url_for with blueprint name 'auth' and the function name 'auth_post' -->
             <form action="{{ url_for('auth.auth_post') }}" method="POST">
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <a href="#" class="forgot">Forgot your password?</a> <!-- Placeholder link -->
-                <button type="submit" class="login-btn">Login</button>
+                {# Corresponds to form input #}
+                <input type="text" name="username" placeholder="Username" required class="block w-full p-3 mb-4 border border-[#4a6842] rounded-md"> {# display: block, width: 100%, padding: 12px (p-3), margin-bottom: 15px (mb-4), border, border-color: #4a6842 (border-[#4a6842]), border-radius: 6px (rounded-md) #}
+                <input type="password" name="password" placeholder="Password" required class="block w-full p-3 mb-4 border border-[#4a6842] rounded-md"> {# Same styles as above input #}
+
+                {# Corresponds to .forgot #}
+                <a href="#" class="text-sm text-[#9cad9c] underline block mb-5">Forgot your password?</a> {# font-size: 0.9em (text-sm), color: #9cad9c (text-[#9cad9c]), text-decoration: underline (underline), display: block, margin-bottom: 20px (mb-5) #}
+
+                {# Corresponds to .login-btn #}
+                <button type="submit" class="bg-[#4a6842] text-white border-none p-3 w-full rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#3a5234] hover:shadow-md hover:translate-y-[-1px]">Login</button> {# background-color: #4a6842 (bg-[#4a6842]), color: #fff (text-white), border: none (border-none), padding: 12px (p-3), width: 100% (w-full), border-radius: 6px (rounded-md), font-weight: bold, cursor: pointer, transition duration-200, box-shadow (shadow), hover:background-color: #3a5234 (hover:bg-[#3a5234]), hover:box-shadow (hover:shadow-md), hover:transform: translateY(-1px) (hover:translate-y-[-1px]) #}
             </form>
-            <p class="alt">or login with</p>
-            <button class="google-btn">Continue with Google</button> <!-- Placeholder button -->
+
+            {# Corresponds to .alt #}
+            <p class="text-center my-5 mb-2.5">or login with</p> {# text-align: center, margin: 20px 0 10px (my-5 mb-2.5 - approximate) #}
+
+            {# Corresponds to .google-btn #}
+            <button class="bg-[#adcaa2] text-white p-3 w-full border-none rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#9cb791] hover:shadow-md hover:translate-y-[-1px]">Continue with Google</button> {# background-color: #adcaa2 (bg-[#adcaa2]), color: white (text-white), padding: 12px (p-3), width: 100% (w-full), border: none (border-none), border-radius: 6px (rounded-md), font-weight: bold, cursor: pointer, transition duration-200, box-shadow (shadow), hover:background-color: #9cb791 (hover:bg-[#9cb791]), hover:box-shadow (hover:shadow-md), hover:transform: translateY(-1px) (hover:translate-y-[-1px]) #}
         </div>
     </div>
+
+    {# Link to your custom JS if you added it #}
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>

@@ -14,11 +14,10 @@ BRANCH_CATEGORIES = [
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
 ]
 
-# Dummy Transaction Data (Replace with database query in a real app)
-# Using a dictionary for easy lookup by ID
-# PLACED AT THE TOP LEVEL TO BE ACCESSIBLE BY ALL ROUTES
+# Dummy Transaction Data (keep existing)
 dummy_transactions = {
-    '#12345': { # Changed key to match the 'id' value
+    # ... (your existing dummy_transactions) ...
+     'trans_12345': {
         'id': '#12345',
         'recipient': 'Jody Sta. Maria',
         'type': 'Payment',
@@ -28,7 +27,7 @@ dummy_transactions = {
         'payment_method': 'Bank-to-Bank',
         'notes': 'Payment for services rendered.'
     },
-     'RQS-3574e5490': { # Changed key to match the 'id' value
+     'trans_3574e5490': {
         'id': 'RQS-3574e5490',
         'recipient': 'Janella Herrera',
         'type': 'Refund',
@@ -38,11 +37,54 @@ dummy_transactions = {
         'payment_method': 'Online Transfer',
         'notes': 'Refund for returned item.'
     }
-    # Add more dummy transactions with keys matching their 'id' values
 }
 
+# Dummy Notification Data (Replace with real data source)
+dummy_inbox_notifications = [
+    {
+        'id': 1,
+        'name': 'Security Bank',
+        'preview': 'Bill for the week Dear valued customerh', # Typo from image included
+        'date': '30 May 2025, 2:00 PM',
+        'icon': 'security_bank_icon.png' # Assuming you have this icon in static/images
+    },
+     {
+        'id': 2,
+        'name': 'Security Bank',
+        'preview': 'Your statement is ready...',
+        'date': '30 May 2025, 3:00 PM',
+        'icon': 'security_bank_icon.png'
+    },
+      {
+        'id': 3,
+        'name': 'Security Bank',
+        'preview': 'Upcoming payment reminder...',
+        'date': '30 May 2025, 7:00 PM',
+        'icon': 'security_bank_icon.png'
+    },
+       {
+        'id': 4,
+        'name': 'Security Bank',
+        'preview': 'Security alert: new login detected...',
+        'date': '30 May 2025, 9:00 PM',
+        'icon': 'security_bank_icon.png'
+    }
+    # Add more inbox notifications
+]
 
-# Route for the Branches page
+dummy_archive_notifications = [
+     {
+        'id': 5,
+        'name': 'Security Bank',
+        # 'preview': 'Payment received confirmation...', # Archive might not show preview in this layout
+        'date': '30 June 2025, 9:00 AM',
+        'icon': 'security_bank_icon.png'
+    }
+    # Add more archive notifications
+]
+
+
+# Route for the Branches page (keep existing)
 @main.route('/branches')
 def branches():
     """Displays the branches selection page after successful login."""
@@ -54,7 +96,7 @@ def branches():
         return redirect(url_for('auth.login'))
 
 
-# Route to handle selecting a branch
+# Route to handle selecting a branch (keep existing)
 @main.route('/select_branch/<branch_name>')
 def select_branch(branch_name):
     """Handles branch selection and redirects to the dashboard."""
@@ -66,7 +108,7 @@ def select_branch(branch_name):
         flash('You need to be logged in to select a branch.', 'error')
         return redirect(url_for('auth.login'))
 
-# The dashboard route requires login
+# The dashboard route requires login (keep existing)
 @main.route('/dashboard')
 def dashboard():
     """Displays the dashboard if the user is logged in."""
@@ -78,41 +120,52 @@ def dashboard():
         flash('You need to be logged in to see this page.', 'error')
         return redirect(url_for('auth.login'))
 
-# Route for the transactions page
+# Route for the transactions page (keep existing)
 @main.route('/transactions')
 def transactions():
     """Displays the transactions page if the user is logged in."""
     if 'username' in session:
         username = session['username']
         selected_branch = session.get('selected_branch', 'No specific branch selected')
-        # In a real app, filter transactions by the selected branch
-        # For now, we'll pass all dummy transactions
+        # Pass dummy transactions (using values() to get the list of transaction dicts)
         return render_template('transactions.html', username=username, selected_branch=selected_branch, transactions=dummy_transactions.values())
     else:
         flash('You need to be logged in to see this page.', 'error')
         return redirect(url_for('auth.login'))
 
-# New route for displaying transaction details
+# Route for displaying transaction details (keep existing)
 @main.route('/transactions/<transaction_id>')
 def transaction_details(transaction_id):
     """Displays the details of a specific transaction."""
     if 'username' in session:
         username = session['username']
         selected_branch = session.get('selected_branch', 'No specific branch selected')
-
-        # Retrieve the transaction details using the ID (now using the correct keys)
-        # In a real app, this would be a database query
         transaction = dummy_transactions.get(transaction_id)
-
         if transaction:
             return render_template('transaction_details.html',
                                    username=username,
                                    selected_branch=selected_branch,
                                    transaction=transaction)
         else:
-            # Handle case where transaction is not found
             flash('Transaction not found.', 'error')
-            return redirect(url_for('main.transactions')) # Redirect back to the list
+            return redirect(url_for('main.transactions'))
+    else:
+        flash('You need to be logged in to see this page.', 'error')
+        return redirect(url_for('auth.login'))
+
+# New route for the notifications page
+@main.route('/notifications')
+def notifications():
+    """Displays the notifications page if the user is logged in."""
+    if 'username' in session:
+        username = session['username']
+        selected_branch = session.get('selected_branch', 'No specific branch selected')
+        # Pass dummy notification data
+        return render_template('notifications.html',
+                               username=username,
+                               selected_branch=selected_branch,
+                               inbox_notifications=dummy_inbox_notifications,
+                               archive_notifications=dummy_archive_notifications) # Pass both lists
     else:
         flash('You need to be logged in to see this page.', 'error')
         return redirect(url_for('auth.login'))
