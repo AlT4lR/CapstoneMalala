@@ -1,74 +1,98 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // The 'content' array is the most important part to configure.
-  // It tells Tailwind which files to scan for class names.
-  // Tailwind will ONLY include CSS for classes found in these files.
-  // This section should be directly inside module.exports = { ... }
   content: [
-    // Add the path to your Flask templates directory and all HTML files within it:
     "./website/templates/**/*.html",
-
-    // If you also use Tailwind classes in other files (e.g., Python files
-    // that generate HTML strings, or JavaScript files), add their paths too:
-    // "./website/**/*.py",
-    // "./website/static/js/**/*.js", // If your JS dynamically adds/removes Tailwind classes
-
-    // Make sure this list covers ALL files where you will write Tailwind class names.
-    // Based on our conversation, this should include all your HTML templates.
+    // Add other paths if necessary
   ],
-
-  // The 'theme' section is where you customize Tailwind's default design system.
-  // Use 'extend' to *add* to the default theme without replacing it entirely.
   theme: {
     extend: {
-      // You can extend colors, spacing, typography, breakpoints, etc.
-      // Adding your custom colors is a common first step, mapping your specific hex codes:
       colors: {
-         // Colors derived from the provided style.css:
-         'dark-bg': '#1f1f1f', // From body background
-         'light-beige': '#f6f6e9', // From .container, .branches-page-container, .control-select, .control-search, .transaction-details-container background
-         'dark-green': '#4a6842', // Primary green color
-         'forest-green': '#2f4f2f', // Secondary dark green color
-         'light-green-bg': '#adcaa2', // Light green background/button color
-         'subtle-beige': '#d3d6c4', // Subtle beige/border color
-         'red-error': '#d9534f', // Red for errors
-         'subtle-text': '#9cad9c', // Subtle text color (e.g., forgot password)
-         'muted-text': '#607d8b', // Muted text color (e.g., logged in user, secondary info)
-         'sidebar-bg': '#e0e3d4', // Sidebar background color
-         'sidebar-hover': '#d3d6c4', // Sidebar item hover background (similar to subtle-beige)
-         'hover-light-beige': '#f0f0e5', // Lighter beige on hover (e.g., notification item)
-         'google-hover': '#9cb791', // Hover state for Google button
-         'login-btn-hover': '#3a5234', // Hover state for login button
-         'close-button-red': '#c9302c', // Hover state for close button
-         'payment-tab-text': '#607d8b', // Text color for payment tabs (same as muted-text)
-         'payment-tab-hover': '#2f4f2f', // Hover text color for payment tabs (same as forest-green)
-         'notification-item-border': '#e0e3d4', // Border color for notification items (same as sidebar-bg)
-
-         // Add any other colors you might use.
-         // Budget Pie Chart Colors (using example names, based on the previous request)
+         // ... (Your custom color definitions here) ...
+         'dark-bg': '#1f1f1f',
+         'light-beige': '#f6f6e9',
+         'dark-green': '#4a6842',
+         'forest-green': '#2f4f2f',
+         'light-green-bg': '#adcaa2',
+         'subtle-beige': '#d3d6c4',
+         'red-error': '#d9534f',
+         'subtle-text': '#9cad9c',
+         'muted-text': '#607d8b',
+         'sidebar-bg': '#e0e3d4',
+         'sidebar-hover': '#d3d6c4',
+         'hover-light-beige': '#f0f0e5',
+         'google-hover': '#9cb791',
+         'login-btn-hover': '#3a5234',
+         'close-button-red': '#c9302c',
+         'payment-tab-text': '#607d8b',
+         'payment-tab-hover': '#2f4f2f',
+         'notification-item-border': '#e0e3d4',
          'budget-income': '#ffeb3b',
          'budget-spent': '#9c27b0',
          'budget-savings': '#e91e63',
          'budget-scheduled': '#2196f3',
       },
-      // You can also extend other things like:
-      // spacing: { '128': '32rem', }, // Example of adding a custom spacing value
-      // fontFamily: { 'sans': ['Arial', 'sans-serif'], }, // Example of setting a font stack
-      // boxShadow: { // Example of adding custom shadows
-      //    'custom-shadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
-      // },
-      // Add the conic gradient if you want to use it as a utility (optional, can keep in custom CSS)
-      // backgroundImage: {
-      //   'conic-budget': 'conic-gradient(#ffeb3b 0% 10%, #9c27b0 10% 30%, #e91e63 30% 60%, #2196f3 60% 100%)',
-      // }
-    },
-  },
+      // === ADD THESE SECTIONS INSIDE 'extend' ===
+
+      spacing: { // Add common spacing values from your CSS
+         'px': '1px',
+         '0.5': '2px',
+         '1': '4px',
+         '1.5': '6px',
+         '2': '8px',
+         '2.5': '10px',
+         '3': '12px',
+         '3.5': '14px',
+         '4': '16px',
+         '5': '20px',
+         '6': '24px',
+         '8': '32px',
+         '10': '40px',
+         '11': '44px',
+         '12': '48px',
+         '15px': '15px',
+         '20px': '20px',
+         '30px': '30px',
+         '40px': '40px',
+         // Add any other specific pixel values you use often
+      },
+
+      boxShadow: { // Define your custom box shadows
+          'xl': '0 0 20px rgba(0, 0, 0, 0.1)', // Overriding Tailwind's default 'xl'
+          'md': '0 4px 8px rgba(0, 0, 0, 0.1)', // Overriding Tailwind's default 'md'
+          'sm': '0 2px 5px rgba(0, 0, 0, 0.05)', // Matching button/label shadows
+          // If you want other shadow names, add them here:
+          // 'container-shadow': '0 0 20px rgba(0, 0, 0, 0.1)',
+          // 'card-shadow': '0 4px 8px rgba(0, 0, 0, 0.1)',
+      },
+
+       backgroundImage: { // Define custom gradients
+         'sidebar-gradient': 'linear-gradient(to right, #4a6842, #adcaa2)', // Sidebar active state
+         'credit-card-gradient': 'linear-gradient(135deg, #66a3ff, #80ccff, #b3ffff, #e0ffff)', // Credit card background
+         'conic-budget': 'conic-gradient(#ffeb3b 0% 10%, #9c27b0 10% 30%, #e91e63 30% 60%, #2196f3 60% 100%)', // Pie chart gradient
+         // Add other gradients if you have them
+       },
+
+       fontFamily: { // Define or extend font families
+           // Assuming 'Arial, sans-serif' is your desired font stack
+           'sans': ['Arial', 'sans-serif'],
+           // If you use other fonts, define them here
+           // 'mono': ['Consolas', 'Courier New', 'monospace'], // For card number
+       },
+
+       // You could also add custom values for:
+       // borderRadius: { '8px': '8px', '12px': '12px', etc. },
+       // minHeight: { '80px': '80px', '500px': '500px', '80vh': '80vh' }, // For exact min-heights
+       // ... other theme customizations ...
+
+      // === END OF SECTIONS TO ADD INSIDE 'extend' ===
+    }, // <--- This is the closing brace for 'extend'
+  }, // <--- This is the closing brace for 'theme'
 
   // The 'plugins' array is where you add Tailwind plugins.
   // Plugins can add extra utilities, components, or base styles.
   plugins: [
-    // Add any plugins you install here, e.g.:
+    // Add any plugins you install here by uncommenting and adding require('...')
     // require('@tailwindcss/forms'), // Useful for better default form styling
     // require('@tailwindcss/typography'), // For styling rich text blocks
-  ],
-}
+  ], // <--- This is the closing bracket for 'plugins'
+} // <--- This is the closing brace for module.exports

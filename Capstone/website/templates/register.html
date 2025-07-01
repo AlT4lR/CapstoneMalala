@@ -3,39 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <title>Register</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Link to the generated Tailwind CSS file #}
+    {# Ensure this path is correct for where your Tailwind build outputs! #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
+    {# Optional: Include Font Awesome for icons #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-<div class="container">
-    <div class="right">
-        <h2>Registration</h2>
+{# Apply the body background color using hex #}
+<body class="bg-[#1a1a1a] font-sans">
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    {# This div creates the overall container with flex layout, rounded corners, and shadow #}
+    {# Use estimated light beige background via hex #}
+    <div class="flex w-11/12 max-w-3xl mx-auto mt-12 bg-[#f8f8f4] rounded-xl overflow-hidden shadow-xl">
 
-        <!-- Use url_for with blueprint name 'auth' and the function name 'register' -->
-        <form action="{{ url_for('auth.register') }}" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="login-btn">Register</button>
-        </form>
-        <p class="alt">or register with</p>
-        <button class="google-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" style="width: 20px; vertical-align: middle; margin-right: 8px;">
-            Continue with Google
-        </button> <!-- Placeholder button -->
+        {# This div represents the LEFT side (Form Section) #}
+        <div class="flex-1 p-10">
+             {# Heading color using estimated forest green hex #}
+            <h2 class="text-[#4a6c51] mb-5 font-bold">Registration</h2>
+
+            {# Block to display and consume flashed messages #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-5">
+                        {% for category, message in messages %}
+                            {# Apply flash message styling using estimated hex codes for success/error backgrounds #}
+                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#3b5a43]' if category == 'success' else 'bg-[#ef4444]' }}"> {# bg-[#3b5a43] is estimated dark green, bg-[#ef4444] is standard red-500 #}
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration Form -->
+            <form action="{{ url_for('auth.register') }}" method="POST">
+                {# Apply styling to form inputs using estimated dark green hex for border #}
+                <input type="text" name="username" placeholder="Username" required class="block w-full p-3 mb-4 border border-[#3b5a43] rounded-md"> {# border color using estimated dark green #}
+                <input type="email" name="email" placeholder="Email" required class="block w-full p-3 mb-4 border border-[#3b5a43] rounded-md"> {# Same styles #}
+                <input type="password" name="password" placeholder="Password" required class="block w-full p-3 mb-4 border border-[#3b5a43] rounded-md"> {# Same styles #}
+
+                {# Apply styling to the Register button using estimated dark green hex for background and hover #}
+                <button type="submit" class="bg-[#3b5a43] text-white border-none p-3 w-full rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#4a6c51] hover:shadow-md hover:translate-y-[-1px]">Register</button> {# background color using estimated dark green, hover background using estimated slightly lighter green #}
+            </form>
+
+            {# Apply styling to "or register with" text #}
+            <p class="text-center my-5 mb-2.5">or register with</p>
+
+            {# Apply styling to the Google button using estimated light green hex for background and hover #}
+            <button class="bg-[#a2c4a7] text-white p-3 w-full border-none rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#b5d4b9] hover:shadow-md hover:translate-y-[-1px] flex items-center justify-center"> {# background color using estimated light green, hover background using estimated lighter green #}
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 align-middle mr-2">
+                Continue with Google
+            </button> <!-- Placeholder button -->
+        </div>
+
+        {# This div represents the RIGHT side (Colored Welcome Section) #}
+        {# This div is styled with the estimated dark green background #}
+        {# NOTE: The 'curved-right-edge' class must be defined in your custom CSS file. #}
+        <div class="flex-1 p-10 bg-[#3b5a43] text-white flex flex-col justify-center text-center curved-right-edge"> {# background color using estimated dark green #}
+             {# Heading styling #}
+            <h2 class="text-2xl mb-2.5 font-bold">Hello, Welcome!</h2>
+            <p>Already have an account?</p>
+            <!-- Use url_for with blueprint name 'auth' and the function name 'login' -->
+            {# Apply styling to the Login link #}
+            <a href="{{ url_for('auth.login') }}" class="inline-block px-5 py-2.5 mt-5 border border-white text-white no-underline rounded-md transition duration-200 hover:bg-white/10 hover:border-white">Login</a>
+        </div>
+
     </div>
-    <div class="left">
-        <h2>Hello, Welcome!</h2>
-        <!-- Use url_for with blueprint name 'auth' and the function name 'login' -->
-        <a href="{{ url_for('auth.login') }}" class="register-btn">Login</a>
-    </div>
-</div>
+
+    {# Include Font Awesome JS if you added it #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    {# Link to your custom JS if you added it #}
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>

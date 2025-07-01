@@ -3,64 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <title>Transaction Details - DecoOffice</title>
-    {# Link to your main stylesheet #}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {# Link to the generated Tailwind CSS file #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     {# Include Font Awesome for icons #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    {# This container is styled to match the card-like appearance in the image #}
-    <div class="transaction-details-container">
+<body class="bg-dark-bg"> {# Apply the body background color #}
 
-        <div class="transaction-details-header">
-            <h2>Transaction Details</h2>
+    {# Corresponds to .transaction-details-container #}
+    {# This container is styled to match the card-like appearance in the image #}
+    <div class="w-11/12 max-w-sm mx-auto mt-12 bg-light-beige rounded-xl overflow-hidden shadow-xl p-8 text-forest-green font-sans"> {# width: 90% (w-11/12 - approximate), max-width: 500px (max-w-sm), margin: 50px auto (mx-auto mt-12), background: #f6f6e9 (bg-light-beige), border-radius: 12px (rounded-xl), overflow: hidden, box-shadow (shadow-xl), padding: 30px (p-8 - approximate), color: #2f4f2f (text-forest-green), font-family: 'Arial', sans-serif (font-sans) #}
+
+        {# Corresponds to .transaction-details-header #}
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-subtle-beige"> {# display: flex, justify-content: space-between, align-items: center, margin-bottom: 25px (mb-6), padding-bottom: 15px (pb-4), border-bottom, border-color: #d3d6c4 (border-subtle-beige) #}
+            {# Corresponds to .transaction-details-header h2 #}
+            <h2 class="text-dark-green text-xl font-bold m-0 border-none p-0">Transaction Details</h2> {# color: #4a6842 (text-dark-green), font-size: 1.5em (text-xl), font-weight: bold, margin: 0, border-bottom: none, padding-bottom: 0 #}
             {# Close button/link (replace # with actual close functionality or a back link if needed) #}
-            {# Using a link back to transactions list for now #}
-            <a href="{{ url_for('main.transactions') }}" class="close-button"><i class="fas fa-times-circle"></i></a>
+            {# Corresponds to .close-button #}
+            <a href="{{ url_for('main.transactions') }}" class="text-red-error text-xl no-underline transition duration-200 hover:text-close-button-red"><i class="fas fa-times-circle"></i></a> {# color: #d9534f (text-red-error), font-size: 1.5em (text-xl), text-decoration: none (no-underline), transition duration-200, hover:color: #c9302c (hover:text-close-button-red) #}
         </div>
 
         {# Section for the transaction status and amount summary #}
-        <div class="transaction-status-box">
-            <div class="status-icon"><i class="fas fa-check-circle"></i></div>
-            <div class="status-text">A payment sent to {{ transaction.recipient }}</div>
-            <div class="transaction-amount">₱ {{ "{:,.2f}".format(transaction.amount) }}</div> {# Format amount #}
+        {# Corresponds to .transaction-status-box #}
+        <div class="bg-light-green-bg rounded-lg p-4 flex items-center gap-4 mb-8 shadow-sm"> {# background-color: #adcaa2 (bg-light-green-bg), border-radius: 8px (rounded-lg), padding: 15px 20px (p-4 - approximate), display: flex, align-items: center, gap: 15px (gap-4), margin-bottom: 30px (mb-8), box-shadow (shadow-sm) #}
+            {# Corresponds to .status-icon #}
+            <div class="status-icon"><i class="fas fa-check-circle text-dark-green text-2xl"></i></div> {# color: #4a6842 (text-dark-green), font-size: 1.8em (text-2xl - approximate) #}
+            {# Corresponds to .status-text #}
+            <div class="flex-grow text-base text-forest-green">A payment sent to {{ transaction.recipient }}</div> {# flex-grow: 1, font-size: 1.1em (text-base - approximate), color: #2f4f2f (text-forest-green) #}
+            {# Corresponds to .transaction-amount #}
+            <div class="text-lg font-bold text-forest-green flex-shrink-0">₱ {{ "{:,.2f}".format(transaction.amount) }}</div> {# font-size: 1.2em (text-lg), font-weight: bold, color: #2f4f2f (text-forest-green), flex-shrink: 0 #}
         </div>
 
         {# Section for detailed transaction information #}
-        <div class="details-section">
-            <h3>Details</h3>
-            <div class="detail-item">
-                <span class="detail-label">Recipient</span>
-                <span class="detail-value">{{ transaction.recipient }}</span>
+        {# Corresponds to .details-section #}
+        <div class="details-section mb-8 pb-5 border-b border-subtle-beige"> {# margin-bottom: 30px (mb-8), padding-bottom: 20px (pb-5), border-bottom, border-color: #d3d6c4 (border-subtle-beige) #}
+            {# Corresponds to .details-section h3 #}
+            <h3 class="text-dark-green text-lg font-bold mt-0 mb-4">Details</h3> {# color: #4a6842 (text-dark-green), font-size: 1.2em (text-lg), margin-top: 0, margin-bottom: 15px (mb-4), font-weight: bold #}
+            {# Corresponds to .detail-item #}
+            <div class="flex justify-between mb-2.5 text-base text-forest-green"> {# display: flex, justify-content: space-between, margin-bottom: 10px (mb-2.5), font-size: 1em (text-base), color: #2f4f2f (text-forest-green) #}
+                {# Corresponds to .detail-label #}
+                <span class="font-bold mr-4 flex-shrink-0">Recipient</span> {# font-weight: bold, margin-right: 15px (mr-4), flex-shrink: 0 #}
+                {# Corresponds to .detail-value #}
+                <span class="text-right flex-grow break-all">{{ transaction.recipient }}</span> {# text-align: right, flex-grow: 1, word-break: break-all #}
             </div>
-            <div class="detail-item">
-                <span class="detail-label">Transaction ID</span>
-                <span class="detail-value">{{ transaction.id }}</span>
+            <div class="flex justify-between mb-2.5 text-base text-forest-green">
+                <span class="font-bold mr-4 flex-shrink-0">Transaction ID</span>
+                <span class="text-right flex-grow break-all">{{ transaction.id }}</span>
             </div>
-            <div class="detail-item">
-                <span class="detail-label">Transaction Date</span>
-                <span class="detail-value">{{ transaction.date }}</span> {# Assuming date is a string or formatted #}
+            <div class="flex justify-between mb-2.5 text-base text-forest-green">
+                <span class="font-bold mr-4 flex-shrink-0">Transaction Date</span>
+                <span class="text-right flex-grow break-all">{{ transaction.date }}</span>
             </div>
              {# Included Transaction Time as it's common, even if not in the very last image #}
-             <div class="detail-item">
-                <span class="detail-label">Transaction Time</span>
-                <span class="detail-value">{{ transaction.time }}</span> {# Assuming time is a string or formatted #}
+             <div class="flex justify-between mb-2.5 text-base text-forest-green">
+                <span class="font-bold mr-4 flex-shrink-0">Transaction Time</span>
+                <span class="text-right flex-grow break-all">{{ transaction.time }}</span>
             </div>
-            <div class="detail-item">
-                <span class="detail-label">Amount Sent</span>
-                 <span class="detail-value">₱ {{ "{:,.2f}".format(transaction.amount) }}</span> {# Display amount again #}
+            <div class="flex justify-between mb-2.5 text-base text-forest-green">
+                <span class="font-bold mr-4 flex-shrink-0">Amount Sent</span>
+                 <span class="text-right flex-grow break-all">₱ {{ "{:,.2f}".format(transaction.amount) }}</span>
             </div>
             {# Add more detail items as needed (e.g., Payment Method) #}
-             <div class="detail-item">
+             <div class="flex justify-between mb-2.5 text-base text-forest-green">
                 <span class="detail-label">Payment Method</span>
                  <span class="detail-value">{{ transaction.payment_method }}</span>
             </div>
         </div>
 
         {# Section for transaction notes #}
-         <div class="notes-section">
-            <h3>Notes</h3>
-            <div class="notes-box">
+         {# Corresponds to .notes-section #}
+         <div class="notes-section"> {# Keeping notes-section class for potential custom styles not covered by utilities #}
+            {# Corresponds to .notes-section h3 #}
+            <h3 class="text-dark-green text-lg font-bold mt-0 mb-4">Notes</h3> {# Same styling as details heading #}
+            {# Corresponds to .notes-box #}
+            <div class="bg-sidebar-bg border border-subtle-beige rounded-md p-4 min-h-[80px] text-forest-green text-base leading-relaxed whitespace-pre-wrap break-words"> {# background-color: #e0e3d4 (bg-sidebar-bg), border, border-color: #d3d6c4 (border-subtle-beige), border-radius: 6px (rounded-md), padding: 15px (p-4), min-height: 80px (min-h-[80px]), color: #2f4f2f (text-forest-green), font-size: 1em (text-base), line-height: 1.5 (leading-relaxed), white-space: pre-wrap, word-wrap: break-word (break-words) #}
                  {# Display transaction notes if available #}
                  {{ transaction.notes if transaction.notes else 'No notes available.' }}
             </div>
