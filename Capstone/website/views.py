@@ -153,7 +153,7 @@ def transaction_details(transaction_id):
         flash('You need to be logged in to see this page.', 'error')
         return redirect(url_for('auth.login'))
 
-# New route for the notifications page
+# Route for the notifications page (keep existing)
 @main.route('/notifications')
 def notifications():
     """Displays the notifications page if the user is logged in."""
@@ -166,6 +166,25 @@ def notifications():
                                selected_branch=selected_branch,
                                inbox_notifications=dummy_inbox_notifications,
                                archive_notifications=dummy_archive_notifications) # Pass both lists
+    else:
+        flash('You need to be logged in to see this page.', 'error')
+        return redirect(url_for('auth.login'))
+
+# ==========================================================
+# FIXED: ADDED THE MISSING WALLET ROUTE
+# This route is required for url_for('main.wallet') to work.
+# ==========================================================
+@main.route('/wallet')
+def wallet():
+    """Displays the wallet page if the user is logged in."""
+    if 'username' in session:
+        username = session['username']
+        selected_branch = session.get('selected_branch', 'No specific branch selected')
+        # NOTE: You will need to create a 'wallet.html' template file.
+        # For now, it will just render a placeholder page.
+        return render_template('wallet.html',
+                               username=username,
+                               selected_branch=selected_branch)
     else:
         flash('You need to be logged in to see this page.', 'error')
         return redirect(url_for('auth.login'))

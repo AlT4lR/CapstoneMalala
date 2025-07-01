@@ -3,134 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard - DecoOffice</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    {# Optional: Include a font-awesome library for icons if you want them #}
+    {# Link to the generated Tailwind CSS file #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="dashboard-container">
+<body class="bg-[#1f1f1f] font-sans">
+
+    {# Main Container #}
+    <div class="flex w-11/12 max-w-screen-xl mx-auto mt-5 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-screen">
+
         <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <div class="logo-circle"></div>
+        <div class="w-64 bg-[#e0e3d4] p-5 flex flex-col flex-shrink-0">
+            {# Logo #}
+            <div class="flex items-center mb-8 text-[#2f4f2f] text-xl font-bold">
+                <div class="w-8 h-8 rounded-full border-2 border-[#4a6842] mr-2.5"></div>
                 <span>DecoOffice</span>
             </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    {# Home link is active on the dashboard page #}
-                    <li class="active"><a href="{{ url_for('main.dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
-                    {# Corrected link to the transactions page #}
-                    <li><a href="{{ url_for('main.transactions') }}"><i class="fas fa-exchange-alt"></i> Transaction</a></li>
-                    <li><a href="#"><i class="fas fa-wallet"></i> Wallet</a></li> <!-- Placeholder -->
-                    <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li> <!-- Placeholder -->
-                    <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li> {# Added Logout link #}
+            {# Sidebar Navigation #}
+            <nav>
+                <ul class="space-y-2">
+                    {# Each li will be styled by its child 'a' tag. The [&.active] variant styles the link when the li has the 'active' class. #}
+                    <li class="{{ 'active' if request.endpoint == 'main.dashboard' else '' }}">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
+                            <i class="fas fa-home w-6 text-center mr-2.5 text-lg"></i> Home
+                        </a>
+                    </li>
+                    <li class="{{ 'active' if request.endpoint == 'main.transactions' else '' }}">
+                        <a href="{{ url_for('main.transactions') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
+                            <i class="fas fa-exchange-alt w-6 text-center mr-2.5 text-lg"></i> Transaction
+                        </a>
+                    </li>
+                    <li class="{{ 'active' if request.endpoint == 'main.wallet' else '' }}">
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
+                            <i class="fas fa-wallet w-6 text-center mr-2.5 text-lg"></i> Wallet
+                        </a>
+                    </li>
+                    <li class="{{ 'active' if request.endpoint == 'main.notifications' else '' }}">
+                        <a href="{{ url_for('main.notifications') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
+                            <i class="fas fa-bell w-6 text-center mr-2.5 text-lg"></i> Notifications
+                        </a>
+                    </li>
+                    <li class="{{ 'active' if request.endpoint == 'main.analytics' else '' }}">
+                        <a href="#" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
+                            <i class="fas fa-chart-line w-6 text-center mr-2.5 text-lg"></i> Analytics
+                        </a>
+                    </li>
+                    <li class="mt-auto pt-4 border-t border-[#d3d6c4]">
+                        <a href="{{ url_for('auth.logout') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4]">
+                            <i class="fas fa-sign-out-alt w-6 text-center mr-2.5 text-lg"></i> Logout
+                        </a>
+                    </li>
                 </ul>
             </nav>
-             {# Optional: Display username if passed from Flask #}
-             {% if username %}
-                <div class="logged-in-user">Logged in as: {{ username }}</div>
-             {% endif %}
-             {# Optional: Display selected branch in sidebar if desired #}
-             {# {% if selected_branch %} <div class="logged-in-user">Branch: {{ selected_branch }}</div> {% endif %} #}
         </div>
 
         <!-- Main Content Area -->
-        <div class="main-content">
+        <div class="flex-grow p-10 flex flex-col gap-8">
+            {# Header with Title and Notifications Bell #}
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-[#4a6842]">
+                    Dashboard for {{ selected_branch or 'All Branches' }}
+                </h1>
+                <a href="{{ url_for('main.notifications') }}" class="text-2xl text-[#4a6842] hover:text-[#2f4f2f]">
+                    <i class="fas fa-bell"></i>
+                </a>
+            </div>
 
-            {# Block to display and consume flashed messages #}
+            {# Flash Messages #}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div class="flash-messages-container">
+                    <div class="space-y-2">
                         {% for category, message in messages %}
-                            <div class="flash {{ category }}">{{ message }}</div>
+                            <div class="p-4 rounded-md text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">{{ message }}</div>
                         {% endfor %}
                     </div>
                 {% endif %}
             {% endwith %}
 
-            {# Display the name of the selected branch prominently #}
-            {% if selected_branch %}
-                <h1 class="dashboard-branch-title">Dashboard for {{ selected_branch }}</h1>
-            {% else %}
-                 <h1 class="dashboard-branch-title">Dashboard</h1> {# Default if no branch selected #}
-            {% endif %}
-
-
-            <div class="section">
-                <h2>INVOICES STATUS</h2> {# Updated heading to match image #}
-                <div class="invoice-cards">
-                    <div class="invoice-card paid">
-                        <div class="card-content"></div> {# Placeholder for potential content #}
-                        <span class="card-label">paid</span>
+            {# Invoices Section #}
+            <div class="space-y-4">
+                <h2 class="text-xl font-bold text-[#4a6842] border-b-2 border-[#d3d6c4] pb-2">INVOICES STATUS</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
+                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">paid</span>
                     </div>
-                    <div class="invoice-card on-going">
-                         <div class="card-content"></div> {# Placeholder #}
-                        <span class="card-label">on-going</span>
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
+                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">on-going</span>
                     </div>
-                    <div class="invoice-card declined">
-                         <div class="card-content"></div> {# Placeholder #}
-                        <span class="card-label">declined</span>
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
+                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">declined</span>
                     </div>
                 </div>
             </div>
 
-            <div class="section">
-                <h2>BUDGET</h2>
-                {# Budget time period buttons #}
-                <div class="budget-time-selectors">
-                    <button class="time-button">TODAY</button>
-                    <button class="time-button">WEEK</button>
-                    <button class="time-button active">MONTH</button> {# 'MONTH' is active in the image #}
+            {# Budget Section #}
+            <div class="space-y-4 p-6 border-2 border-[#d3d6c4] rounded-lg">
+                <h2 class="text-xl font-bold text-[#4a6842]">BUDGET</h2>
+                <div class="flex justify-center bg-[#e0e3d4] rounded-full p-1 gap-1">
+                    <button class="px-5 py-2 rounded-full font-bold text-[#607d8b] transition hover:bg-[#d3d6c4]">TODAY</button>
+                    <button class="px-5 py-2 rounded-full font-bold text-[#607d8b] transition hover:bg-[#d3d6c4]">WEEK</button>
+                    <button class="px-5 py-2 rounded-full font-bold bg-[#4a6842] text-white shadow">MONTH</button>
                 </div>
-
-                {# Budget Legend #}
-                <div class="budget-legend">
-                    <span class="legend-item"><span class="legend-color income"></span> Income</span>
-                    <span class="legend-item"><span class="legend-color spent"></span> Spent</span>
-                    <span class="legend-item"><span class="legend-color savings"></span> Savings</span>
-                    <span class="legend-item"><span class="legend-color scheduled"></span> Scheduled</span>
+                <div class="flex justify-center flex-wrap gap-x-6 gap-y-2 text-sm text-[#607d8b]">
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#ffeb3b]"></span> Income</span>
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#9c27b0]"></span> Spent</span>
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#e91e63]"></span> Savings</span>
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#2196f3]"></span> Scheduled</span>
                 </div>
-
-                {# Pie Chart Area #}
-                <div class="pie-chart-container">
-                    <div class="pie-chart">
-                        {# The pie chart segments will be created and styled purely with CSS conic gradients #}
-                        {# Add text labels positioned over the chart using CSS #}
-                        <div class="chart-label income-label">10%</div>
-                        <div class="chart-label spent-label">20%</div>
-                        <div class="chart-label savings-label">30%</div>
-                        <div class="chart-label scheduled-label">40%</div>
+                <div class="relative w-64 h-64 mx-auto">
+                    {# NOTE: The conic-gradient is applied directly. This can be hard to maintain. #}
+                    <div class="w-full h-full rounded-full bg-[conic-gradient(#ffeb3b_0%_10%,#9c27b0_10%_30%,#e91e63_30%_60%,#2196f3_60%_100%)]"></div>
+                    <div class="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+                        <div class="w-40 h-40 bg-[#f6f6e9] rounded-full"></div>
                     </div>
+                    <div class="absolute top-[15%] right-[5%] font-bold text-[#2f4f2f]">10%</div>
+                    <div class="absolute top-[55%] right-[-5%] font-bold text-[#2f4f2f]">20%</div>
+                    <div class="absolute bottom-[10%] right-[30%] font-bold text-[#2f4f2f]">30%</div>
+                    <div class="absolute top-[40%] left-[-10%] font-bold text-[#2f4f2f]">40%</div>
                 </div>
-
-                {# Removed the old budget bars section #}
-                {#
-                <div class="budget-bars">
-                    <div class="budget-item">
-                        <span class="budget-label">income</span>
-                        <div class="bar-container"><div class="budget-bar income-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">spent</span>
-                        <div class="bar-container"><div class="budget-bar spent-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">savings</span>
-                        <div class="bar-container"><div class="budget-bar savings-bar"></div></div>
-                    </div>
-                    <div class="budget-item">
-                        <span class="budget-label">scheduled</span>
-                        <div class="bar-container"><div class="budget-bar scheduled-bar"></div></div>
-                    </div>
-                </div>
-                #}
             </div>
         </div>
     </div>
-
-    {# Optional: Include Font Awesome if you use icons #}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
-    {# Link to your custom JS if you added it #}
-    <script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>
