@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice - Archive</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0',
+                        'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188',
+                        'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                        'archive-item-bg': '#d7e0d3'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
+
+            <!-- Sidebar -->
+            <aside class="w-64 bg-custom-sidebar flex flex-col justify-between shrink-0">
+                <div>
+                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
+                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full"></div>
+                        <h1 class="text-2xl font-bold text-white" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                    </div>
+                    <!-- All links are inactive in Archive view -->
+                    <nav class="flex flex-col space-y-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                            <span class="font-semibold">Home</span>
+                        </a>
+                        <a href="{{ url_for('main.transactions') }}" class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <div class="flex items-center gap-4">
+                                <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                <span class="font-semibold">Transaction</span>
+                            </div>
+                            {% if inbox_notifications %}
+                            <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">1</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold">Billings</span>
+                        </a>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
+                            <span class="font-semibold">Analytics</span>
+                        </a>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 p-8 flex flex-col">
+                <header class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Archive</h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </header>
+
+                <p class="text-sm text-gray-600 mb-6">
+                    Deleted Billings that have been in Archive more than 30 days will be automatically deleted.
+                </p>
+
+                <!-- Archived Items List -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                    <div class="space-y-3">
+                        {% for item in archived_items %}
+                        <div class="flex justify-between items-center bg-archive-item-bg p-4 rounded-lg shadow-sm">
+                            <div>
+                                <p class="font-semibold text-custom-text-dark">{{ item.name }}</p>
+                                <p class="text-sm text-gray-500">{{ item.id }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-custom-text-dark underline">{{ item.datetime }}</p>
+                                <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="flex items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded-lg">
+                            <p class="text-gray-500">The archive is empty.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>
