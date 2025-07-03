@@ -2,130 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - DecoOffice</title>
-    {# Link to the generated Tailwind CSS file #}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'], },
+                    colors: {
+                        'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-[#1f1f1f] font-sans">
+<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-    {# Main Container #}
-    <div class="flex w-11/12 max-w-screen-xl mx-auto mt-5 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-screen">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-custom-sidebar flex flex-col justify-between shrink-0">
+                <div>
+                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
+                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full"></div>
+                        <h1 class="text-2xl font-bold text-white" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                    </div>
+                    <nav class="flex flex-col space-y-2">
+                        <!-- Active Link (Home) -->
+                        <a href="{{ url_for('main.dashboard') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md">
+                            <div class="flex items-center gap-4 px-4">
+                                <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                                <span class="font-semibold">Home</span>
+                            </div>
+                        </a>
+                        <!-- MODIFIED: Inactive Links with notification indicator -->
+                        <a href="{{ url_for('main.transactions') }}" class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <div class="flex items-center gap-4">
+                                <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                <span class="font-semibold">Transactions</span>
+                            </div>
+                            {% if inbox_notifications %}
+                            <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">1</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold">Billings</span>
+                        </a>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
+                            <span class="font-semibold">Analytics</span>
+                        </a>
+                    </nav>
+                </div>
+            </aside>
 
-        <!-- Sidebar -->
-        <div class="w-64 bg-[#e0e3d4] p-5 flex flex-col flex-shrink-0">
-            {# Logo #}
-            <div class="flex items-center mb-8 text-[#2f4f2f] text-xl font-bold">
-                <div class="w-8 h-8 rounded-full border-2 border-[#4a6842] mr-2.5"></div>
-                <span>DecoOffice</span>
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header class="p-8 pb-4 shrink-0">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-3xl font-bold text-custom-green-darker">
+                            Dashboard for {{ selected_branch or 'All Branches' }}
+                        </h1>
+                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
+                            <i class="fa-regular fa-bell fa-lg"></i>
+                            {% if inbox_notifications %}
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
+                            {% endif %}
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Scrollable Content -->
+                <main class="flex-1 px-8 pb-8 overflow-y-auto custom-scrollbar">
+                    <section class="mb-10">
+                        <h2 class="text-lg font-semibold tracking-widest text-gray-500 uppercase mb-4">Invoices Status</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="flex flex-col items-end"><div class="bg-custom-sidebar h-32 w-full rounded-lg mb-2"></div><span class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full">paid</span></div>
+                            <div class="flex flex-col items-end"><div class="bg-custom-sidebar h-32 w-full rounded-lg mb-2"></div><span class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full">on-going</span></div>
+                            <div class="flex flex-col items-end"><div class="bg-custom-sidebar h-32 w-full rounded-lg mb-2"></div><span class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full">declined</span></div>
+                        </div>
+                    </section>
+                    <section>
+                        <h2 class="text-lg font-semibold tracking-widest text-gray-500 uppercase mb-4">Budget</h2>
+                        <div class="bg-white border border-gray-200 rounded-xl p-6">
+                            <div class="flex justify-center mb-6">
+                                <div class="flex items-center space-x-2 bg-gray-100 p-1 rounded-full">
+                                    <button class="px-6 py-1 text-sm font-semibold text-gray-600 rounded-full">TODAY</button>
+                                    <button class="px-6 py-1 text-sm font-semibold text-gray-600 rounded-full">WEEK</button>
+                                    <button class="px-6 py-1 text-sm font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
+                                </div>
+                            </div>
+                            <div id="chart-legend" class="flex justify-center items-center flex-wrap gap-x-6 gap-y-2 mb-8 text-sm text-gray-600"></div>
+                            <div class="relative w-64 h-64 mx-auto">
+                                <div id="donut-chart" class="w-full h-full rounded-full"></div>
+                                <div class="absolute top-1/2 left-1/2 w-40 h-40 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                                <div id="chart-labels" class="absolute top-0 left-0 w-full h-full font-semibold text-gray-600"></div>
+                            </div>
+                        </div>
+                    </section>
+                </main>
             </div>
-            {# Sidebar Navigation #}
-            <nav>
-                <ul class="space-y-2">
-                    {# Each li will be styled by its child 'a' tag. The [&.active] variant styles the link when the li has the 'active' class. #}
-                    <li class="{{ 'active' if request.endpoint == 'main.dashboard' else '' }}">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
-                            <i class="fas fa-home w-6 text-center mr-2.5 text-lg"></i> Home
-                        </a>
-                    </li>
-                    <li class="{{ 'active' if request.endpoint == 'main.transactions' else '' }}">
-                        <a href="{{ url_for('main.transactions') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
-                            <i class="fas fa-exchange-alt w-6 text-center mr-2.5 text-lg"></i> Transaction
-                        </a>
-                    </li>
-                    <li class="{{ 'active' if request.endpoint == 'main.wallet' else '' }}">
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
-                            <i class="fas fa-wallet w-6 text-center mr-2.5 text-lg"></i> Wallet
-                        </a>
-                    </li>
-                    <li class="{{ 'active' if request.endpoint == 'main.notifications' else '' }}">
-                        <a href="{{ url_for('main.notifications') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
-                            <i class="fas fa-bell w-6 text-center mr-2.5 text-lg"></i> Notifications
-                        </a>
-                    </li>
-                    <li class="{{ 'active' if request.endpoint == 'main.analytics' else '' }}">
-                        <a href="#" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4] [&.active]:bg-gradient-to-r [&.active]:from-[#4a6842] [&.active]:to-[#adcaa2] [&.active]:text-white [&.active]:shadow-md">
-                            <i class="fas fa-chart-line w-6 text-center mr-2.5 text-lg"></i> Analytics
-                        </a>
-                    </li>
-                    <li class="mt-auto pt-4 border-t border-[#d3d6c4]">
-                        <a href="{{ url_for('auth.logout') }}" class="flex items-center px-4 py-3 font-bold text-[#607d8b] rounded-lg transition duration-200 hover:bg-[#d3d6c4]">
-                            <i class="fas fa-sign-out-alt w-6 text-center mr-2.5 text-lg"></i> Logout
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
 
-        <!-- Main Content Area -->
-        <div class="flex-grow p-10 flex flex-col gap-8">
-            {# Header with Title and Notifications Bell #}
-            <div class="flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-[#4a6842]">
-                    Dashboard for {{ selected_branch or 'All Branches' }}
-                </h1>
-                <a href="{{ url_for('main.notifications') }}" class="text-2xl text-[#4a6842] hover:text-[#2f4f2f]">
-                    <i class="fas fa-bell"></i>
-                </a>
-            </div>
-
-            {# Flash Messages #}
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="space-y-2">
-                        {% for category, message in messages %}
-                            <div class="p-4 rounded-md text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">{{ message }}</div>
+            <!-- Notification Panel -->
+            <div id="notification-panel" class="hidden absolute top-4 right-4 w-81 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
+                <div class="p-4 border-b border-gray-200"><h3 class="font-semibold text-custom-text-dark">Notification</h3></div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    {% if inbox_notifications %}
+                        <div class="p-2 space-y-2">
+                        {% for notification in inbox_notifications %}
+                            <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
+                                <div class="flex items-start gap-3">
+                                    <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
+                                        <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
+                                        <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
+                                    </div>
+                                </div>
+                            </a>
                         {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            {# Invoices Section #}
-            <div class="space-y-4">
-                <h2 class="text-xl font-bold text-[#4a6842] border-b-2 border-[#d3d6c4] pb-2">INVOICES STATUS</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
-                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">paid</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
-                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">on-going</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="w-full bg-[#adcaa2] rounded-lg h-36 shadow-md"></div>
-                        <span class="bg-[#e0e3d4] text-[#4a6842] px-4 py-1.5 rounded-full font-bold text-sm">declined</span>
-                    </div>
-                </div>
-            </div>
-
-            {# Budget Section #}
-            <div class="space-y-4 p-6 border-2 border-[#d3d6c4] rounded-lg">
-                <h2 class="text-xl font-bold text-[#4a6842]">BUDGET</h2>
-                <div class="flex justify-center bg-[#e0e3d4] rounded-full p-1 gap-1">
-                    <button class="px-5 py-2 rounded-full font-bold text-[#607d8b] transition hover:bg-[#d3d6c4]">TODAY</button>
-                    <button class="px-5 py-2 rounded-full font-bold text-[#607d8b] transition hover:bg-[#d3d6c4]">WEEK</button>
-                    <button class="px-5 py-2 rounded-full font-bold bg-[#4a6842] text-white shadow">MONTH</button>
-                </div>
-                <div class="flex justify-center flex-wrap gap-x-6 gap-y-2 text-sm text-[#607d8b]">
-                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#ffeb3b]"></span> Income</span>
-                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#9c27b0]"></span> Spent</span>
-                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#e91e63]"></span> Savings</span>
-                    <span class="flex items-center"><span class="w-3 h-3 rounded-full mr-2 bg-[#2196f3]"></span> Scheduled</span>
-                </div>
-                <div class="relative w-64 h-64 mx-auto">
-                    {# NOTE: The conic-gradient is applied directly. This can be hard to maintain. #}
-                    <div class="w-full h-full rounded-full bg-[conic-gradient(#ffeb3b_0%_10%,#9c27b0_10%_30%,#e91e63_30%_60%,#2196f3_60%_100%)]"></div>
-                    <div class="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-                        <div class="w-40 h-40 bg-[#f6f6e9] rounded-full"></div>
-                    </div>
-                    <div class="absolute top-[15%] right-[5%] font-bold text-[#2f4f2f]">10%</div>
-                    <div class="absolute top-[55%] right-[-5%] font-bold text-[#2f4f2f]">20%</div>
-                    <div class="absolute bottom-[10%] right-[30%] font-bold text-[#2f4f2f]">30%</div>
-                    <div class="absolute top-[40%] left-[-10%] font-bold text-[#2f4f2f]">40%</div>
+                        </div>
+                    {% else %}
+                        <div class="flex items-center justify-center h-full"><p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p></div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationPanel = document.getElementById('notification-panel');
+
+    notificationBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        notificationPanel.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!notificationPanel.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
+            notificationPanel.classList.add('hidden');
+        }
+    });
+
+    const chartData = {{ chart_data | tojson }};
+
+    function renderDonutChart(data, chartId, legendId, labelsId) {
+        const chartEl = document.getElementById(chartId);
+        const legendEl = document.getElementById(legendId);
+        const labelsEl = document.getElementById(labelsId);
+        if (!chartEl || !legendEl || !labelsEl || !data) return;
+
+        let cumulativePercentage = 0;
+        const totalValue = data.reduce((sum, item) => sum + item.value, 0);
+        if (totalValue === 0) return;
+
+        let gradientParts = [];
+        let legendHTML = '';
+        let labelsHTML = '';
+
+        data.forEach(item => {
+            const percentage = (item.value / totalValue) * 100;
+            gradientParts.push(`${item.color} ${cumulativePercentage}% ${cumulativePercentage + percentage}%`);
+            legendHTML += `<div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background-color: ${item.color};"></span> ${item.label}</div>`;
+            const angle = (cumulativePercentage + percentage / 2) / 100 * 360;
+            const angleRad = (angle - 90) * (Math.PI / 180);
+            const x = 50 + 45 * Math.cos(angleRad);
+            const y = 50 + 45 * Math.sin(angleRad);
+            labelsHTML += `<span class="absolute" style="left: ${x}%; top: ${y}%; transform: translate(-50%, -50%);">${item.value}%</span>`;
+            cumulativePercentage += percentage;
+        });
+
+        chartEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+        legendEl.innerHTML = legendHTML;
+        labelsEl.innerHTML = labelsHTML;
+    }
+
+    renderDonutChart(chartData, 'donut-chart', 'chart-legend', 'chart-labels');
+});
+</script>
+
 </body>
 </html>

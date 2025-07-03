@@ -5,186 +5,139 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 # Define the blueprint.
 main = Blueprint('main', __name__)
 
-# Define available branch categories
+# --- Data Definitions ---
+
+# ... (previous data definitions remain unchanged) ...
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'},
-    {'name':  'SUB-URBAN', 'icon': 'building_icon.png'},
+    {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
     {'name': 'KASIGLAHAN', 'icon': 'building_icon.png'},
     {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
 ]
+transactions_data = [
+    {'id': '#123456', 'name': 'Jody Sta. Maria', 'date': '05/30/2025', 'time': '10:30 AM', 'amount': 999.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Initial deposit.'},
+    {'id': '#246810', 'name': 'Nenia Ann Valenzuela', 'date': '05/30/2025', 'time': '11:49 AM', 'amount': 10000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Payment for design services.'},
+    {'id': '#368912', 'name': 'Jessilyn Telma', 'date': '06/12/2025', 'time': '02:15 PM', 'amount': 20000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Invoice #INV-2025-06-01'}
+]
+dummy_inbox_notifications = [
+    {'id': 1, 'name': 'Security Bank', 'preview': 'Bill for the week Dear valued customerh', 'date': '30 May 2025, 2:00 PM', 'icon': 'security_bank_icon.png'},
+]
+budget_chart_data = [
+    { 'label': 'Income', 'value': 10, 'color': '#facc15' },
+    { 'label': 'Spent', 'value': 20, 'color': '#a855f7' },
+    { 'label': 'Savings', 'value': 30, 'color': '#ec4899' },
+    { 'label': 'Scheduled', 'value': 40, 'color': '#3b82f6' }
+]
+archived_items_data = [
+    {'name': 'Nenia Ann Valenzuela', 'id': '#246810', 'datetime': '07/01/2025, 10:30AM', 'relative_time': '45 minutes ago'},
+    {'name': 'Jessilyn Telma', 'id': '#368912', 'datetime': '07/01/2025, 10:30AM', 'relative_time': '45 minutes ago'}
+]
 
-# Dummy Transaction Data (keep existing)
-dummy_transactions = {
-    # ... (your existing dummy_transactions) ...
-     'trans_12345': {
-        'id': '#12345',
-        'recipient': 'Jody Sta. Maria',
-        'type': 'Payment',
-        'date': '05/30/2025',
-        'time': '10:00 AM',
-        'amount': 999.00,
-        'payment_method': 'Bank-to-Bank',
-        'notes': 'Payment for services rendered.'
-    },
-     'trans_3574e5490': {
-        'id': 'RQS-3574e5490',
-        'recipient': 'Janella Herrera',
-        'type': 'Refund',
-        'date': '12 Jun',
-        'time': '11:42 AM',
-        'amount': 500.00,
-        'payment_method': 'Online Transfer',
-        'notes': 'Refund for returned item.'
-    }
+# ADDED: Data for the analytics page
+analytics_revenue_data = {
+    'month': 'MAY 2025',
+    'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+    'legend': [
+        {'label': 'P 100,000', 'color': '#ff0000'},
+        {'label': 'P 200,000', 'color': '#ffff00'},
+        {'label': 'P 250,000', 'color': '#00ff00'},
+        {'label': 'P 500,000', 'color': '#00ffff'},
+        {'label': 'P 700,000', 'color': '#0000ff'},
+        {'label': 'P 1,000,000', 'color': '#ff00ff'},
+    ],
+    'data': [
+        {'value': 'P 200,000', 'percentage': 25, 'color': '#ffff00'}, # Yellow
+        {'value': 'P 500,000', 'percentage': 50, 'color': '#00ffff'}, # Cyan
+        {'value': 'P 700,000', 'percentage': 70, 'color': '#0000ff'}, # Blue
+        {'value': 'P 1,000,000', 'percentage': 95, 'color': '#ff00ff'}, # Magenta
+        {'value': 'P 1,100,000 (Proj.)', 'percentage': 100, 'color': '#d1d5db'}, # gray-300 for projection
+    ]
 }
 
-# Dummy Notification Data (Replace with real data source)
-dummy_inbox_notifications = [
-    {
-        'id': 1,
-        'name': 'Security Bank',
-        'preview': 'Bill for the week Dear valued customerh', # Typo from image included
-        'date': '30 May 2025, 2:00 PM',
-        'icon': 'security_bank_icon.png' # Assuming you have this icon in static/images
-    },
-     {
-        'id': 2,
-        'name': 'Security Bank',
-        'preview': 'Your statement is ready...',
-        'date': '30 May 2025, 3:00 PM',
-        'icon': 'security_bank_icon.png'
-    },
-      {
-        'id': 3,
-        'name': 'Security Bank',
-        'preview': 'Upcoming payment reminder...',
-        'date': '30 May 2025, 7:00 PM',
-        'icon': 'security_bank_icon.png'
-    },
-       {
-        'id': 4,
-        'name': 'Security Bank',
-        'preview': 'Security alert: new login detected...',
-        'date': '30 May 2025, 9:00 PM',
-        'icon': 'security_bank_icon.png'
-    }
-    # Add more inbox notifications
-]
-
-dummy_archive_notifications = [
-     {
-        'id': 5,
-        'name': 'Security Bank',
-        # 'preview': 'Payment received confirmation...', # Archive might not show preview in this layout
-        'date': '30 June 2025, 9:00 AM',
-        'icon': 'security_bank_icon.png'
-    }
-    # Add more archive notifications
+analytics_supplier_data = [
+    {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
+    {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
+    {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
+    {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
 ]
 
 
-# Route for the Branches page (keep existing)
+# --- Route Definitions ---
+
 @main.route('/branches')
 def branches():
-    """Displays the branches selection page after successful login."""
     if 'username' in session:
-         username = session['username']
-         return render_template('branches.html', username=username, branches=BRANCH_CATEGORIES)
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
+        return render_template('branches.html', username=session['username'], branches=BRANCH_CATEGORIES)
+    return redirect(url_for('auth.login'))
 
-
-# Route to handle selecting a branch (keep existing)
 @main.route('/select_branch/<branch_name>')
 def select_branch(branch_name):
-    """Handles branch selection and redirects to the dashboard."""
     if 'username' in session:
         session['selected_branch'] = branch_name
-        flash(f'Branch "{branch_name}" selected.', 'info')
         return redirect(url_for('main.dashboard'))
-    else:
-        flash('You need to be logged in to select a branch.', 'error')
-        return redirect(url_for('auth.login'))
+    return redirect(url_for('auth.login'))
 
-# The dashboard route requires login (keep existing)
+@main.route('/')
 @main.route('/dashboard')
 def dashboard():
-    """Displays the dashboard if the user is logged in."""
     if 'username' in session:
-        username = session['username']
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        return render_template('dashboard.html', username=username, selected_branch=selected_branch)
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
+        return render_template('dashboard.html',
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
+                               inbox_notifications=dummy_inbox_notifications,
+                               chart_data=budget_chart_data)
+    return redirect(url_for('auth.login'))
 
-# Route for the transactions page (keep existing)
 @main.route('/transactions')
 def transactions():
-    """Displays the transactions page if the user is logged in."""
     if 'username' in session:
-        username = session['username']
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        # Pass dummy transactions (using values() to get the list of transaction dicts)
-        return render_template('transactions.html', username=username, selected_branch=selected_branch, transactions=dummy_transactions.values())
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
+        return render_template('transactions.html',
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
+                               transactions=transactions_data,
+                               inbox_notifications=dummy_inbox_notifications)
+    return redirect(url_for('auth.login'))
 
-# Route for displaying transaction details (keep existing)
-@main.route('/transactions/<transaction_id>')
-def transaction_details(transaction_id):
-    """Displays the details of a specific transaction."""
+@main.route('/archive')
+def archive():
     if 'username' in session:
-        username = session['username']
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        transaction = dummy_transactions.get(transaction_id)
-        if transaction:
-            return render_template('transaction_details.html',
-                                   username=username,
-                                   selected_branch=selected_branch,
-                                   transaction=transaction)
-        else:
-            flash('Transaction not found.', 'error')
-            return redirect(url_for('main.transactions'))
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
+        return render_template('_archive.html',
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
+                               archived_items=archived_items_data,
+                               inbox_notifications=dummy_inbox_notifications)
+    return redirect(url_for('auth.login'))
 
-# Route for the notifications page (keep existing)
+@main.route('/billings')
+def wallet():
+    if 'username' in session:
+        return render_template('billings.html',
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
+                               inbox_notifications=dummy_inbox_notifications)
+    return redirect(url_for('auth.login'))
+
+# ADDED: New route for the analytics page
+@main.route('/analytics')
+def analytics():
+    """Displays the analytics page."""
+    if 'username' in session:
+        return render_template('analytics.html',
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
+                               revenue_data=analytics_revenue_data,
+                               suppliers=analytics_supplier_data,
+                               inbox_notifications=dummy_inbox_notifications)
+    return redirect(url_for('auth.login'))
+
+
 @main.route('/notifications')
 def notifications():
-    """Displays the notifications page if the user is logged in."""
     if 'username' in session:
-        username = session['username']
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        # Pass dummy notification data
         return render_template('notifications.html',
-                               username=username,
-                               selected_branch=selected_branch,
+                               username=session['username'],
+                               selected_branch=session.get('selected_branch'),
                                inbox_notifications=dummy_inbox_notifications,
-                               archive_notifications=dummy_archive_notifications) # Pass both lists
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
-
-# ==========================================================
-# FIXED: ADDED THE MISSING WALLET ROUTE
-# This route is required for url_for('main.wallet') to work.
-# ==========================================================
-@main.route('/wallet')
-def wallet():
-    """Displays the wallet page if the user is logged in."""
-    if 'username' in session:
-        username = session['username']
-        selected_branch = session.get('selected_branch', 'No specific branch selected')
-        # NOTE: You will need to create a 'wallet.html' template file.
-        # For now, it will just render a placeholder page.
-        return render_template('wallet.html',
-                               username=username,
-                               selected_branch=selected_branch)
-    else:
-        flash('You need to be logged in to see this page.', 'error')
-        return redirect(url_for('auth.login'))
+                               archive_notifications=dummy_archive_notifications)
+    return redirect(url_for('auth.login'))
