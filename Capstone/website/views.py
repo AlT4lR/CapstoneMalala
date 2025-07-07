@@ -2,12 +2,9 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
-# Define the blueprint.
 main = Blueprint('main', __name__)
 
 # --- Data Definitions ---
-
-# ... (previous data definitions remain unchanged) ...
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'},
     {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
@@ -15,26 +12,29 @@ BRANCH_CATEGORIES = [
     {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
 ]
+
 transactions_data = [
     {'id': '#123456', 'name': 'Jody Sta. Maria', 'date': '05/30/2025', 'time': '10:30 AM', 'amount': 999.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Initial deposit.'},
     {'id': '#246810', 'name': 'Nenia Ann Valenzuela', 'date': '05/30/2025', 'time': '11:49 AM', 'amount': 10000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Payment for design services.'},
     {'id': '#368912', 'name': 'Jessilyn Telma', 'date': '06/12/2025', 'time': '02:15 PM', 'amount': 20000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Invoice #INV-2025-06-01'}
 ]
+
 dummy_inbox_notifications = [
     {'id': 1, 'name': 'Security Bank', 'preview': 'Bill for the week Dear valued customerh', 'date': '30 May 2025, 2:00 PM', 'icon': 'security_bank_icon.png'},
 ]
+
 budget_chart_data = [
     { 'label': 'Income', 'value': 10, 'color': '#facc15' },
     { 'label': 'Spent', 'value': 20, 'color': '#a855f7' },
     { 'label': 'Savings', 'value': 30, 'color': '#ec4899' },
     { 'label': 'Scheduled', 'value': 40, 'color': '#3b82f6' }
 ]
+
 archived_items_data = [
     {'name': 'Nenia Ann Valenzuela', 'id': '#246810', 'datetime': '07/01/2025, 10:30AM', 'relative_time': '45 minutes ago'},
     {'name': 'Jessilyn Telma', 'id': '#368912', 'datetime': '07/01/2025, 10:30AM', 'relative_time': '45 minutes ago'}
 ]
 
-# ADDED: Data for the analytics page
 analytics_revenue_data = {
     'month': 'MAY 2025',
     'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
@@ -61,7 +61,6 @@ analytics_supplier_data = [
     {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
     {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
 ]
-
 
 # --- Route Definitions ---
 
@@ -118,10 +117,8 @@ def wallet():
                                inbox_notifications=dummy_inbox_notifications)
     return redirect(url_for('auth.login'))
 
-# ADDED: New route for the analytics page
 @main.route('/analytics')
 def analytics():
-    """Displays the analytics page."""
     if 'username' in session:
         return render_template('analytics.html',
                                username=session['username'],
@@ -131,13 +128,11 @@ def analytics():
                                inbox_notifications=dummy_inbox_notifications)
     return redirect(url_for('auth.login'))
 
-
 @main.route('/notifications')
 def notifications():
     if 'username' in session:
         return render_template('notifications.html',
                                username=session['username'],
                                selected_branch=session.get('selected_branch'),
-                               inbox_notifications=dummy_inbox_notifications,
-                               archive_notifications=dummy_archive_notifications)
+                               inbox_notifications=dummy_inbox_notifications) # Removed dummy_archive_notifications as it wasn't defined
     return redirect(url_for('auth.login'))

@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DecoOffice Dashboard</title>
+    <title>DecoOffice Transactions</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!--    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}"> -->
     <!-- Google Fonts: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,39 +39,37 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar -->
-            <aside class="w-64 bg-custom-sidebar flex flex-col justify-between shrink-0">
+            <!-- Sidebar (Corrected) -->
+            <aside class="w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full"></div>
-                        <h1 class="text-2xl font-bold text-white" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full shrink-0"></div>
+                        <h1 class="text-2xl font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
                     </div>
-
-                    <!-- Navigation now uses spans with SVG masks instead of <i> tags -->
-                    <nav class="flex flex-col space-y-2">
+                    <nav class="flex flex-col space-y-2 px-2">
                         <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
-                            <span class="font-semibold">Home</span>
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <!-- MODIFIED: Active Link (Transactions) with notification indicator -->
-                        <a href="{{ url_for('main.transactions') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md">
+                        <!-- Active Link (Transactions) -->
+                        <a href="{{ url_for('main.transactions') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
                             <div class="flex items-center justify-between px-4">
                                 <div class="flex items-center gap-4">
-                                    <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
-                                    <span class="font-semibold">Transactions</span>
+                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transactions</span>
                                 </div>
                                 {% if inbox_notifications %}
-                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">1</span>
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
                                 {% endif %}
                             </div>
                         </a>
                         <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
-                            <span class="font-semibold">Billings</span>
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
                         <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
-                            <span class="font-semibold">Analytics</span>
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
                     </nav>
                 </div>
@@ -161,8 +158,8 @@
     </div>
 
 <script>
+// JavaScript does not need to be changed.
 document.addEventListener('DOMContentLoaded', function() {
-    // Data and logic are now fully dynamic, no changes needed here.
     const transactions = {{ transactions | tojson }};
     const tableBody = document.getElementById('transaction-table-body');
     const modalOverlay = document.getElementById('modal-overlay');
@@ -212,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { modalOverlay.classList.add('hidden'); modalContent.innerHTML = ''; }, 200);
     }
     modalOverlay.addEventListener('click', (event) => { if (event.target === modalOverlay) closeModal(); });
-    // MODIFIED: Removed notification panel logic as the button is gone
     updateSelectAllCheckboxState();
 });
 </script>
