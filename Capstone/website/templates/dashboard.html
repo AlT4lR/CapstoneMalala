@@ -18,6 +18,21 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
         .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+        
+        /* CORRECTED: Added keyframes and class for the custom animation */
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out forwards;
+        }
     </style>
 
     <script>
@@ -74,16 +89,31 @@
                         </a>
                     </nav>
                 </div>
-                 <!-- You can add a logout button here if desired -->
+                <!-- Logout Button -->
+                <div class="p-2">
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+                    </a>
+                </div>
             </aside>
 
             <!-- Main Content Area -->
             <div class="flex-1 flex flex-col overflow-hidden">
                 <header class="p-8 pb-4 shrink-0">
                     <div class="flex justify-between items-center">
-                        <h1 class="text-3xl font-bold text-custom-green-darker">
-                            Dashboard for {{ selected_branch or 'All Branches' }}
-                        </h1>
+                        <div class="flex items-center gap-4">
+                            <h1 class="text-3xl font-bold text-custom-green-darker">
+                                Dashboard for {{ selected_branch or 'All Branches' }}
+                            </h1>
+                            <!-- MODIFIED: Changed <a> to <button> to trigger modal -->
+                            <button id="switch-branch-btn" class="text-sm font-semibold text-white bg-custom-green-active hover:bg-custom-green-darker px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-repeat"></i>
+                                <span>Switch</span>
+                            </button>
+                        </div>
                         <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
                             <i class="fa-regular fa-bell fa-lg"></i>
                             {% if inbox_notifications %}
@@ -125,7 +155,8 @@
             </div>
 
             <!-- Notification Panel -->
-            <div id="notification-panel" class="hidden absolute top-4 right-4 w-81 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
+            <!-- CORRECTED: Changed w-81 to w-80 -->
+            <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
                 <div class="p-4 border-b border-gray-200"><h3 class="font-semibold text-custom-text-dark">Notification</h3></div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar">
                     {% if inbox_notifications %}
@@ -148,28 +179,58 @@
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- ADDED: Branch Switcher Modal -->
+            <div id="branch-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#f6f6e9] rounded-xl shadow-xl w-11/12 max-w-lg p-8 text-center relative animate-fade-in-up">
+                    <!-- Close button -->
+                    <button id="modal-close-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors" aria-label="Close">
+                        <i class="fas fa-times fa-2x"></i>
+                    </button>
+            
+                    <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
+            
+                    <!-- Container for the list of branches -->
+                    <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
+                        {% for branch in branches %}
+                            <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
+                                <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
+                                     <i class="fas fa-building text-[#4a6842] text-xl"></i>
+                                </div>
+                                <div class="flex-grow mr-2 overflow-hidden text-left">
+                                    <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
+                                </div>
+                                 <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
+                            </a>
+                        {% endfor %}
+                    </div>
+            
+                    <p class="mt-8"><a href="{{ url_for('auth.logout') }}" class="text-[#4a6842] font-bold hover:text-[#2f4f2f] hover:underline transition duration-200">Logout</a></p>
+                </div>
+            </div>
+
         </div>
     </div>
 
 <script>
-// JavaScript does not need to be changed for this feature.
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Existing Notification Panel Script ---
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
+    if (notificationBtn && notificationPanel) {
+        notificationBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            notificationPanel.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (event) => {
+            if (!notificationPanel.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
+                notificationPanel.classList.add('hidden');
+            }
+        });
+    }
 
-    notificationBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        notificationPanel.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!notificationPanel.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
-            notificationPanel.classList.add('hidden');
-        }
-    });
-
+    // --- Existing Donut Chart Script ---
     const chartData = {{ chart_data | tojson }};
-
     function renderDonutChart(data, chartId, legendId, labelsId) {
         const chartEl = document.getElementById(chartId);
         const legendEl = document.getElementById(legendId);
@@ -200,8 +261,31 @@ document.addEventListener('DOMContentLoaded', function() {
         legendEl.innerHTML = legendHTML;
         labelsEl.innerHTML = labelsHTML;
     }
-
     renderDonutChart(chartData, 'donut-chart', 'chart-legend', 'chart-labels');
+
+    // --- ADDED: Branch Switcher Modal Script ---
+    const switchBtn = document.getElementById('switch-branch-btn');
+    const branchModal = document.getElementById('branch-modal');
+    const closeModalBtn = document.getElementById('modal-close-btn');
+
+    if (switchBtn && branchModal && closeModalBtn) {
+        // Show modal
+        switchBtn.addEventListener('click', () => {
+            branchModal.classList.remove('hidden');
+        });
+
+        // Hide modal with 'X' button
+        closeModalBtn.addEventListener('click', () => {
+            branchModal.classList.add('hidden');
+        });
+
+        // Hide modal when clicking on the dark overlay
+        branchModal.addEventListener('click', (event) => {
+            if (event.target === branchModal) {
+                branchModal.classList.add('hidden');
+            }
+        });
+    }
 });
 </script>
 

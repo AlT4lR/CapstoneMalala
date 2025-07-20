@@ -73,6 +73,15 @@
                         </a>
                     </nav>
                 </div>
+                <!-- Logout Button -->
+                <div class="p-2">
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+                    </a>
+                </div>
             </aside>
 
             <!-- Main Content Area -->

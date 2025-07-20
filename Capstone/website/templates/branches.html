@@ -11,10 +11,15 @@
 {# Apply the background color to the body using estimated hex #}
 <body class="bg-[#1f1f1f]">
 
-    {# Container for the branches page content, styled with Tailwind #}
-    {# INCREASED MAX WIDTH HERE FROM max-w-xl to max-w-3xl #}
-    {# Use estimated light beige background via hex #}
-    <div class="flex flex-col items-center w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-[500px] p-8 text-center">
+    {# Container for the branches page content, styled with Tailwind. Added 'relative' for positioning the close button. #}
+    <div class="relative flex flex-col items-center w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-[500px] p-8 text-center">
+
+        {# CORRECTED: Conditionally add the 'X' close button with proper corner alignment #}
+        {% if from_dashboard %}
+            <a href="{{ url_for('main.dashboard') }}" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors" aria-label="Back to Dashboard">
+                <i class="fas fa-times fa-2x"></i>
+            </a>
+        {% endif %}
 
         {# Corresponds to .branches-content #}
         <div class="flex-grow w-full">
@@ -22,14 +27,12 @@
             <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
 
             {# Block to display and consume flashed messages #}
-            {# Use estimated hex codes for flash message backgrounds #}
-            {# Flash message container width adjusted slightly relative to its parent's new size #}
-            <div class="mb-5 w-full max-w-lg mx-auto"> {# w-full and a potentially larger max-w for flash messages #}
+            <div class="mb-5 w-full max-w-lg mx-auto">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
-                        <div class="mb-5 w-full"> {# Flash container takes full width of its parent (.max-w-lg div) #}
+                        <div class="mb-5 w-full">
                             {% for category, message in messages %}
-                                <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}"> {# estimated success green, estimated error red #}
+                                <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
                                     {{ message }}
                                 </div>
                             {% endfor %}
@@ -40,14 +43,9 @@
 
 
             <!-- Container for the list of branches -->
-            {# This container already uses w-full, so it will now expand to the new max-w-3xl of its parent #}
-            {# Use estimated light background for the list container #}
             <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
                 {% for branch in branches %}
                     <!-- Each branch item -->
-                    {# Link to select the branch. Assumes 'branch' object has a 'name' attribute/key #}
-                    {# Estimated border color and hover background #}
-                    {# These list items already take the full width of their parent (.w-full list container) #}
                     <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
                         {# Icon container using estimated light green hex background #}
                         <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
@@ -56,14 +54,11 @@
                         </div>
 
                         {# Branch Info Container - Flex grow ensures it takes available space #}
-                        <div class="flex-grow mr-2 overflow-hidden text-left"> {# Added text-left to align text like the image #}
+                        <div class="flex-grow mr-2 overflow-hidden text-left">
                             <!-- Branch Name as the main title -->
-                            {# Displaying the branch name here using estimated text color #}
-                            {# Assumes 'branch' object has a 'name' attribute/key #}
                             <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
                         </div>
                          <!-- Add the arrow icon on the right - Flex shrink keeps it from growing -->
-                         {# Arrow icon using estimated forest green hex #}
                          <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
                     </a>
                 {% endfor %}

@@ -1,10 +1,8 @@
-# website/views.py
-
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
 main = Blueprint('main', __name__)
 
-# --- Data Definitions ---
+# --- Static Data Definitions ---
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'},
     {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
@@ -47,11 +45,11 @@ analytics_revenue_data = {
         {'label': 'P 1,000,000', 'color': '#ff00ff'},
     ],
     'data': [
-        {'value': 'P 200,000', 'percentage': 25, 'color': '#ffff00'}, # Yellow
-        {'value': 'P 500,000', 'percentage': 50, 'color': '#00ffff'}, # Cyan
-        {'value': 'P 700,000', 'percentage': 70, 'color': '#0000ff'}, # Blue
-        {'value': 'P 1,000,000', 'percentage': 95, 'color': '#ff00ff'}, # Magenta
-        {'value': 'P 1,100,000 (Proj.)', 'percentage': 100, 'color': '#d1d5db'}, # gray-300 for projection
+        {'value': 'P 200,000', 'percentage': 25, 'color': '#ffff00'},
+        {'value': 'P 500,000', 'percentage': 50, 'color': '#00ffff'},
+        {'value': 'P 700,000', 'percentage': 70, 'color': '#0000ff'},
+        {'value': 'P 1,000,000', 'percentage': 95, 'color': '#ff00ff'},
+        {'value': 'P 1,100,000 (Proj.)', 'percentage': 100, 'color': '#d1d5db'}
     ]
 }
 
@@ -67,7 +65,11 @@ analytics_supplier_data = [
 @main.route('/branches')
 def branches():
     if 'username' in session:
-        return render_template('branches.html', username=session['username'], branches=BRANCH_CATEGORIES)
+        from_dashboard = 'selected_branch' in session and session['selected_branch'] is not None
+        return render_template('branches.html', 
+                               username=session['username'], 
+                               branches=BRANCH_CATEGORIES,
+                               from_dashboard=from_dashboard)
     return redirect(url_for('auth.login'))
 
 @main.route('/select_branch/<branch_name>')
@@ -85,7 +87,8 @@ def dashboard():
                                username=session['username'],
                                selected_branch=session.get('selected_branch'),
                                inbox_notifications=dummy_inbox_notifications,
-                               chart_data=budget_chart_data)
+                               chart_data=budget_chart_data,
+                               branches=BRANCH_CATEGORIES)
     return redirect(url_for('auth.login'))
 
 @main.route('/transactions')
@@ -134,5 +137,5 @@ def notifications():
         return render_template('notifications.html',
                                username=session['username'],
                                selected_branch=session.get('selected_branch'),
-                               inbox_notifications=dummy_inbox_notifications) # Removed dummy_archive_notifications as it wasn't defined
+                               inbox_notifications=dummy_inbox_notifications)
     return redirect(url_for('auth.login'))
