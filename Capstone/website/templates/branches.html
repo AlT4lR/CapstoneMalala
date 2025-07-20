@@ -14,12 +14,8 @@
     {# Container for the branches page content, styled with Tailwind. Added 'relative' for positioning the close button. #}
     <div class="relative flex flex-col items-center w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl min-h-[500px] p-8 text-center">
 
-        {# CORRECTED: Conditionally add the 'X' close button with proper corner alignment #}
-        {% if from_dashboard %}
-            <a href="{{ url_for('main.dashboard') }}" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors" aria-label="Back to Dashboard">
-                <i class="fas fa-times fa-2x"></i>
-            </a>
-        {% endif %}
+        {# DELETED: The conditional 'X' close button has been removed from branches.html #}
+        {# It is now only present in the dashboard's modal for switching branches #}
 
         {# Corresponds to .branches-content #}
         <div class="flex-grow w-full">

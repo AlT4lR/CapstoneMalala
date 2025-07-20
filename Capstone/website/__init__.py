@@ -30,6 +30,7 @@ def create_app():
     app.config['MAIL_DEFAULT_SENDER'] = ('DecoOffice', 'your-email@example.com')
 
     global db, mail
+    # FIX: Ensure mail is initialized after 'global mail'
     mail = Mail(app) # Initialize Mail with the app
 
     try:

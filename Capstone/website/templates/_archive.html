@@ -14,10 +14,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
-        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+        /* FIX: Consistent scrollbar track and thumb colors */
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } 
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; } /* gray-600 */
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; } /* gray-500 */
+        .icon-mask {
+            display: inline-block;
+            background-color: currentColor;
+            mask-image: var(--svg-icon);
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: contain;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -30,7 +38,8 @@
                         'custom-green-active': '#8aa188',
                         'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
-                        'archive-item-bg': '#d7e0d3'
+                        'archive-item-bg': '#d7e0d3',
+                        'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
                     }
                 }
             }
@@ -42,32 +51,64 @@
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
             <!-- Sidebar (Corrected) -->
-            <aside class="w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
+            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full shrink-0"></div>
-                        <h1 class="text-2xl font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0"> {# MODIFIED: Changed text color #}
+                            <i class="fa-solid fa-braille"></i>
+                        </span>
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1> {# MODIFIED: Changed text color and shadow #}
                     </div>
                     <!-- All links are inactive in Archive view -->
                     <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <a href="{{ url_for('main.transactions') }}" class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <div class="flex items-center gap-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                        <!-- Transactions with sub-menu -->
+                        <div class="relative">
+                            <a href="{{ url_for('main.transactions') }}"
+                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                      {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
+                                      {% endif %}">
+                                <div class="flex items-center gap-4">
+                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                                </div>
+                                {% if inbox_notifications %}
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
+                                {% endif %}
+                            </a>
+                            <!-- Sub-menu for Transactions -->
+                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
+                                        {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                            opacity-100 block
+                                        {% else %}
+                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
+                                        {% endif %}">
+                                <a href="{{ url_for('main.transactions') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') != 'pending' and request.args.get('filter') != 'add' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Paid</a>
+                                <a href="{{ url_for('main.transactions') }}?filter=pending"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') == 'pending' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Pending</a>
+                                <a href="{{ url_for('main.add_transaction') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.add_transaction' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Add</a>
                             </div>
-                            {% if inbox_notifications %}
-                            <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
-                            {% endif %}
-                        </a>
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        </div>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
-                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
@@ -75,7 +116,7 @@
                 </div>
                 <!-- Logout Button -->
                 <div class="p-2">
-                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                         <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </span>
@@ -84,43 +125,45 @@
                 </div>
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="flex-1 p-8 flex flex-col">
-                <header class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Archive</h2>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>
-                </header>
-
-                <p class="text-sm text-gray-600 mb-6">
-                    Deleted Billings that have been in Archive more than 30 days will be automatically deleted.
-                </p>
-
-                <!-- Archived Items List -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                    <div class="space-y-3">
-                        {% for item in archived_items %}
-                        <div class="flex justify-between items-center bg-archive-item-bg p-4 rounded-lg shadow-sm">
-                            <div>
-                                <p class="font-semibold text-custom-text-dark">{{ item.name }}</p>
-                                <p class="text-sm text-gray-500">{{ item.id }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-medium text-custom-text-dark underline">{{ item.datetime }}</p>
-                                <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
-                            </div>
+            <!-- Main Content Area Wrapper -->
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                <main class="flex-1 p-8 flex flex-col">
+                    <header class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Archive</h2>
                         </div>
-                        {% else %}
-                        <div class="flex items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded-lg">
-                            <p class="text-gray-500">The archive is empty.</p>
+                        <div class="flex items-center gap-3">
+                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
-                        {% endfor %}
+                    </header>
+
+                    <p class="text-sm text-gray-600 mb-6">
+                        Deleted Billings that have been in Archive more than 30 days will be automatically deleted.
+                    </p>
+
+                    <!-- Archived Items List -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                        <div class="space-y-3">
+                            {% for item in archived_items %}
+                            <div class="flex justify-between items-center bg-archive-item-bg p-4 rounded-lg shadow-sm">
+                                <div>
+                                    <p class="font-semibold text-custom-text-dark">{{ item.name }}</p>
+                                    <p class="text-sm text-gray-500">{{ item.id }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-custom-text-dark underline">{{ item.datetime }}</p>
+                                    <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="flex items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded-lg">
+                                <p class="text-gray-500">The archive is empty.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     </div>
 

@@ -101,6 +101,29 @@ def transactions():
                                inbox_notifications=dummy_inbox_notifications)
     return redirect(url_for('auth.login'))
 
+@main.route('/add-transaction', methods=['GET', 'POST'])
+def add_transaction():
+    if 'username' in session:
+        if request.method == 'POST':
+            # Here you would process the form data (e.g., save to MongoDB)
+            name = request.form.get('name')
+            transaction_id = request.form.get('transaction_id')
+            date_time = request.form.get('date_time')
+            amount = request.form.get('amount')
+            payment_method = request.form.get('payment_method')
+            status = request.form.get('status')
+
+            # Dummy success message for demonstration
+            flash('Successfully Added a Transaction!', 'success')
+            # You might want to redirect after a successful add to prevent re-submission
+            return redirect(url_for('main.add_transaction'))
+
+        return render_template('add_transaction.html',
+                               username=session['username'],
+                               inbox_notifications=dummy_inbox_notifications)
+    return redirect(url_for('auth.login'))
+
+
 @main.route('/archive')
 def archive():
     if 'username' in session:

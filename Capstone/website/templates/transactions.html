@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
         tbody tr { border-color: #f0f0e8; }
@@ -29,6 +29,7 @@
                         'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
                         'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
+                        'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
                     }
                 }
             }
@@ -40,20 +41,26 @@
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
             <!-- Sidebar (Corrected) -->
-            <aside class="w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
+            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full shrink-0"></div>
-                        <h1 class="text-2xl font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0"> {# MODIFIED: Changed text color #}
+                            <i class="fa-solid fa-braille"></i>
+                        </span>
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1> {# MODIFIED: Changed text color and shadow #}
                     </div>
                     <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <!-- Active Link (Transactions) -->
-                        <a href="{{ url_for('main.transactions') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
-                            <div class="flex items-center justify-between px-4">
+                        <!-- Active Link (Transactions) with sub-menu -->
+                        <div class="relative">
+                            <a href="{{ url_for('main.transactions') }}"
+                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                      {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
+                                      {% endif %}">
                                 <div class="flex items-center gap-4">
                                     <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
                                     <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transactions</span>
@@ -61,13 +68,31 @@
                                 {% if inbox_notifications %}
                                 <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
                                 {% endif %}
+                            </a>
+                            <!-- Sub-menu for Transactions - ONLY visible on group-hover -->
+                            <div class="mt-2 text-custom-text-dark pl-12 opacity-0 hidden group-hover:opacity-100 group-hover:block transition-opacity duration-200">
+                                <a href="{{ url_for('main.transactions') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') != 'pending' and request.args.get('filter') != 'add' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Paid</a>
+                                <a href="{{ url_for('main.transactions') }}?filter=pending"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') == 'pending' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Pending</a>
+                                <a href="{{ url_for('main.add_transaction') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.add_transaction' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Add</a>
                             </div>
-                        </a>
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        </div>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
-                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
@@ -75,7 +100,7 @@
                 </div>
                 <!-- Logout Button -->
                 <div class="p-2">
-                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                         <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </span>
@@ -84,59 +109,61 @@
                 </div>
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="flex-1 p-8 flex flex-col">
-                <header class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-3"><h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Transactions</h2><div class="text-sm text-gray-500 flex items-center gap-1 cursor-pointer"><span>recent</span><i class="fa-solid fa-chevron-down text-xs"></i></div></div>
-                    <!-- Header controls with archive -->
-                    <div class="flex items-center gap-3">
-                        <div class="relative"><input type="text" placeholder="search" class="bg-white border border-gray-300 rounded-md py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-custom-green-active"><button class="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-magnifying-glass"></i></button></div>
-                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
-                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-rotate"></i></button>
-                        <a href="{{ url_for('main.archive') }}">
-                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-box-archive"></i></button>
-                        </a>
-                    </div>
-                </header>
+            <!-- Main Content Area Wrapper -->
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                <main class="flex-1 p-8 flex flex-col">
+                    <header class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-3"><h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Transactions</h2><div class="text-sm text-gray-500 flex items-center gap-1 cursor-pointer"><span>recent</span><i class="fa-solid fa-chevron-down text-xs"></i></div></div>
+                        <!-- Header controls with archive -->
+                        <div class="flex items-center gap-3">
+                            <div class="relative"><input type="text" placeholder="search" class="bg-white border border-gray-300 rounded-md py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-custom-green-active"><button class="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
+                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-rotate"></i></button>
+                            <a href="{{ url_for('main.archive') }}">
+                                <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-box-archive"></i></button>
+                            </a>
+                        </div>
+                    </header>
 
-                <!-- Transactions Table -->
-                <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto h-full custom-scrollbar">
-                        <table class="w-full text-sm">
-                            <thead class="sticky top-0">
-                                <tr class="bg-[linear-gradient(to_right,theme(colors.custom-green-active)_70%,theme(colors.custom-sidebar))] text-white">
-                                    <th class="px-4 py-3 w-12"><div class="flex items-center justify-center h-full"><input type="checkbox" id="select-all-checkbox" class="hidden peer"><label for="select-all-checkbox" class="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center cursor-pointer transition-all duration-200 peer-checked:bg-custom-green-darker peer-checked:border-custom-green-darker"><i class="fa-solid fa-check text-white text-xs hidden peer-checked:block"></i></label></div></th>
-                                    <th class="px-4 py-3 text-left font-semibold">Names</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Transaction ID</th>
-                                    <th class="px-4 py-3 text-left font-semibold flex items-center gap-1">Date & Time <i class="fa-solid fa-chevron-down text-xs"></i></th>
-                                    <th class="px-4 py-3 text-left font-semibold">Amount</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Payment Method</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transaction-table-body">
-                                {% for tx in transactions %}
-                                <tr class="group hover:bg-gray-50 group-[.is-selected]:bg-green-50 cursor-pointer transition-colors" data-transaction-id="{{ tx.id }}">
-                                    <td class="px-4 py-4 border-t w-12 align-middle"><div class="opacity-0 group-hover:opacity-100 group-[.is-selected]:opacity-100 transition-opacity duration-200 flex items-center justify-center h-full"><input type="checkbox" id="cb-{{ tx.id.replace('#', '') }}" class="row-checkbox hidden peer"><label for="cb-{{ tx.id.replace('#', '') }}" class="w-5 h-5 rounded-full border-2 border-gray-400 flex items-center justify-center cursor-pointer transition-all duration-200 peer-checked:bg-custom-green-active peer-checked:border-custom-green-active"><i class="fa-solid fa-check text-white text-xs hidden peer-checked:block"></i></label></div></td>
-                                    <td class="px-4 py-4 border-t font-medium align-middle">{{ tx.name }}</td>
-                                    <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.id }}</td>
-                                    <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.date }}</td>
-                                    <td class="px-4 py-4 border-t font-medium align-middle">₱ {{ "%.2f"|format(tx.amount) }}</td>
-                                    <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.method }}</td>
-                                    <td class="px-4 py-4 border-t align-middle">{% if tx.status == 'Pending' %}<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ tx.status }}</span>{% else %}<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ tx.status }}</span>{% endif %}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <!-- Transactions Table -->
+                    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto h-full custom-scrollbar">
+                            <table class="w-full text-sm">
+                                <thead class="sticky top-0">
+                                    <tr class="bg-[linear-gradient(to_right,theme(colors.custom-green-active)_70%,theme(colors.custom-sidebar))] text-white">
+                                        {# FIX: Removed the checkbox header column #}
+                                        <th class="px-4 py-3 text-left font-semibold">Names</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Transaction ID</th>
+                                        <th class="px-4 py-3 text-left font-semibold flex items-center gap-1">Date & Time <i class="fa-solid fa-chevron-down text-xs"></i></th>
+                                        <th class="px-4 py-3 text-left font-semibold">Amount</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Payment Method</th>
+                                        <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transaction-table-body">
+                                    {% for tx in transactions %}
+                                    <tr class="group hover:bg-gray-50 group-[.is-selected]:bg-green-50 cursor-pointer transition-colors" data-transaction-id="{{ tx.id }}">
+                                        {# FIX: Removed the checkbox data column #}
+                                        <td class="px-4 py-4 border-t font-medium align-middle">{{ tx.name }}</td>
+                                        <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.id }}</td>
+                                        <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.date }}</td>
+                                        <td class="px-4 py-4 border-t font-medium align-middle">₱ {{ "%.2f"|format(tx.amount) }}</td>
+                                        <td class="px-4 py-4 border-t text-gray-500 align-middle">{{ tx.method }}</td>
+                                        <td class="px-4 py-4 border-t align-middle">{% if tx.status == 'Pending' %}<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ tx.status }}</span>{% else %}<span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ tx.status }}</span>{% endif %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
 
             <!-- Modal -->
             <div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity"><div id="modal-content" class="bg-custom-bg rounded-2xl shadow-2xl w-full max-w-md border border-gray-300 transform scale-95 transition-transform"></div></div>
 
             <!-- Notification Panel with dynamic content -->
-            <div id="notification-panel" class="hidden absolute top-4 right-4 w-81 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
+            <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
                 <div class="p-4 border-b border-gray-200">
                     <h3 class="font-semibold text-custom-text-dark">Notification</h3>
                 </div>
@@ -167,13 +194,14 @@
     </div>
 
 <script>
-// JavaScript does not need to be changed.
+// JavaScript needs to be updated because the select-all-checkbox and row-checkboxes no longer exist.
 document.addEventListener('DOMContentLoaded', function() {
     const transactions = {{ transactions | tojson }};
     const tableBody = document.getElementById('transaction-table-body');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalContent = document.getElementById('modal-content');
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    // Removed selectAllCheckbox as it's no longer present in the HTML.
+    
     const createModalHTML = (data) => {
         const isPending = data.status === 'Pending';
         const amountFormatted = `₱ ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -182,14 +210,11 @@ document.addEventListener('DOMContentLoaded', function() {
             : `<div class="flex items-start justify-between gap-4 p-4 border border-green-300 bg-green-50 rounded-lg"><div class="flex items-start gap-3 text-green-700"><i class="fa-solid fa-check-circle mt-1 flex-shrink-0"></i><span class="font-semibold">A payment sent to ${data.name}</span></div><span class="font-semibold text-lg text-custom-text-dark whitespace-nowrap flex-shrink-0">${amountFormatted}</span></div>`;
         return `<div class="p-6"><div class="flex justify-between items-center mb-6"><h3 class="text-xl font-bold text-custom-text-dark">Transaction Details</h3><button id="modal-close-btn" class="text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center"><i class="fa-solid fa-times"></i></button></div>${statusSection}<div class="mt-6"><h4 class="font-bold mb-3 text-custom-text-dark">Details</h4><div class="space-y-3 text-sm"><div class="flex justify-between"><span class="text-gray-500">Recipient</span> <span class="font-medium">${data.name}</span></div><div class="flex justify-between"><span class="text-gray-500">Transaction ID</span> <span class="font-medium">${data.id}</span></div><div class="flex justify-between"><span class="text-gray-500">Transaction Date</span> <span class="font-medium">${data.date} ${data.time}</span></div><div class="flex justify-between"><span class="text-gray-500">${isPending ? 'Amount to send' : 'Amount Sent'}</span> <span class="font-medium">${amountFormatted}</span></div></div></div><div class="mt-6"><h4 class="font-bold mb-2 text-custom-text-dark">Notes</h4><textarea class="w-full h-24 p-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="Add notes here...">${data.notes}</textarea></div><div class="mt-6"><button class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2"><i class="fa-solid fa-download"></i> Download</button></div></div>`;
     };
+
     document.querySelectorAll('#transaction-table-body tr').forEach(row => {
-        const checkbox = row.querySelector('.row-checkbox');
-        checkbox.addEventListener('change', () => {
-            row.classList.toggle('is-selected', checkbox.checked);
-            updateSelectAllCheckboxState();
-        });
+        // Removed checkbox-related event listener.
         row.addEventListener('click', (e) => {
-            if (e.target.closest('td:first-child')) return;
+            // Removed specific check for 'td:first-child' as there's no checkbox now.
             const transactionId = row.dataset.transactionId;
             const transactionData = transactions.find(t => t.id === transactionId);
             if (transactionData) {
@@ -200,25 +225,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    function updateSelectAllCheckboxState() {
-        const allRowCheckboxes = tableBody.querySelectorAll('.row-checkbox');
-        const checkedCount = tableBody.querySelectorAll('.row-checkbox:checked').length;
-        selectAllCheckbox.checked = allRowCheckboxes.length > 0 && checkedCount === allRowCheckboxes.length;
-    }
-    selectAllCheckbox.addEventListener('change', () => {
-        const isChecked = selectAllCheckbox.checked;
-        tableBody.querySelectorAll('.row-checkbox').forEach(checkbox => {
-            checkbox.checked = isChecked;
-            checkbox.closest('tr').classList.toggle('is-selected', isChecked);
-        });
-    });
+
+    // Removed updateSelectAllCheckboxState function as it's no longer needed.
+    // Removed selectAllCheckbox event listener as it's no longer needed.
+
     function closeModal() {
         modalOverlay.classList.remove('opacity-100');
         modalContent.classList.add('scale-95');
         setTimeout(() => { modalOverlay.classList.add('hidden'); modalContent.innerHTML = ''; }, 200);
     }
     modalOverlay.addEventListener('click', (event) => { if (event.target === modalOverlay) closeModal(); });
-    updateSelectAllCheckboxState();
+    // Removed initial call to updateSelectAllCheckboxState.
 });
 </script>
 </body>

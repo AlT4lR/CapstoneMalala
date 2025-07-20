@@ -14,9 +14,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; } /* gray-600 */
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; } /* gray-500 */
+        /* FIX: Consistent scrollbar track and thumb colors */
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } 
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; } /* gray-600 */
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; } /* gray-500 */
         .icon-mask {
             display: inline-block;
             background-color: currentColor;
@@ -37,7 +38,8 @@
                         'custom-green-active': '#8aa188',
                         'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
-                        'supplier-card-bg': '#0f172a' /* slate-900 */
+                        'supplier-card-bg': '#0f172a', /* slate-900 */
+                        'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
                     }
                 }
             }
@@ -49,31 +51,62 @@
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
             <!-- Sidebar (Corrected) -->
-            <aside class="w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
+            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full shrink-0"></div>
-                        <h1 class="text-2xl font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0"> {# MODIFIED: Changed text color #}
+                            <i class="fa-solid fa-braille"></i>
+                        </span>
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1> {# MODIFIED: Changed text color and shadow #}
                     </div>
                     <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <a href="{{ url_for('main.transactions') }}" class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                             <div class="flex items-center gap-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                        <!-- Transactions with sub-menu -->
+                        <div class="relative">
+                            <a href="{{ url_for('main.transactions') }}"
+                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                      {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
+                                      {% endif %}">
+                                <div class="flex items-center gap-4">
+                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                                </div>
+                                {% if inbox_notifications %}
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
+                                {% endif %}
+                            </a>
+                            <!-- Sub-menu for Transactions -->
+                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
+                                        {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                            opacity-100 block
+                                        {% else %}
+                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
+                                        {% endif %}">
+                                <a href="{{ url_for('main.transactions') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') != 'pending' and request.args.get('filter') != 'add' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Paid</a>
+                                <a href="{{ url_for('main.transactions') }}?filter=pending"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') == 'pending' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Pending</a>
+                                <a href="{{ url_for('main.add_transaction') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.add_transaction' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Add</a>
                             </div>
-                            {% if inbox_notifications %}
-                            <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
-                            {% endif %}
-                        </a>
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                        </div>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
-                         <!-- Active Link (Analytics) -->
                         <a href="{{ url_for('main.analytics') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
                             <div class="flex items-center gap-4 px-4">
                                 <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
@@ -84,7 +117,7 @@
                 </div>
                 <!-- Logout Button -->
                 <div class="p-2">
-                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                         <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </span>
@@ -93,248 +126,76 @@
                 </div>
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="flex-1 p-6 flex gap-6 overflow-hidden">
+            <!-- Main Content Area Wrapper -->
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                <main class="flex-1 p-6 flex gap-6 overflow-hidden">
+                    <!-- Left Column: Revenue Chart -->
+                    <div class="flex-1 bg-white/50 border border-gray-200 rounded-xl p-6 flex flex-col">
+                        <!-- Centered Header Section -->
+                        <div class="text-center">
+                            <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Total Revenue Per Branch</h2>
+                            <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
+                                <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
+                                <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
+                                <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
+                            </div>
+                            <div class="flex justify-center items-center flex-wrap gap-x-4 gap-y-1 my-2 text-xs text-gray-500">
+                                {% for item in revenue_data.legend %}
+                                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color }};"></span>{{ item.label }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="text-lg font-semibold text-gray-600 uppercase mt-2">{{ selected_branch }}</div>
+                        </div>
 
-                <!-- Left Column: Revenue Chart -->
-                <div class="flex-1 bg-white/50 border border-gray-200 rounded-xl p-6 flex flex-col">
-                    <!-- Centered Header Section -->
-                    <div class="text-center">
-                        <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Total Revenue Per Branch</h2>
-                        <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
-                            <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
-                            <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
-                            <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
+                        <!-- Bar Chart Area -->
+                        <div class="flex-grow flex flex-col justify-end mt-4 min-h-0">
+                            <div class="flex-grow flex items-stretch">
+                                 <!-- Y-Axis Labels -->
+                                <div class="flex flex-col justify-between text-right text-sm text-gray-500 py-1 pr-2">
+                                     {% for week in revenue_data.labels | reverse %}
+                                     <span>{{ week }}</span>
+                                     {% endfor %}
+                                </div>
+                                 <!-- Bars and X-Axis Container -->
+                                <div class="flex-1 h-full border-l border-b border-gray-300 flex justify-around items-end px-2 pt-2">
+                                    {% for item in revenue_data.data %}
+                                    <div class="w-full h-full flex justify-center items-end" title="{{ item.value }}">
+                                        <div class="w-10 md:w-12 rounded-t-md transition-all duration-500 ease-out" style="height: {{ item.percentage }}%; background-color: {{ item.color }};"></div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <!-- Centered Footer -->
+                            <div class="text-center mt-4">
+                                <p class="text-sm font-semibold text-gray-600">{{ revenue_data.month }}</p>
+                                <button class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100">change month <i class="fa-solid fa-rotate text-xxs ml-1"></i></button>
+                            </div>
                         </div>
-                        <div class="flex justify-center items-center flex-wrap gap-x-4 gap-y-1 my-2 text-xs text-gray-500">
-                            {% for item in revenue_data.legend %}
-                            <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color }};"></span>{{ item.label }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="text-lg font-semibold text-gray-600 uppercase mt-2">{{ selected_branch }}</div>
                     </div>
 
-                    <!-- Bar Chart Area -->
-                    <div class="flex-grow flex flex-col justify-end mt-4 min-h-0">
-                        <div class="flex-grow flex items-stretch">
-                             <!-- Y-Axis Labels -->
-                            <div class="flex flex-col justify-between text-right text-sm text-gray-500 py-1 pr-2">
-                                 {% for week in revenue_data.labels | reverse %}
-                                 <span>{{ week }}</span>
-                                 {% endfor %}
-                            </div>
-                             <!-- Bars and X-Axis Container -->
-                            <div class="flex-1 h-full border-l border-b border-gray-300 flex justify-around items-end px-2 pt-2">
-                                {% for item in revenue_data.data %}
-                                <div class="w-full h-full flex justify-center items-end" title="{{ item.value }}">
-                                    <div class="w-10 md:w-12 rounded-t-md transition-all duration-500 ease-out" style="height: {{ item.percentage }}%; background-color: {{ item.color }};"></div>
+                    <!-- Right Column: Supplier Performance -->
+                    <div class="flex-shrink-0 flex-basis-1/3 max-w-sm flex flex-col">
+                        <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider mb-4 px-2">Supplier Performance</h2>
+                        <div class="flex-grow bg-supplier-card-bg rounded-xl p-3 overflow-y-auto custom-scrollbar">
+                            <div class="space-y-3">
+                                {% for supplier in suppliers %}
+                                <div class="bg-slate-800 p-4 rounded-lg text-white/90">
+                                    <p class="font-bold text-base mb-2">{{ supplier.name }}</p>
+                                    <div class="space-y-1 text-sm text-gray-300">
+                                        <div class="flex justify-between"><span>Score [0-100]:</span> <span class="font-medium text-white">{{ supplier.score }}</span></div>
+                                        <div class="flex justify-between"><span>On-Time Delivery:</span> <span class="font-medium text-white">{{ supplier.delivery }}%</span></div>
+                                        <div class="flex justify-between"><span>Defect Rate:</span> <span class="font-medium text-white">{{ supplier.defects }}%</span></div>
+                                        <div class="flex justify-between"><span>Cost Variance:</span> <span class="font-medium text-white">{{ '%+.1f'|format(supplier.variance) }}%</span></div>
+                                        <div class="flex justify-between"><span>Average Lead Time (Days):</span> <span class="font-medium text-white">{{ supplier.lead_time }}</span></div>
+                                    </div>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
-                        <!-- Centered Footer -->
-                        <div class="text-center mt-4">
-                            <p class="text-sm font-semibold text-gray-600">{{ revenue_data.month }}</p>
-                            <button class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100">change month <i class="fa-solid fa-rotate text-xxs ml-1"></i></button>
-                        </div>
                     </div>
-                </div>
-
-                <!-- Right Column: Supplier Performance -->
-                <div class="flex-shrink-0 flex-basis-1/3 max-w-sm flex flex-col">
-                    <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider mb-4 px-2">Supplier Performance</h2>
-                    <div class="flex-grow bg-supplier-card-bg rounded-xl p-3 overflow-y-auto custom-scrollbar">
-                        <div class="space-y-3">
-                            {% for supplier in suppliers %}
-                            <div class="bg-slate-800 p-4 rounded-lg text-white/90">
-                                <p class="font-bold text-base mb-2">{{ supplier.name }}</p>
-                                <div class="space-y-1 text-sm text-gray-300">
-                                    <div class="flex justify-between"><span>Score [0-100]:</span> <span class="font-medium text-white">{{ supplier.score }}</span></div>
-                                    <div class="flex justify-between"><span>On-Time Delivery:</span> <span class="font-medium text-white">{{ supplier.delivery }}%</span></div>
-                                    <div class="flex justify-between"><span>Defect Rate:</span> <span class="font-medium text-white">{{ supplier.defects }}%</span></div>
-                                    <div class="flex justify-between"><span>Cost Variance:</span> <span class="font-medium text-white">{{ '%+.1f'|format(supplier.variance) }}%</span></div>
-                                    <div class="flex justify-between"><span>Average Lead Time (Days):</span> <span class="font-medium text-white">{{ supplier.lead_time }}</span></div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-</body>
-</html>```
-
-### `billings.html`
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DecoOffice Billings</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
-        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
-    </style>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { poppins: ['Poppins', 'sans-serif'], },
-                    colors: {
-                        'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
-                        'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
-                        'custom-green-darker': '#6f8a6e',
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
-    <div class="flex h-screen p-2">
-        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
-
-            <!-- Sidebar (Corrected) -->
-            <aside class="w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
-                <div>
-                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <div class="w-8 h-8 border-2 border-custom-text-dark rounded-full shrink-0"></div>
-                        <h1 class="text-2xl font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 0.5px 1px 1px rgba(0,0,0,1);">DecoOffice</h1>
-                    </div>
-                    <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
-                        </a>
-                        <a href="{{ url_for('main.transactions') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
-                        </a>
-                        <!-- Active Link (Billings) -->
-                        <a href="{{ url_for('main.wallet') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
-                            <div class="flex items-center gap-4 px-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
-                            </div>
-                        </a>
-                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
-                        </a>
-                    </nav>
-                </div>
-                <!-- Logout Button -->
-                <div class="p-2">
-                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-gray-200 rounded-lg transition-colors">
-                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </span>
-                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
-                    </a>
-                </div>
-            </aside>
-
-            <!-- Main Content Area -->
-            <main class="flex-1 p-8 flex flex-col">
-                <header class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Billings</h2>
-                    <div class="flex items-center gap-3">
-                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-plus fa-lg"></i></button>
-                        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-rotate fa-lg"></i></button>
-                        <!-- Notification button with dynamic dot -->
-                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
-                            <i class="fa-regular fa-bell fa-lg"></i>
-                            {% if inbox_notifications %}
-                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
-                            {% endif %}
-                        </button>
-                    </div>
-                </header>
-
-                <!-- Billings Content: Loan, Paid, Insufficient Cards -->
-                <div class="flex-1 flex gap-6">
-                    <!-- Loan Card -->
-                    <div class="flex-grow max-h-[245px] bg-custom-sidebar rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                        <span class="text-gray-500 text-sm">Loan</span>
-                        <span class="text-custom-text-dark text-4xl font-semibold">999,999</span>
-                    </div>
-
-                    <!-- Paid & Insufficient Cards Container -->
-                    <div class="flex flex-col gap-6 w-1/3 min-w-[200px]"> <!-- min-w added for better responsiveness if needed -->
-                        <!-- Paid Card -->
-                        <div class="bg-custom-sidebar rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                            <span class="text-gray-500 text-sm">Paid</span>
-                            <span class="text-custom-text-dark text-4xl font-semibold">559,559</span>
-                        </div>
-                        <!-- Insufficient Card -->
-                        <div class="bg-custom-sidebar rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                            <span class="text-gray-500 text-sm">Insufficient</span>
-                            <span class="text-red-500 text-4xl font-semibold">440,440</span>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <!-- Notification Panel -->
-            <div id="notification-panel" class="hidden absolute top-4 right-4 w-81 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
-                <div class="p-4 border-b border-gray-200"><h3 class="font-semibold text-custom-text-dark">Notification</h3></div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar">
-                    {% if inbox_notifications %}
-                        <div class="p-2 space-y-2">
-                        {% for notification in inbox_notifications %}
-                            <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
-                                <div class="flex items-start gap-3">
-                                    <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
-                                    <div class="flex-1">
-                                        <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
-                                        <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
-                                        <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
-                                    </div>
-                                </div>
-                            </a>
-                        {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="flex items-center justify-center h-full"><p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p></div>
-                    {% endif %}
-                </div>
+                </main>
             </div>
         </div>
     </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const notificationBtn = document.getElementById('notification-btn');
-    const notificationPanel = document.getElementById('notification-panel');
-
-    notificationBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        notificationPanel.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!notificationPanel.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
-            notificationPanel.classList.add('hidden');
-        }
-    });
-});
-</script>
-
 </body>
 </html>

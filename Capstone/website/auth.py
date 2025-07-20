@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from flask_mail import Message
-from . import get_mail
+from . import get_mail # FIX: Import get_mail
 from .models import get_user_by_username, add_user, check_password, update_last_login, set_user_otp, verify_user_otp
 import re
 
@@ -10,6 +10,7 @@ auth = Blueprint('auth', __name__)
 
 def send_otp_email(recipient_email, otp):
     """Sends the OTP code to the user's email."""
+    # FIX: Use get_mail() to ensure the mail instance is correctly retrieved
     mail = get_mail()
     if not mail:
         print("[ERROR] Mail extension is not initialized. Cannot send email.")

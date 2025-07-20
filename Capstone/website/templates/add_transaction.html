@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DecoOffice Billings</title>
+    <title>DecoOffice - Add Transactions</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Poppins -->
@@ -18,6 +18,18 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
         .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+        
+        /* Custom styling for select/input with dropdown arrow */
+        .input-with-arrow {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Make space for the arrow */
+        }
     </style>
 
     <script>
@@ -29,6 +41,9 @@
                         'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
                         'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
+                        'success-bg': '#d4edda', /* Estimated light green for success box */
+                        'success-text': '#155724', /* Estimated dark green for success text */
+                        'success-border': '#c3e6cb', /* Estimated border color for success box */
                         'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
                     }
                 }
@@ -40,7 +55,7 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar (Corrected) -->
+            <!-- Sidebar -->
             <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
@@ -54,7 +69,7 @@
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <!-- Transactions with sub-menu -->
+                        <!-- Active Link (Transactions) with sub-menu -->
                         <div class="relative">
                             <a href="{{ url_for('main.transactions') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
@@ -69,13 +84,8 @@
                                 <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
                                 {% endif %}
                             </a>
-                            <!-- Sub-menu for Transactions -->
-                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
-                                            opacity-100 block
-                                        {% else %}
-                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
-                                        {% endif %}">
+                            <!-- Sub-menu for Transactions - ONLY visible on group-hover -->
+                            <div class="mt-2 text-custom-text-dark pl-12 opacity-0 hidden group-hover:opacity-100 group-hover:block transition-opacity duration-200">
                                 <a href="{{ url_for('main.transactions') }}"
                                    class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
                                           {% if request.endpoint == 'main.transactions' and request.args.get('filter') != 'pending' and request.args.get('filter') != 'add' %}
@@ -87,18 +97,15 @@
                                               text-white font-semibold bg-custom-green-active
                                           {% endif %}">Pending</a>
                                 <a href="{{ url_for('main.add_transaction') }}"
-                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md mt-1 px-2
                                           {% if request.endpoint == 'main.add_transaction' %}
                                               text-white font-semibold bg-custom-green-active
                                           {% endif %}">Add</a>
                             </div>
                         </div>
-                        <!-- Active Link (Billings) -->
-                        <a href="{{ url_for('main.wallet') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
-                            <div class="flex items-center gap-4 px-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
-                            </div>
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
                         <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
@@ -121,55 +128,76 @@
             <div class="flex-1 flex flex-col pl-20 overflow-hidden">
                 <main class="flex-1 p-8 flex flex-col">
                     <header class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Billings</h2>
-                        <div class="flex items-center gap-3">
-                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-rotate fa-lg"></i></button>
-                            <!-- Notification button with dynamic dot -->
-                            <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
-                                <i class="fa-regular fa-bell fa-lg"></i>
-                                {% if inbox_notifications %}
-                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
-                                {% endif %}
-                            </button>
-                        </div>
+                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Add Transactions</h2>
+                        <!-- Notification button (optional, as per image, no refresh/add button on this header) -->
+                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
+                            <i class="fa-regular fa-bell fa-lg"></i>
+                            {% if inbox_notifications %}
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
+                            {% endif %}
+                        </button>
                     </header>
 
-                    <!-- Billings Content: Loan, Paid, Insufficient Cards -->
-                    <div class="flex-1 grid grid-cols-2 gap-6">
-                        <div class="col-span-1 grid grid-cols-2 gap-6 auto-rows-fr">
-                            <!-- Income Card -->
-                            <div class="col-span-1 bg-custom-sidebar rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                                <span class="text-gray-500 text-sm underline">Income</span>
-                                <span class="text-custom-text-dark text-xl font-semibold">559,559</span>
-                            </div>
-                            <!-- Interest Card -->
-                            <div class="col-span-1 bg-custom-sidebar rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                                <span class="text-gray-500 text-sm underline">Interest</span>
-                                <span class="text-custom-text-dark text-xl font-semibold">559,559</span>
-                            </div>
-                            <!-- Paid Card -->
-                            <div class="col-span-1 bg-custom-sidebar rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                                <span class="text-gray-500 text-sm underline">Paid</span>
-                                <span class="text-custom-text-dark text-xl font-semibold">559,559</span>
-                            </div>
-                            <!-- Insufficient Card -->
-                            <div class="col-span-1 bg-custom-sidebar rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                                <span class="text-gray-500 text-sm underline">Insufficient</span>
-                                <span class="text-red-500 text-xl font-semibold">440,440</span>
-                            </div>
+                    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                        <!-- Flash message container (Success notification from image) -->
+                        <div class="mb-6">
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                                {% if messages %}
+                                    {% for category, message in messages %}
+                                        {% if category == 'success' %}
+                                            <div class="inline-block px-4 py-2 bg-success-bg text-success-text border border-success-border rounded-md text-sm font-medium">
+                                                {{ message }}
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endwith %}
                         </div>
 
-                        <div class="col-span-1 flex flex-col gap-6">
-                            <!-- Loan Button -->
-                            <button class="self-start px-6 py-2 bg-white rounded-lg shadow-sm border border-gray-300 text-custom-text-dark font-semibold hover:bg-gray-100 transition-colors">
-                                Loan
-                            </button>
-                            <!-- Loan Display Card -->
-                            <div class="flex-grow bg-custom-sidebar rounded-xl p-6 shadow-sm flex flex-col justify-start">
-                                <span class="text-gray-500 text-sm underline mb-2">Loan</span>
-                                <span class="text-custom-text-dark text-4xl font-semibold">999,999</span>
+                        <form action="#" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                            <div>
+                                <label for="name" class="block text-gray-600 text-sm font-semibold mb-2">Name</label>
+                                <input type="text" id="name" name="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="" required>
                             </div>
-                        </div>
+                            <div>
+                                <label for="transaction_id" class="block text-gray-600 text-sm font-semibold mb-2">Transaction ID</label>
+                                <input type="text" id="transaction_id" name="transaction_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="#" required>
+                            </div>
+                            <div>
+                                <label for="date_time" class="block text-gray-600 text-sm font-semibold mb-2">Date & Time</label>
+                                <!-- Using type="datetime-local" for a combined date and time picker -->
+                                <input type="datetime-local" id="date_time" name="date_time" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
+                            </div>
+                            <div>
+                                <label for="amount" class="block text-gray-600 text-sm font-semibold mb-2">Amount</label>
+                                <input type="number" id="amount" name="amount" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="" required>
+                            </div>
+                            <div>
+                                <label for="payment_method" class="block text-gray-600 text-sm font-semibold mb-2">Payment Method</label>
+                                <select id="payment_method" name="payment_method" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
+                                    <option value="" disabled selected>Select method</option>
+                                    <option value="Bank-to-Bank">Bank-to-Bank</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="status" class="block text-gray-600 text-sm font-semibold mb-2">Status</label>
+                                <select id="status" name="status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
+                                    <option value="" disabled selected>Select status</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Declined">Declined</option>
+                                </select>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="md:col-span-2 flex justify-center mt-8 space-x-6">
+                                <button type="reset" class="px-8 py-3 bg-custom-green-darker hover:bg-custom-green-active text-white font-semibold rounded-lg shadow-md transition-colors">Reset</button>
+                                <button type="submit" class="px-8 py-3 bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold rounded-lg shadow-md transition-colors">Add</button>
+                            </div>
+                        </form>
                     </div>
                 </main>
             </div>
@@ -210,67 +238,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
 
-    notificationBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        notificationPanel.classList.toggle('hidden');
-    });
+    if (notificationBtn && notificationPanel) {
+        notificationBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from immediately closing it
+            notificationPanel.classList.toggle('hidden');
+        });
 
-    document.addEventListener('click', (event) => {
-        if (!notificationPanel.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
-            notificationPanel.classList.add('hidden');
-        }
-    });
+        document.addEventListener('click', (event) => {
+            // Close notification panel if clicked outside
+            if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
+                notificationPanel.classList.add('hidden');
+            }
+        });
+    }
 });
 </script>
 
-</body>
-</html>
---- START OF FILE login.html ---
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-[#1f1f1f]">
-
-    <div class="flex w-11/12 max-w-3xl mx-auto mt-12 bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl">
-
-        <div class="flex-1 p-10 bg-[#4a6842] text-white flex flex-col justify-center text-center">
-            <h2 class="text-2xl mb-2.5 font-bold">Hello, Welcome!</h2>
-            <p>Need an account? Click below.</p>
-            <a href="{{ url_for('auth.register') }}" class="inline-block px-5 py-2.5 mt-5 border border-white text-white no-underline rounded-md transition duration-200 hover:bg-white/10 hover:border-white">Register</a>
-        </div>
-
-        <div class="flex-1 p-10">
-            <h2 class="text-[#2f4f2f] mb-5 font-bold">Login</h2>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-5">
-                        {% for category, message in messages %}
-                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <!-- The action now correctly points to the 'login_post' function -->
-            <form action="{{ url_for('auth.login_post') }}" method="POST">
-                <input type="text" name="username" placeholder="Username" required class="block w-full p-3 mb-4 border border-[#4a6842] rounded-md">
-                <input type="password" name="password" placeholder="Password" required class="block w-full p-3 mb-4 border border-[#4a6842] rounded-md">
-                <a href="#" class="text-sm text-[#9cad9c] underline block mb-5">Forgot your password?</a>
-                <button type="submit" class="bg-[#4a6842] text-white border-none p-3 w-full rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#3a5234] hover:shadow-md hover:translate-y-[-1px]">Login</button>
-            </form>
-
-            <p class="text-center my-5 mb-2.5">or login with</p>
-            <button class="bg-[#adcaa2] text-white p-3 w-full border-none rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-[#9cb791] hover:shadow-md hover:translate-y-[-1px]">Continue with Google</button>
-        </div>
-    </div>
 </body>
 </html>
