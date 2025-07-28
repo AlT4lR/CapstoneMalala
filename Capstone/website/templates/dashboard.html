@@ -182,7 +182,6 @@
             </div>
 
             <!-- Notification Panel -->
-            <!-- CORRECTED: Changed w-81 to w-80 -->
             <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
                 <div class="p-4 border-b border-gray-200"><h3 class="font-semibold text-custom-text-dark">Notification</h3></div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -232,7 +231,8 @@
                         {% endfor %}
                     </div>
             
-                    <p class="mt-8"><a href="{{ url_for('auth.logout') }}" class="text-[#4a6842] font-bold hover:text-[#2f4f2f] hover:underline transition duration-200">Logout</a></p>
+                    {# DELETED: Logout link from branch modal #}
+                    {# <p class="mt-8"><a href="{{ url_for('auth.logout') }}" class="text-[#4a6842] font-bold hover:text-[#2f4f2f] hover:underline transition duration-200">Logout</a></p> #}
                 </div>
             </div>
 

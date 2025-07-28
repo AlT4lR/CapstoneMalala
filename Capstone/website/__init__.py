@@ -2,12 +2,20 @@
 
 from flask import Flask
 from pymongo import MongoClient
-from flask_mail import Mail  # Import Flask-Mail
+from flask_mail import Mail
+from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import os
 
 # This variable will hold our database connection
 db = None
 # This variable will hold our Mail instance
 mail = None
+# This variable will hold our JWTManager instance
+jwt = None
+# This variable will hold our Limiter instance
+limiter = None
 
 def create_app():
     """
@@ -15,23 +23,51 @@ def create_app():
     """
     app = Flask(__name__)
     
-    app.config['SECRET_KEY'] = 'walang-kwenta-isa-naming-kagrupo'
+    app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'walang-kwenta-isa-naming-kagrupo-default-secret')
     
     # --- MongoDB Configuration ---
-    app.config['MONGO_URI'] = "mongodb://localhost:27017/"
-    app.config['MONGO_DB_NAME'] = "deco_db"
+    app.config['MONGO_URI'] = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
+    app.config['MONGO_DB_NAME'] = os.environ.get('MONGO_DB_NAME', "deco_db")
 
-    # --- Email (Flask-Mail) Configuration - REPLACE WITH YOUR CREDENTIALS ---
-    app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # e.g., 'smtp.gmail.com' for Gmail
+    # --- Email (Flask-Mail) Configuration - NOW HARDCODED FOR LOCAL TESTING ---
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USERNAME'] = 'your-email@example.com'  # Your email address
-    app.config['MAIL_PASSWORD'] = 'your-email-app-password'  # Your email password or app-specific password
-    app.config['MAIL_DEFAULT_SENDER'] = ('DecoOffice', 'your-email@example.com')
+    app.config['MAIL_USERNAME'] = 'wonderweeb15@gmail.com'  # <--- Dont change this
+    app.config['MAIL_PASSWORD'] = 'qcgx xawr tpos onva'  # Dont change 
+    app.config['MAIL_DEFAULT_SENDER'] = ('DecoOffice', 'wonderweeb15@gmail.com') # <--- Dont change this
 
-    global db, mail
-    # FIX: Ensure mail is initialized after 'global mail'
-    mail = Mail(app) # Initialize Mail with the app
+    # --- JWT Configuration ---
+    app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY', 'super-secret-jwt-key-change-this-in-prod')
+    app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    
+    # --- FIX STARTS HERE ---
+    # For local development over HTTP, set this to False.
+    # For production with HTTPS, this MUST be True.
+    app.config["JWT_COOKIE_SECURE"] = False 
+    # --- FIX ENDS HERE ---
+    
+    app.config["JWT_COOKIE_SAMESITE"] = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = True
+    app.config["JWT_CSRF_CHECK_FORM"] = True
+
+    # --- Flask-Limiter Configuration ---
+    app.config["LIMITER_STORAGE_URI"] = app.config['MONGO_URI'] + app.config['MONGO_DB_NAME'] + "_limiter"
+    app.config["LIMITER_DEFAULT_LIMITS"] = ["200 per day", "50 per hour"]
+    app.config["LIMITER_HEADERS_ENABLED"] = True
+
+    global db, mail, jwt, limiter
+    
+    # Initialize extensions
+    mail = Mail(app)
+    jwt = JWTManager(app)
+    limiter = Limiter(
+        get_remote_address,
+        app=app,
+        default_limits=app.config["LIMITER_DEFAULT_LIMITS"],
+        storage_uri=app.config["LIMITER_STORAGE_URI"],
+        headers_enabled=app.config["LIMITER_HEADERS_ENABLED"]
+    )
 
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
@@ -73,3 +109,19 @@ def get_mail():
     if mail is None:
         print("[WARNING] Flask-Mail not initialized!")
     return mail
+
+def get_jwt():
+    """
+    Helper function to give other files access to the JWTManager instance.
+    """
+    if jwt is None:
+        print("[WARNING] Flask-JWT-Extended not initialized!")
+    return jwt
+
+def get_limiter():
+    """
+    Helper function to give other files access to the Limiter instance.
+    """
+    if limiter is None:
+        print("[WARNING] Flask-Limiter not initialized!")
+    return limiter

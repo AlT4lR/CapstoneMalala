@@ -75,7 +75,8 @@
                                     <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
                                     <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
                                 </div>
-                                {% if inbox_notifications %}
+                                {# MODIFIED: Removed inbox_notifications check as it's not relevant for sidebar link status #}
+                                {% if False %}
                                 <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
                                 {% endif %}
                             </a>

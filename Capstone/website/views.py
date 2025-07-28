@@ -1,4 +1,7 @@
+# website/views.py
+
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask_jwt_extended import jwt_required, get_jwt_identity # ADDED: JWT imports
 
 main = Blueprint('main', __name__)
 
@@ -63,102 +66,110 @@ analytics_supplier_data = [
 # --- Route Definitions ---
 
 @main.route('/branches')
+@jwt_required() # ADDED: Protect with JWT
 def branches():
-    if 'username' in session:
-        from_dashboard = 'selected_branch' in session and session['selected_branch'] is not None
-        return render_template('branches.html', 
-                               username=session['username'], 
-                               branches=BRANCH_CATEGORIES,
-                               from_dashboard=from_dashboard)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    from_dashboard = 'selected_branch' in session and session['selected_branch'] is not None
+    return render_template('branches.html', 
+                           username=current_user_identity, # Use JWT identity
+                           branches=BRANCH_CATEGORIES,
+                           from_dashboard=from_dashboard)
+
 
 @main.route('/select_branch/<branch_name>')
+@jwt_required() # ADDED: Protect with JWT
 def select_branch(branch_name):
-    if 'username' in session:
-        session['selected_branch'] = branch_name
-        return redirect(url_for('main.dashboard'))
-    return redirect(url_for('auth.login'))
+    # User is authenticated by JWT; store branch selection in session (if it's per-session)
+    # Or, if branch selection needs to persist, it should be stored in the user model in DB
+    session['selected_branch'] = branch_name 
+    return redirect(url_for('main.dashboard'))
+
 
 @main.route('/')
 @main.route('/dashboard')
+@jwt_required() # ADDED: Protect with JWT
 def dashboard():
-    if 'username' in session:
-        return render_template('dashboard.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               inbox_notifications=dummy_inbox_notifications,
-                               chart_data=budget_chart_data,
-                               branches=BRANCH_CATEGORIES)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('dashboard.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           inbox_notifications=dummy_inbox_notifications,
+                           chart_data=budget_chart_data,
+                           branches=BRANCH_CATEGORIES)
+
 
 @main.route('/transactions')
+@jwt_required() # ADDED: Protect with JWT
 def transactions():
-    if 'username' in session:
-        return render_template('transactions.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               transactions=transactions_data,
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('transactions.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           transactions=transactions_data,
+                           inbox_notifications=dummy_inbox_notifications)
+
 
 @main.route('/add-transaction', methods=['GET', 'POST'])
+@jwt_required() # ADDED: Protect with JWT
 def add_transaction():
-    if 'username' in session:
-        if request.method == 'POST':
-            # Here you would process the form data (e.g., save to MongoDB)
-            name = request.form.get('name')
-            transaction_id = request.form.get('transaction_id')
-            date_time = request.form.get('date_time')
-            amount = request.form.get('amount')
-            payment_method = request.form.get('payment_method')
-            status = request.form.get('status')
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    if request.method == 'POST':
+        # Here you would process the form data (e.g., save to MongoDB)
+        name = request.form.get('name')
+        transaction_id = request.form.get('transaction_id')
+        date_time = request.form.get('date_time')
+        amount = request.form.get('amount')
+        payment_method = request.form.get('payment_method')
+        status = request.form.get('status')
 
-            # Dummy success message for demonstration
-            flash('Successfully Added a Transaction!', 'success')
-            # You might want to redirect after a successful add to prevent re-submission
-            return redirect(url_for('main.add_transaction'))
+        # Dummy success message for demonstration
+        flash('Successfully Added a Transaction!', 'success')
+        # You might want to redirect after a successful add to prevent re-submission
+        return redirect(url_for('main.add_transaction'))
 
-        return render_template('add_transaction.html',
-                               username=session['username'],
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    return render_template('add_transaction.html',
+                           username=current_user_identity, # Use JWT identity
+                           inbox_notifications=dummy_inbox_notifications)
 
 
 @main.route('/archive')
+@jwt_required() # ADDED: Protect with JWT
 def archive():
-    if 'username' in session:
-        return render_template('_archive.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               archived_items=archived_items_data,
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('_archive.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           archived_items=archived_items_data,
+                           inbox_notifications=dummy_inbox_notifications)
+
 
 @main.route('/billings')
+@jwt_required() # ADDED: Protect with JWT
 def wallet():
-    if 'username' in session:
-        return render_template('billings.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('billings.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           inbox_notifications=dummy_inbox_notifications)
+
 
 @main.route('/analytics')
+@jwt_required() # ADDED: Protect with JWT
 def analytics():
-    if 'username' in session:
-        return render_template('analytics.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               revenue_data=analytics_revenue_data,
-                               suppliers=analytics_supplier_data,
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('analytics.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           revenue_data=analytics_revenue_data,
+                           suppliers=analytics_supplier_data,
+                           inbox_notifications=dummy_inbox_notifications)
+
 
 @main.route('/notifications')
+@jwt_required() # ADDED: Protect with JWT
 def notifications():
-    if 'username' in session:
-        return render_template('notifications.html',
-                               username=session['username'],
-                               selected_branch=session.get('selected_branch'),
-                               inbox_notifications=dummy_inbox_notifications)
-    return redirect(url_for('auth.login'))
+    current_user_identity = get_jwt_identity() # ADDED: Get user identity from JWT
+    return render_template('notifications.html',
+                           username=current_user_identity, # Use JWT identity
+                           selected_branch=session.get('selected_branch'),
+                           inbox_notifications=dummy_inbox_notifications)
