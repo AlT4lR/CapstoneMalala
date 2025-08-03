@@ -31,10 +31,10 @@
             padding-right: 2.5rem; /* Make space for the arrow */
         }
 
-        /* ADDED: CSS for fade-out animation for local flash messages */
+        /* Flash message animation styles, now assuming they come from a base template */
         .flash-message-local {
             opacity: 1;
-            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+            transition: opacity 0.5s ease-out;
         }
         .flash-message-local.fade-out {
             opacity: 0;
@@ -42,6 +42,8 @@
     </style>
 
     <script>
+        // Tailwind config should be defined globally, e.g., in base.html
+        // Keeping it here for now if not extending a base.html in your current setup.
         tailwind.config = {
             theme: {
                 extend: {
@@ -53,7 +55,7 @@
                         'success-bg': '#d4edda', /* Estimated light green for success box */
                         'success-text': '#155724', /* Estimated dark green for success text */
                         'success-border': '#c3e6cb', /* Estimated border color for success box */
-                        'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
+                        'custom-logo-text': '#f6f6e9', /* Custom color for logo text */
                     }
                 }
             }
@@ -64,7 +66,9 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar -->
+            <!-- Sidebar - THIS SHOULD BE REPLACED BY {% include "_sidebar.html" %} OR VIA base.html -->
+            {# Assuming a base.html that includes _sidebar.html is used for proper modularity #}
+            {# For direct replacement if not using base.html, you'd paste _sidebar.html content here. #}
             <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
@@ -76,7 +80,9 @@
                     <nav class="flex flex-col space-y-2 px-2">
                         <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-house"></i>
+                            </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
                         <!-- Active Link (Transactions) with sub-menu -->
@@ -88,10 +94,12 @@
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
-                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                        <i class="fa-solid fa-truck"></i>
+                                    </span>
                                     <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transactions</span>
                                 </div>
-                                {% if inbox_notifications and inbox_notifications|length > 0 %} {# Display actual count if available #}
+                                {% if inbox_notifications and inbox_notifications|length > 0 %}
                                 <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">{{ inbox_notifications|length }}</span>
                                 {% endif %}
                             </a>
@@ -120,10 +128,9 @@
                             </div>
                         </div>
 
-                        {# ADDED: Invoice link #}
                         <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-file-invoice"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
@@ -131,19 +138,22 @@
 
                         <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-dollar-sign"></i>
+                            </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
                         <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
 
-                        {# ADDED: Schedules link #}
                         <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-calendar-alt"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
@@ -151,16 +161,15 @@
 
                         <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-box-archive"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
                         </a>
 
-                        {# ADDED: Settings link #}
                         <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-gear"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
@@ -193,12 +202,14 @@
                 </div>
             </aside>
 
+
             <!-- Main Content Area Wrapper -->
             <div class="flex-1 flex flex-col pl-20 overflow-hidden">
                 <main class="flex-1 p-8 flex flex-col">
                     <header class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Add Transactions</h2>
                         <!-- Notification button -->
+                        {# THIS SHOULD BE REPLACED BY {% include "_notifications_panel.html" %} and its triggering JS #}
                         <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
                             <i class="fa-regular fa-bell fa-lg"></i>
                             {% if inbox_notifications and inbox_notifications|length > 0 %}
@@ -208,7 +219,7 @@
                     </header>
 
                     <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                        <!-- Flash message container -->
+                        <!-- Flash message container - THIS SHOULD BE REPLACED BY {% include "_flash_messages.html" %} -->
                         <div id="flash-messages-container" class="mb-6 flash-message-local">
                             {% with messages = get_flashed_messages(with_categories=true) %}
                                 {% if messages %}
@@ -274,7 +285,7 @@
                 </main>
             </div>
 
-            <!-- Notification Panel -->
+            <!-- Notification Panel - THIS SHOULD BE REPLACED BY {% include "_notifications_panel.html" %} -->
             <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
                 <div class="p-4 border-b border-gray-200">
                     <h3 class="font-semibold text-custom-text-dark">Notification</h3>
@@ -306,6 +317,7 @@
     </div>
 
 <script>
+// THIS JAVASCRIPT SHOULD BE PART OF A GLOBAL SCRIPT IN base.html OR A COMMON JS FILE
 document.addEventListener('DOMContentLoaded', function() {
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
@@ -324,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ADDED: Auto-fade for flash messages
+    // Auto-fade for flash messages
     const flashMessages = document.getElementById('flash-messages-container');
     if (flashMessages) {
         setTimeout(() => {

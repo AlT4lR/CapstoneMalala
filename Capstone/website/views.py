@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from .models import (
-    get_user_by_username, add_user, check_password, update_last_login,
+    add_category, get_user_by_username, add_user, check_password, update_last_login,
     set_user_otp, verify_user_otp, record_failed_login_attempt,
     add_schedule, get_schedules_by_date_range, get_all_categories
 )

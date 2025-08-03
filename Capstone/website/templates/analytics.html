@@ -36,6 +36,8 @@
         }
     </style>
     <script>
+        // Tailwind config should be defined globally, e.g., in base.html
+        // Keeping it here for now if not extending a base.html in your current setup.
         tailwind.config = {
             theme: {
                 extend: {
@@ -61,7 +63,9 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar (Corrected) -->
+            <!-- Sidebar - THIS SHOULD BE REPLACED BY {% include "_sidebar.html" %} OR VIA base.html -->
+            {# Assuming a base.html that includes _sidebar.html is used for proper modularity #}
+            {# For direct replacement if not using base.html, you'd paste _sidebar.html content here. #}
             <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
@@ -73,10 +77,12 @@
                     <nav class="flex flex-col space-y-2 px-2">
                         <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-house"></i>
+                            </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
-                        <!-- Transactions with sub-menu - FIXED: Corrected active state logic -->
+                        <!-- Transactions with sub-menu -->
                         <div class="relative">
                             {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                             <a href="{{ url_for('main.transactions_paid') }}"
@@ -85,7 +91,9 @@
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
-                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                        <i class="fa-solid fa-truck"></i>
+                                    </span>
                                     <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
                                 </div>
                                 {% if inbox_notifications and inbox_notifications|length > 0 %}
@@ -117,10 +125,9 @@
                             </div>
                         </div>
                         
-                        {# ADDED: Invoice link #}
                         <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-file-invoice"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
@@ -128,38 +135,38 @@
 
                         <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-dollar-sign"></i>
+                            </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
-                        <a href="{{ url_for('main.analytics') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
-                            <div class="flex items-center gap-4 px-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
-                            </div>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
 
-                        {# ADDED: Schedules link #}
                         <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-calendar-alt"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
                         </a>
 
-                        {# ADDED: Archive link #}
                         <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-box-archive"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
                         </a>
 
-                        {# ADDED: Settings link #}
                         <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-gear"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
@@ -188,6 +195,16 @@
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </span>
                         <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Branches</span>
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
                     </a>
                 </div>
             </aside>
@@ -195,7 +212,7 @@
             <!-- Main Content Area Wrapper -->
             <div class="flex-1 flex flex-col pl-20 overflow-hidden">
                 <main class="flex-1 p-6 flex gap-6 overflow-hidden">
-                    <!-- Flash message container - FIXED: Added flash messages -->
+                    <!-- Flash message container -->
                     <div id="flash-messages-container" class="absolute top-4 right-96 z-50 w-auto flash-message-local">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
@@ -310,25 +327,28 @@
             </div>
         </div>
     </div>
+
 <script>
+// THIS JAVASCRIPT SHOULD BE PART OF A GLOBAL SCRIPT IN base.html OR A COMMON JS FILE
 document.addEventListener('DOMContentLoaded', function() {
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
 
     if (notificationBtn && notificationPanel) {
         notificationBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
+            event.stopPropagation(); // Prevent document click from immediately closing it
             notificationPanel.classList.toggle('hidden');
         });
 
         document.addEventListener('click', (event) => {
+            // Close notification panel if clicked outside
             if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
                 notificationPanel.classList.add('hidden');
             }
         });
     }
 
-    // ADDED: Auto-fade for flash messages
+    // Auto-fade for flash messages
     const flashMessages = document.getElementById('flash-messages-container');
     if (flashMessages) {
         setTimeout(() => {
@@ -340,5 +360,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 </body>
 </html>
