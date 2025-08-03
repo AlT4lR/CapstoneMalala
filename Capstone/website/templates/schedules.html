@@ -43,7 +43,7 @@
         .calendar-grid > div:first-child { /* No left border for the first column */
             border-left: none;
         }
-        /* Style for the time slots */
+        /* Style for the time slots (Week View) */
         .time-slot-grid {
             display: grid;
             grid-template-columns: 60px repeat(7, 1fr); /* Time column + 7 days */
@@ -66,12 +66,13 @@
             border-left: 1px solid rgba(255,255,255,0.2);
             box-sizing: border-box;
             position: relative;
+            overflow: hidden; /* To handle events not overflowing cell boundaries too much */
         }
         .time-slot-grid .day-cell:first-child { /* No left border for the first cell in a row of day-cells */
              border-left: none;
         }
+        /* Event styling */
         .event-box {
-            background-color: #a855f7; /* Example event color (purple) */
             color: white;
             border-radius: 4px;
             padding: 4px;
@@ -81,6 +82,19 @@
             left: 4px;
             box-sizing: border-box;
             z-index: 10;
+            cursor: pointer;
+            word-break: break-word; /* Ensure long words break */
+        }
+        .event-box.multi-day {
+            position: relative; /* For month view multi-day events */
+            width: auto;
+            left: auto;
+            margin-bottom: 2px;
+        }
+        /* Specific calendar view buttons */
+        .view-button.active {
+            background-color: theme('colors.gray.600'); /* bg-gray-600 */
+            color: white;
         }
     </style>
     <script>
@@ -99,11 +113,13 @@
                         'calendar-bg-dark': '#3b513c', /* Dark green for main calendar grid */
                         'calendar-header-bg': '#4a6842', /* Slightly lighter green for calendar header */
                         'calendar-sidebar-bg': '#4a6842', /* Dark green for left calendar sidebar */
-                        'category-office': '#99cc99', /* Example color */
-                        'category-meetings': '#ff9999', /* Example color */
-                        'category-events': '#9999ff', /* Example color */
-                        'category-personal': '#ffff99', /* Example color */
-                        'category-others': '#cccccc', /* Example color */
+                        
+                        /* Category Colors (can be extended from backend too) */
+                        'category-office': '#99cc99',
+                        'category-meetings': '#ff9999',
+                        'category-events': '#9999ff',
+                        'category-personal': '#ffff99',
+                        'category-others': '#cccccc',
                     }
                 }
             }
@@ -272,16 +288,16 @@
                     <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 bg-custom-bg rounded-xl p-6">
                         <!-- Left Sidebar for Calendar Controls -->
                         <div class="col-span-1 bg-calendar-sidebar-bg rounded-xl p-4 text-white flex flex-col items-center shadow-lg">
-                            <button class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-3 rounded-lg mb-6 transition-colors shadow">Create Schedule</button>
+                            <button id="create-schedule-btn" class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-3 rounded-lg mb-6 transition-colors shadow">Create Schedule</button>
 
                             <!-- Mini Calendar/Date Picker -->
                             <div class="w-full text-center mb-6">
                                 <div class="flex justify-between items-center mb-4">
-                                    <i class="fas fa-chevron-left text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
-                                    <span class="text-lg font-semibold">JULY 2025</span>
-                                    <i class="fas fa-chevron-right text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
+                                    <i id="mini-cal-prev-month" class="fas fa-chevron-left text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
+                                    <span id="mini-cal-month-year" class="text-lg font-semibold"></span>
+                                    <i id="mini-cal-next-month" class="fas fa-chevron-right text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
                                 </div>
-                                <div class="grid grid-cols-7 gap-1 text-sm">
+                                <div id="mini-calendar-grid" class="grid grid-cols-7 gap-1 text-sm">
                                     <div class="text-gray-300 font-medium">S</div>
                                     <div class="text-gray-300 font-medium">M</div>
                                     <div class="text-gray-300 font-medium">T</div>
@@ -289,167 +305,94 @@
                                     <div class="text-gray-300 font-medium">T</div>
                                     <div class="text-gray-300 font-medium">F</div>
                                     <div class="text-gray-300 font-medium">S</div>
-                                    <!-- Days (Start from July 1, 2025 which is Tuesday) -->
-                                    <div class="col-start-3 p-1 rounded-full flex items-center justify-center">1</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">2</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">3</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">4</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">5</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">6</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">7</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">8</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">9</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">10</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">11</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">12</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">13</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">14</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">15</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">16</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">17</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">18</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">19</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">20</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">21</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">22</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">23</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">24</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">25</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center font-bold bg-custom-green-active rounded">26</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">27</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">28</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">29</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">30</div>
-                                    <div class="p-1 rounded-full flex items-center justify-center">31</div>
+                                    <!-- Days will be dynamically inserted here -->
                                 </div>
                             </div>
 
                             <!-- Categories Section -->
                             <div class="w-full text-left">
                                 <h3 class="text-md font-semibold mb-3">Categories</h3>
-                                <div class="space-y-2 text-sm">
-                                    <label class="flex items-center">
-                                        <input type="radio" name="category" class="form-radio text-category-office h-4 w-4" checked>
-                                        <span class="ml-2">Office</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="radio" name="category" class="form-radio text-category-meetings h-4 w-4">
-                                        <span class="ml-2">Meetings</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="radio" name="category" class="form-radio text-category-events h-4 w-4">
-                                        <span class="ml-2">Events</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="radio" name="category" class="form-radio text-category-personal h-4 w-4">
-                                        <span class="ml-2">Personal</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="radio" name="category" class="form-radio text-category-others h-4 w-4">
-                                        <span class="ml-2">Others</span>
-                                    </label>
+                                <div id="category-list" class="space-y-2 text-sm">
+                                    <!-- Categories will be dynamically inserted here -->
                                 </div>
-                                <button class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-lg mt-4 text-sm transition-colors shadow">Add Categories</button>
+                                <button id="add-category-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-lg mt-4 text-sm transition-colors shadow">Add Categories</button>
                             </div>
                         </div>
 
                         <!-- Main Calendar Grid -->
                         <div class="col-span-3 bg-calendar-bg-dark rounded-xl p-4 text-white flex flex-col shadow-lg overflow-hidden">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold">JULY 2025</h3>
+                                <h3 id="main-cal-header-month-year" class="text-lg font-semibold"></h3>
                                 <div class="inline-flex items-center space-x-1 bg-gray-700 p-1 rounded-full text-xs">
-                                    <button class="px-3 py-1 font-semibold rounded-full bg-gray-600 text-white">Day</button>
-                                    <button class="px-3 py-1 font-semibold rounded-full">Week</button>
-                                    <button class="px-3 py-1 font-semibold rounded-full">Month</button>
-                                    <button class="px-3 py-1 font-semibold rounded-full">Year</button>
+                                    <button id="view-day-btn" class="view-button px-3 py-1 font-semibold rounded-full">Day</button>
+                                    <button id="view-week-btn" class="view-button px-3 py-1 font-semibold rounded-full active">Week</button>
+                                    <button id="view-month-btn" class="view-button px-3 py-1 font-semibold rounded-full">Month</button>
+                                    <button id="view-year-btn" class="view-button px-3 py-1 font-semibold rounded-full">Year</button>
                                 </div>
                             </div>
 
-                            <!-- Calendar Day Headers -->
-                            <div class="calendar-grid bg-calendar-header-bg rounded-t-lg">
-                                <div class="text-center font-medium">SUN</div>
-                                <div class="text-center font-medium">MON</div>
-                                <div class="text-center font-medium">TUE</div>
-                                <div class="text-center font-medium">WED</div>
-                                <div class="text-center font-medium">THU</div>
-                                <div class="text-center font-medium">FRI</div>
-                                <div class="text-center font-medium">SAT</div>
-                            </div>
-                            
-                            <!-- Calendar Days Grid (Month View) -->
-                            <div class="flex-1 overflow-y-auto custom-scrollbar">
-                                <div class="calendar-grid">
-                                    {# Days of previous month (June 29, 30, starting Sunday) #}
-                                    <div class="text-right text-gray-400">29</div>
-                                    <div class="text-right text-gray-400">30</div>
-                                    {# Days of July 2025 (July 1 is a Tuesday) #}
-                                    <div class="text-right">1</div>
-                                    <div class="text-right">2</div>
-                                    <div class="text-right">3</div>
-                                    <div class="text-right">4</div>
-                                    <div class="text-right">5</div>
-                                    <div class="text-right">6</div>
-                                    <div class="text-right">7</div>
-                                    <div class="text-right">8</div>
-                                    <div class="text-right">9</div>
-                                    <div class="text-right">10</div>
-                                    <div class="text-right">11</div>
-                                    <div class="text-right">12</div>
-                                    <div class="text-right">13</div>
-                                    <div class="text-right">14</div>
-                                    <div class="text-right">15</div>
-                                    <div class="text-right">16</div>
-                                    <div class="text-right">17</div>
-                                    <div class="text-right">18</div>
-                                    <div class="text-right">19</div>
-                                    <div class="text-right">20</div>
-                                    <div class="text-right">21</div>
-                                    <div class="text-right">22</div>
-                                    <div class="text-right">23</div>
-                                    <div class="text-right">24</div>
-                                    <div class="text-right">25</div>
-                                    <div class="text-right">26</div>
-                                    <div class="text-right">27</div>
-                                    <div class="text-right">28</div>
-                                    <div class="text-right">29</div>
-                                    <div class="text-right">30</div>
-                                    <div class="text-right">31</div>
-                                    {# Days of next month (August) #}
-                                    <div class="text-right text-gray-400">1</div>
-                                    <div class="text-right text-gray-400">2</div>
-                                    <div class="text-right text-gray-400">3</div>
-                                    <div class="text-right text-gray-400">4</div>
-                                    <div class="text-right text-gray-400">5</div>
-                                    <div class="text-right text-gray-400">6</div>
+                            <!-- Calendar views container -->
+                            <div id="calendar-views-container" class="flex-1 overflow-y-auto custom-scrollbar">
+                                <!-- Month View -->
+                                <div id="month-view" class="hidden">
+                                    <div class="calendar-grid bg-calendar-header-bg rounded-t-lg">
+                                        <div class="text-center font-medium">SUN</div>
+                                        <div class="text-center font-medium">MON</div>
+                                        <div class="text-center font-medium">TUE</div>
+                                        <div class="text-center font-medium">WED</div>
+                                        <div class="text-center font-medium">THU</div>
+                                        <div class="text-center font-medium">FRI</div>
+                                        <div class="text-center font-medium">SAT</div>
+                                    </div>
+                                    <div id="month-grid-days" class="calendar-grid border-b border-l border-r border-gray-700">
+                                        <!-- Days will be dynamically inserted here -->
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Calendar Time Slots (Week View) - Initial view based on image -->
-                            <div class="flex-1 overflow-y-auto custom-scrollbar mt-4">
-                                <div class="time-slot-grid">
-                                    <div class="time-label"></div> {# Empty corner for time column header #}
-                                    <div class="text-center text-sm font-medium">SUN<br>20</div>
-                                    <div class="text-center text-sm font-medium">MON<br>21</div>
-                                    <div class="text-center text-sm font-medium">TUE<br>22</div>
-                                    <div class="text-center text-sm font-medium">WED<br>23</div>
-                                    <div class="text-center text-sm font-medium">THU<br>24</div>
-                                    <div class="text-center text-sm font-medium">FRI<br>25</div>
-                                    <div class="text-center text-sm font-medium">SAT<br>26</div>
 
-                                    {% for hour in range(8, 20) %} {# 8 AM to 7 PM #}
-                                        <div class="time-label">{{ hour if hour <= 12 else hour - 12 }} {{ 'AM' if hour < 12 else 'PM' }}</div>
-                                        {% for day in range(7) %}
-                                            <div class="day-cell">
-                                                {% if hour == 16 and day == 6 %} {# Example event on Saturday 4 PM #}
-                                                    <div class="event-box" style="height: 60px;">
-                                                        <p class="font-semibold leading-tight">- Delivery of<br>Alcoholic Liquor</p>
-                                                        <p class="text-xs opacity-80">4:00 - 5:00</p>
-                                                        <p class="text-xs opacity-80">Notes</p>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    {% endfor %}
+                                <!-- Week View -->
+                                <div id="week-view">
+                                    <div class="time-slot-grid bg-calendar-header-bg rounded-t-lg">
+                                        <div class="time-label"></div>
+                                        <div class="text-center text-sm font-medium">SUN<br><span id="week-header-day-0"></span></div>
+                                        <div class="text-center text-sm font-medium">MON<br><span id="week-header-day-1"></span></div>
+                                        <div class="text-center text-sm font-medium">TUE<br><span id="week-header-day-2"></span></div>
+                                        <div class="text-center text-sm font-medium">WED<br><span id="week-header-day-3"></span></div>
+                                        <div class="text-center text-sm font-medium">THU<br><span id="week-header-day-4"></span></div>
+                                        <div class="text-center text-sm font-medium">FRI<br><span id="week-header-day-5"></span></div>
+                                        <div class="text-center text-sm font-medium">SAT<br><span id="week-header-day-6"></span></div>
+                                    </div>
+                                    <div id="week-grid-time-slots" class="flex-1 overflow-y-auto custom-scrollbar">
+                                        <div class="time-slot-grid">
+                                            {% for hour in range(0, 24) %} {# 00:00 to 23:00 #}
+                                                <div class="time-label">{{ hour if hour <= 12 else hour - 12 }} {{ 'AM' if hour < 12 else 'PM' }}</div>
+                                                {% for day_index in range(7) %}
+                                                    <div class="day-cell hour-{{ hour }} day-{{ day_index }}"></div>
+                                                {% endfor %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Day View -->
+                                <div id="day-view" class="hidden">
+                                    <div class="time-slot-grid bg-calendar-header-bg rounded-t-lg" style="grid-template-columns: 60px 1fr;">
+                                        <div class="time-label"></div>
+                                        <div class="text-center text-sm font-medium"><span id="day-header-date"></span></div>
+                                    </div>
+                                    <div id="day-grid-time-slots" class="flex-1 overflow-y-auto custom-scrollbar">
+                                        <div class="time-slot-grid" style="grid-template-columns: 60px 1fr;">
+                                            {% for hour in range(0, 24) %}
+                                                <div class="time-label">{{ hour if hour <= 12 else hour - 12 }} {{ 'AM' if hour < 12 else 'PM' }}</div>
+                                                <div class="day-cell hour-{{ hour }} day-0"></div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Year View (Placeholder) -->
+                                <div id="year-view" class="hidden text-center p-8">
+                                    <h3 class="text-2xl font-bold">Year View - Coming Soon!</h3>
+                                    <p class="text-gray-400 mt-2">This view will display a yearly overview of your schedules.</p>
                                 </div>
                             </div>
                         </div>
@@ -485,20 +428,70 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Create Schedule Modal -->
+            <div id="create-schedule-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#f6f6e9] rounded-xl shadow-xl w-11/12 max-w-lg p-8 relative">
+                    <button id="close-schedule-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                    <h2 class="text-xl font-bold text-custom-green-darker mb-6">Create New Schedule</h2>
+                    <form id="create-schedule-form" class="space-y-4">
+                        <div>
+                            <label for="event-title" class="block text-gray-700 text-sm font-semibold mb-1">Title</label>
+                            <input type="text" id="event-title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="event-start-time" class="block text-gray-700 text-sm font-semibold mb-1">Start Time</label>
+                                <input type="datetime-local" id="event-start-time" name="start_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                            </div>
+                            <div>
+                                <label for="event-end-time" class="block text-gray-700 text-sm font-semibold mb-1">End Time</label>
+                                <input type="datetime-local" id="event-end-time" name="end_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="event-category" class="block text-gray-700 text-sm font-semibold mb-1">Category</label>
+                            <select id="event-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                                <!-- Categories will be populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="event-notes" class="block text-gray-700 text-sm font-semibold mb-1">Notes (Optional)</label>
+                            <textarea id="event-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-2 rounded-lg transition-colors">Add Schedule</button>
+                    </form>
+                </div>
+            </div>
+
+             <!-- Event Details Modal -->
+            <div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#f6f6e9] rounded-xl shadow-xl w-11/12 max-w-md p-8 relative">
+                    <button id="close-event-details-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                    <h2 class="text-xl font-bold text-custom-green-darker mb-4" id="details-event-title"></h2>
+                    <p class="text-gray-700 text-sm mb-2"><strong class="font-semibold">Category:</strong> <span id="details-event-category" class="px-2 py-1 rounded-full text-xs font-semibold"></span></p>
+                    <p class="text-gray-700 text-sm mb-2"><strong class="font-semibold">Time:</strong> <span id="details-event-time"></span></p>
+                    <p class="text-gray-700 text-sm mb-4"><strong class="font-semibold">Notes:</strong> <span id="details-event-notes"></span></p>
+                    <div class="flex justify-end space-x-2">
+                        <button class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">Delete</button>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">Edit</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- General UI elements ---
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
-
     if (notificationBtn && notificationPanel) {
         notificationBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             notificationPanel.classList.toggle('hidden');
         });
-
         document.addEventListener('click', (event) => {
             if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
                 notificationPanel.classList.add('hidden');
@@ -506,16 +499,530 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ADDED: Auto-fade for flash messages
-    const flashMessages = document.getElementById('flash-messages-container');
-    if (flashMessages) {
+    const flashMessagesContainer = document.getElementById('flash-messages-container');
+    if (flashMessagesContainer) {
         setTimeout(() => {
-            flashMessages.classList.add('fade-out');
-            flashMessages.addEventListener('transitionend', () => {
-                flashMessages.remove();
+            flashMessagesContainer.classList.add('fade-out');
+            flashMessagesContainer.addEventListener('transitionend', () => {
+                flashMessagesContainer.remove();
             });
-        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
+        }, 5000);
     }
+
+    // --- Calendar Functionality ---
+    let currentMainDate; // Tracks the date currently displayed in the main calendar header (could be day, week, or month start)
+    let currentView = 'Week'; // Default view: 'Week', 'Month', 'Day', 'Year'
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+    const miniCalMonthYearEl = document.getElementById('mini-cal-month-year');
+    const miniCalendarGridEl = document.getElementById('mini-calendar-grid');
+    const miniCalPrevMonthBtn = document.getElementById('mini-cal-prev-month');
+    const miniCalNextMonthBtn = document.getElementById('mini-cal-next-month');
+
+    const mainCalHeaderMonthYearEl = document.getElementById('main-cal-header-month-year');
+    const monthViewEl = document.getElementById('month-view');
+    const monthGridDaysEl = document.getElementById('month-grid-days');
+    const weekViewEl = document.getElementById('week-view');
+    const weekHeaderDayEls = Array.from({length: 7}, (_, i) => document.getElementById(`week-header-day-${i}`));
+    const weekGridTimeSlotsEl = document.getElementById('week-grid-time-slots');
+    const dayViewEl = document.getElementById('day-view');
+    const dayHeaderDateEl = document.getElementById('day-header-date');
+    const dayGridTimeSlotsEl = document.getElementById('day-grid-time-slots');
+    const yearViewEl = document.getElementById('year-view');
+
+    const viewButtons = document.querySelectorAll('.view-button');
+    const createScheduleBtn = document.getElementById('create-schedule-btn');
+    const createScheduleModal = document.getElementById('create-schedule-modal');
+    const closeScheduleModalBtn = document.getElementById('close-schedule-modal');
+    const createScheduleForm = document.getElementById('create-schedule-form');
+    const eventCategorySelect = document.getElementById('event-category');
+    const categoryListEl = document.getElementById('category-list');
+    const addCategoryBtn = document.getElementById('add-category-btn');
+
+    const eventDetailsModal = document.getElementById('event-details-modal');
+    const closeEventDetailsModalBtn = document.getElementById('close-event-details-modal');
+    const detailsEventTitleEl = document.getElementById('details-event-title');
+    const detailsEventCategoryEl = document.getElementById('details-event-category');
+    const detailsEventTimeEl = document.getElementById('details-event-time');
+    const detailsEventNotesEl = document.getElementById('details-event-notes');
+
+    const categoryColors = {
+        'Office': 'bg-category-office',
+        'Meetings': 'bg-category-meetings',
+        'Events': 'bg-category-events',
+        'Personal': 'bg-category-personal',
+        'Others': 'bg-category-others',
+        // Add more dynamic categories here if needed from backend
+    };
+    
+    // --- Initial Date Setup ---
+    // Use the `current_date` passed from Flask, or default to today
+    const initialDateString = "{{ current_date.isoformat() }}";
+    currentMainDate = new Date(initialDateString);
+    currentMainDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+    let miniCalMonth = currentMainDate.getMonth();
+    let miniCalYear = currentMainDate.getFullYear();
+
+    // --- Helper Functions ---
+    function getWeekStartDate(date) {
+        let day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        let diff = date.getDate() - day; // Adjust date to Sunday
+        return new Date(date.getFullYear(), date.getMonth(), diff);
+    }
+
+    function formatTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDateForDisplay(date) {
+        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function getCategoryColorClass(category) {
+        const baseClass = 'px-2 py-1 rounded-full text-xs font-semibold';
+        return `${baseClass} ${categoryColors[category] || 'bg-gray-500'}`;
+    }
+
+    async function fetchSchedules(start, end) {
+        try {
+            const response = await fetch(`/api/schedules?start=${start.toISOString()}&end=${end.toISOString()}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error fetching schedules:", errorData.error);
+                return [];
+            }
+            const schedules = await response.json();
+            return schedules.map(s => ({
+                ...s,
+                start_time: new Date(s.start_time),
+                end_time: new Date(s.end_time)
+            }));
+        } catch (error) {
+            console.error("Network or parsing error fetching schedules:", error);
+            return [];
+        }
+    }
+
+    async function fetchCategories() {
+        try {
+            const response = await fetch('/api/categories', {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error fetching categories:", errorData.error);
+                return ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback
+            }
+            const categories = await response.json();
+            return categories.length > 0 ? categories : ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback
+        } catch (error) {
+            console.error("Network or parsing error fetching categories:", error);
+            return ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback
+        }
+    }
+
+    async function populateCategorySelectAndList() {
+        const categories = await fetchCategories();
+        
+        eventCategorySelect.innerHTML = '';
+        categoryListEl.innerHTML = '';
+
+        categories.forEach(cat => {
+            // Populate Create Schedule modal's category select
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            eventCategorySelect.appendChild(option);
+
+            // Populate sidebar category list
+            const label = document.createElement('label');
+            label.className = 'flex items-center';
+            label.innerHTML = `
+                <input type="radio" name="sidebar-category" value="${cat}" class="form-radio h-4 w-4" style="color: ${categoryColors[cat] || 'gray'};">
+                <span class="ml-2">${cat}</span>
+            `;
+            categoryListEl.appendChild(label);
+        });
+    }
+
+    // --- Render Mini Calendar ---
+    function renderMiniCalendar() {
+        miniCalendarGridEl.innerHTML = `
+            <div class="text-gray-300 font-medium">S</div>
+            <div class="text-gray-300 font-medium">M</div>
+            <div class="text-gray-300 font-medium">T</div>
+            <div class="text-gray-300 font-medium">W</div>
+            <div class="text-gray-300 font-medium">T</div>
+            <div class="text-gray-300 font-medium">F</div>
+            <div class="text-gray-300 font-medium">S</div>
+        `;
+        miniCalMonthYearEl.textContent = `${monthNames[miniCalMonth]} ${miniCalYear}`;
+
+        let firstDayOfMonth = new Date(miniCalYear, miniCalMonth, 1);
+        let startingDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
+
+        let daysInMonth = new Date(miniCalYear, miniCalMonth + 1, 0).getDate();
+        let daysInPrevMonth = new Date(miniCalYear, miniCalMonth, 0).getDate();
+
+        // Add padding days from previous month
+        for (let i = 0; i < startingDay; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400';
+            dayEl.textContent = daysInPrevMonth - startingDay + i + 1;
+            miniCalendarGridEl.appendChild(dayEl);
+        }
+
+        // Add days of current month
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'p-1 rounded-full flex items-center justify-center cursor-pointer';
+            if (i === currentMainDate.getDate() && miniCalMonth === currentMainDate.getMonth() && miniCalYear === currentMainDate.getFullYear()) {
+                dayEl.classList.add('font-bold', 'bg-custom-green-active');
+            } else {
+                dayEl.classList.add('hover:bg-gray-700'); // Light hover effect for non-active days
+            }
+            dayEl.textContent = i;
+            dayEl.dataset.date = new Date(miniCalYear, miniCalMonth, i).toISOString(); // Store full date
+
+            dayEl.addEventListener('click', (e) => {
+                const selectedDate = new Date(e.target.dataset.date);
+                currentMainDate = selectedDate;
+                renderCalendar(); // Re-render main calendar based on selected day
+                renderMiniCalendar(); // Re-render mini calendar to update active day
+            });
+
+            miniCalendarGridEl.appendChild(dayEl);
+        }
+
+        // Add padding days from next month (fill up to 6 weeks for consistency)
+        const totalCells = miniCalendarGridEl.children.length - 7; // Subtract initial day headers
+        const remainingCells = 42 - totalCells; // 6 rows * 7 days = 42 cells
+        for (let i = 1; i <= remainingCells; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400';
+            dayEl.textContent = i;
+            miniCalendarGridEl.appendChild(dayEl);
+        }
+    }
+
+    // --- Render Main Calendar ---
+    async function renderCalendar() {
+        mainCalHeaderMonthYearEl.textContent = `${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getFullYear()}`;
+        
+        // Hide all views first
+        monthViewEl.classList.add('hidden');
+        weekViewEl.classList.add('hidden');
+        dayViewEl.classList.add('hidden');
+        yearViewEl.classList.add('hidden');
+
+        // Set active view button
+        viewButtons.forEach(btn => btn.classList.remove('active', 'bg-gray-600', 'text-white'));
+        document.getElementById(`view-${currentView.toLowerCase()}-btn`).classList.add('active', 'bg-gray-600', 'text-white');
+
+        let startDate, endDate;
+        let events = [];
+
+        if (currentView === 'Month') {
+            monthViewEl.classList.remove('hidden');
+            mainCalHeaderMonthYearEl.textContent = `${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getFullYear()}`;
+
+            let firstDayOfMonth = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), 1);
+            startDate = getWeekStartDate(firstDayOfMonth); // Get Sunday of the first week of the month
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 41); // Display 6 weeks (42 days)
+
+            events = await fetchSchedules(startDate, endDate);
+            renderMonthView(startDate, events);
+
+        } else if (currentView === 'Week') {
+            weekViewEl.classList.remove('hidden');
+            startDate = getWeekStartDate(currentMainDate);
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6); // End of the week (Saturday)
+
+            // Update week view headers
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                weekHeaderDayEls[i].textContent = date.getDate();
+                if (date.toDateString() === new Date().toDateString()) { // Highlight today
+                    weekHeaderDayEls[i].parentElement.classList.add('text-custom-green-active');
+                } else {
+                    weekHeaderDayEls[i].parentElement.classList.remove('text-custom-green-active');
+                }
+            }
+            mainCalHeaderMonthYearEl.textContent = `${monthNames[startDate.getMonth()]} ${startDate.getDate()} - ${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${startDate.getFullYear()}`;
+
+
+            events = await fetchSchedules(startDate, endDate);
+            renderWeekView(startDate, events);
+
+        } else if (currentView === 'Day') {
+            dayViewEl.classList.remove('hidden');
+            startDate = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate());
+            endDate = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate(), 23, 59, 59);
+
+            dayHeaderDateEl.textContent = `${dayNames[currentMainDate.getDay()]}, ${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getDate()}, ${currentMainDate.getFullYear()}`;
+            mainCalHeaderMonthYearEl.textContent = `Schedules for ${dayHeaderDateEl.textContent}`;
+
+            events = await fetchSchedules(startDate, endDate);
+            renderDayView(startDate, events);
+
+        } else if (currentView === 'Year') {
+            yearViewEl.classList.remove('hidden');
+            mainCalHeaderMonthYearEl.textContent = `Yearly Overview for ${currentMainDate.getFullYear()}`;
+            // No specific rendering for Year view beyond placeholder.
+        }
+    }
+
+    function renderMonthView(startDate, events) {
+        monthGridDaysEl.innerHTML = ''; // Clear previous days
+
+        for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
+
+            const dayCell = document.createElement('div');
+            dayCell.className = 'p-1 relative border-b border-l border-r border-gray-700 h-28'; // Fixed height for month cells
+            if (date.getMonth() !== currentMainDate.getMonth()) {
+                dayCell.classList.add('text-gray-500'); // Faded for prev/next month days
+            } else {
+                 dayCell.classList.add('cursor-pointer', 'hover:bg-gray-700');
+                 dayCell.addEventListener('click', () => {
+                     currentMainDate = date;
+                     currentView = 'Day';
+                     renderCalendar();
+                     renderMiniCalendar();
+                 });
+            }
+            
+            dayCell.innerHTML = `<div class="text-right font-medium">${date.getDate()}</div>`;
+
+            // Filter events for this specific day
+            const dailyEvents = events.filter(event => 
+                event.start_time.getFullYear() === date.getFullYear() &&
+                event.start_time.getMonth() === date.getMonth() &&
+                event.start_time.getDate() === date.getDate()
+            ).sort((a, b) => a.start_time - b.start_time); // Sort events by time
+
+            dailyEvents.slice(0, 3).forEach(event => { // Display max 3 events
+                const eventEl = document.createElement('div');
+                eventEl.className = `event-box multi-day ${getCategoryColorClass(event.category)}`;
+                eventEl.textContent = event.title;
+                eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)})`;
+                eventEl.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent day cell click
+                    showEventDetails(event);
+                });
+                dayCell.appendChild(eventEl);
+            });
+
+            if (dailyEvents.length > 3) {
+                const moreEl = document.createElement('div');
+                moreEl.className = 'text-xs text-gray-400 mt-1 cursor-pointer hover:underline';
+                moreEl.textContent = `+${dailyEvents.length - 3} more`;
+                 moreEl.addEventListener('click', (e) => {
+                     e.stopPropagation();
+                     currentMainDate = date;
+                     currentView = 'Day';
+                     renderCalendar();
+                     renderMiniCalendar();
+                 });
+                dayCell.appendChild(moreEl);
+            }
+
+            monthGridDaysEl.appendChild(dayCell);
+        }
+    }
+
+    function renderWeekView(startDate, events) {
+        weekGridTimeSlotsEl.querySelectorAll('.day-cell').forEach(cell => cell.innerHTML = ''); // Clear previous events
+
+        // For week view, events need to be placed precisely based on time and duration
+        events.forEach(event => {
+            const eventDay = event.start_time.getDay(); // 0-6 (Sunday-Saturday)
+            const eventHour = event.start_time.getHours();
+            const eventMinute = event.start_time.getMinutes();
+            const durationHours = (event.end_time - event.start_time) / (1000 * 60 * 60);
+
+            // Find the correct cell
+            const targetCell = weekGridTimeSlotsEl.querySelector(`.day-cell.hour-${eventHour}.day-${eventDay}`);
+            if (targetCell) {
+                const eventEl = document.createElement('div');
+                eventEl.className = `event-box ${getCategoryColorClass(event.category)}`;
+                eventEl.innerHTML = `
+                    <p class="font-semibold leading-tight">${event.title}</p>
+                    <p class="text-xs opacity-80">${formatTime(event.start_time)} - ${formatTime(event.end_time)}</p>
+                    ${event.notes ? `<p class="text-xs opacity-80 truncate">${event.notes}</p>` : ''}
+                `;
+                eventEl.style.top = `${eventMinute / 60 * 60}px`; // Position vertically within the hour slot
+                eventEl.style.height = `${durationHours * 60 - 8}px`; // Height based on duration, minus padding
+                eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)}) - ${event.notes || ''}`;
+                eventEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showEventDetails(event);
+                });
+                targetCell.appendChild(eventEl);
+            }
+        });
+    }
+
+    function renderDayView(date, events) {
+        dayGridTimeSlotsEl.querySelectorAll('.day-cell').forEach(cell => cell.innerHTML = ''); // Clear previous events
+
+        events.forEach(event => {
+            const eventHour = event.start_time.getHours();
+            const eventMinute = event.start_time.getMinutes();
+            const durationHours = (event.end_time - event.start_time) / (1000 * 60 * 60);
+
+            const targetCell = dayGridTimeSlotsEl.querySelector(`.day-cell.hour-${eventHour}.day-0`); // day-0 for the single day
+            if (targetCell) {
+                const eventEl = document.createElement('div');
+                eventEl.className = `event-box ${getCategoryColorClass(event.category)}`;
+                 eventEl.innerHTML = `
+                    <p class="font-semibold leading-tight">${event.title}</p>
+                    <p class="text-xs opacity-80">${formatTime(event.start_time)} - ${formatTime(event.end_time)}</p>
+                    ${event.notes ? `<p class="text-xs opacity-80 truncate">${event.notes}</p>` : ''}
+                `;
+                eventEl.style.top = `${eventMinute / 60 * 60}px`;
+                eventEl.style.height = `${durationHours * 60 - 8}px`;
+                eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)}) - ${event.notes || ''}`;
+                eventEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showEventDetails(event);
+                });
+                targetCell.appendChild(eventEl);
+            }
+        });
+    }
+
+    function showEventDetails(event) {
+        detailsEventTitleEl.textContent = event.title;
+        detailsEventCategoryEl.textContent = event.category;
+        detailsEventCategoryEl.className = getCategoryColorClass(event.category); // Apply category color class
+        detailsEventTimeEl.textContent = `${formatDateForDisplay(event.start_time)} ${formatTime(event.start_time)} - ${formatTime(event.end_time)}`;
+        detailsEventNotesEl.textContent = event.notes || 'No notes.';
+        eventDetailsModal.classList.remove('hidden');
+    }
+
+    // --- Event Listeners for Navigation ---
+    miniCalPrevMonthBtn.addEventListener('click', () => {
+        miniCalMonth--;
+        if (miniCalMonth < 0) {
+            miniCalMonth = 11;
+            miniCalYear--;
+        }
+        currentMainDate = new Date(miniCalYear, miniCalMonth, currentMainDate.getDate()); // Keep current date as reference
+        renderMiniCalendar();
+        renderCalendar();
+    });
+
+    miniCalNextMonthBtn.addEventListener('click', () => {
+        miniCalMonth++;
+        if (miniCalMonth > 11) {
+            miniCalMonth = 0;
+            miniCalYear++;
+        }
+        currentMainDate = new Date(miniCalYear, miniCalMonth, currentMainDate.getDate());
+        renderMiniCalendar();
+        renderCalendar();
+    });
+
+    viewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            currentView = button.textContent;
+            renderCalendar();
+        });
+    });
+
+    // --- Create Schedule Modal Logic ---
+    createScheduleBtn.addEventListener('click', () => {
+        createScheduleModal.classList.remove('hidden');
+        populateCategorySelectAndList(); // Ensure categories are up-to-date
+    });
+
+    closeScheduleModalBtn.addEventListener('click', () => {
+        createScheduleModal.classList.add('hidden');
+        createScheduleForm.reset(); // Clear form on close
+    });
+
+    createScheduleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(createScheduleForm);
+        const data = Object.fromEntries(formData.entries());
+
+        // Basic validation
+        if (new Date(data.start_time) >= new Date(data.end_time)) {
+            alert('End time must be after start time.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/schedules', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('Schedule created successfully!');
+                createScheduleModal.classList.add('hidden');
+                createScheduleForm.reset();
+                renderCalendar(); // Re-render calendar to show new event
+            } else {
+                const errorData = await response.json();
+                alert('Failed to create schedule: ' + (errorData.error || response.statusText));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while creating the schedule.');
+        }
+    });
+
+    // --- Add Category Logic ---
+    addCategoryBtn.addEventListener('click', async () => {
+        const newCategory = prompt("Enter new category name:");
+        if (newCategory && newCategory.trim() !== "") {
+            try {
+                const response = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category_name: newCategory.trim() })
+                });
+                if (response.ok) {
+                    alert(`Category '${newCategory.trim()}' added! (Note: This is conceptual. Actual persistence depends on backend implementation)`);
+                    // Dynamically add to current categoryColors for immediate use (client-side only for this example)
+                    // In a real app, you might fetch categories again or send a specific color from backend.
+                    categoryColors[newCategory.trim()] = `hsl(${Math.random() * 360}, 70%, 70%)`; // Assign random color
+                    populateCategorySelectAndList(); // Re-populate to show new category
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to add category: ' + (errorData.error || response.statusText));
+                }
+            } catch (error) {
+                console.error('Error adding category:', error);
+                alert('An error occurred while adding the category.');
+            }
+        }
+    });
+
+    // --- Event Details Modal Logic ---
+    closeEventDetailsModalBtn.addEventListener('click', () => {
+        eventDetailsModal.classList.add('hidden');
+    });
+
+    // --- Initial Render ---
+    populateCategorySelectAndList(); // Load initial categories
+    renderMiniCalendar();
+    renderCalendar(); // Render main calendar initially (defaults to Week view)
 });
 </script>
 
