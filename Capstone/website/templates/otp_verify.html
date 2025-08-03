@@ -1,3 +1,5 @@
+--- START OF FILE otp_verify.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,12 +28,12 @@
             box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3);
         }
 
-        /* CSS for fade-out animation */
-        .flash-message {
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
             opacity: 1;
             transition: opacity 0.5s ease-out;
         }
-        .flash-message.fade-out {
+        .flash-message-local.fade-out {
             opacity: 0;
         }
     </style>
@@ -54,7 +56,7 @@
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div id="flash-messages-container" class="mb-5 flash-message">
+                    <div id="flash-messages-container" class="mb-5 flash-message-local"> {# FIXED: Changed class to flash-message-local #}
                         {% for category, message in messages %}
                             <div class="p-2 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
                                 {{ message }}
@@ -73,12 +75,12 @@
             <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST">
                 {# This div contains the six individual input boxes #}
                 <div class="flex justify-center mb-6" id="otp-inputs">
-                    <input type="text" name="otp1" class="otp-input" maxlength="1" required>
-                    <input type="text" name="otp2" class="otp-input" maxlength="1" required>
-                    <input type="text" name="otp3" class="otp-input" maxlength="1" required>
-                    <input type="text" name="otp4" class="otp-input" maxlength="1" required>
-                    <input type="text" name="otp5" class="otp-input" maxlength="1" required>
-                    <input type="text" name="otp6" class="otp-input" maxlength="1" required>
+                    <input type="text" name="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    <input type="text" name="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    <input type="text" name="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    <input type="text" name="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    <input type="text" name="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    <input type="text" name="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
                 </div>
 
                 <div class="flex justify-between items-center text-sm text-gray-500 mb-8">
@@ -107,7 +109,8 @@
                 }
                 if (val != '') {
                     const next = target.nextElementSibling;
-                    if (next) {
+                    // Check if next exists and is an otp-input to prevent errors with other elements
+                    if (next && next.classList.contains('otp-input')) {
                         next.focus();
                     }
                 }
@@ -117,10 +120,10 @@
                 const target = e.target;
                 const key = e.key.toLowerCase();
 
-                if (key == 'backspace' || key == 'delete') {
-                    target.value = '';
+                if ((key == 'backspace' || key == 'delete') && target.value == '') {
                     const prev = target.previousElementSibling;
-                    if (prev) {
+                    // Check if prev exists and is an otp-input
+                    if (prev && prev.classList.contains('otp-input')) {
                         prev.focus();
                     }
                     return;

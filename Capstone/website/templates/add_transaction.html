@@ -30,6 +30,15 @@
             background-size: 1.5em 1.5em;
             padding-right: 2.5rem; /* Make space for the arrow */
         }
+
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
     </style>
 
     <script>
@@ -72,9 +81,10 @@
                         </a>
                         <!-- Active Link (Transactions) with sub-menu -->
                         <div class="relative">
+                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                             <a href="{{ url_for('main.transactions_paid') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                      {% if transactions_active %}
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
@@ -87,7 +97,7 @@
                             </a>
                             <!-- Sub-menu for Transactions -->
                             <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                        {% if transactions_active %}
                                             opacity-100 block
                                         {% else %}
                                             opacity-0 hidden group-hover:opacity-100 group-hover:block
@@ -139,6 +149,14 @@
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
                         </a>
 
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
+                        </a>
+
                         {# ADDED: Settings link #}
                         <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
@@ -180,7 +198,7 @@
                 <main class="flex-1 p-8 flex flex-col">
                     <header class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Add Transactions</h2>
-                        <!-- Notification button (optional, as per image, no refresh/add button on this header) -->
+                        <!-- Notification button -->
                         <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
                             <i class="fa-regular fa-bell fa-lg"></i>
                             {% if inbox_notifications and inbox_notifications|length > 0 %}
@@ -190,16 +208,19 @@
                     </header>
 
                     <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-                        <!-- Flash message container (Success notification from image) -->
-                        <div class="mb-6">
+                        <!-- Flash message container -->
+                        <div id="flash-messages-container" class="mb-6 flash-message-local">
                             {% with messages = get_flashed_messages(with_categories=true) %}
                                 {% if messages %}
                                     {% for category, message in messages %}
-                                        {% if category == 'success' %}
-                                            <div class="inline-block px-4 py-2 bg-success-bg text-success-text border border-success-border rounded-md text-sm font-medium">
-                                                {{ message }}
-                                            </div>
-                                        {% endif %}
+                                        <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
+                                            {% if category == 'success' %}
+                                                bg-success-bg text-success-text border border-success-border
+                                            {% else %}
+                                                bg-[#d9534f] text-white
+                                            {% endif %}">
+                                            {{ message }}
+                                        </div>
                                     {% endfor %}
                                 {% endif %}
                             {% endwith %}
@@ -301,6 +322,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 notificationPanel.classList.add('hidden');
             }
         });
+    }
+
+    // ADDED: Auto-fade for flash messages
+    const flashMessages = document.getElementById('flash-messages-container');
+    if (flashMessages) {
+        setTimeout(() => {
+            flashMessages.classList.add('fade-out');
+            flashMessages.addEventListener('transitionend', () => {
+                flashMessages.remove();
+            });
+        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
     }
 });
 </script>

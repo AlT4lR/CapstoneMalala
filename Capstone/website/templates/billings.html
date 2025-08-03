@@ -1,3 +1,5 @@
+--- START OF FILE billings.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,6 +20,15 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
         .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
     </style>
 
     <script>
@@ -30,6 +41,9 @@
                         'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
                         'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
+                        'success-bg': '#d4edda', /* Estimated light green for success box */
+                        'success-text': '#155724', /* Estimated dark green for success text */
+                        'success-border': '#c3e6cb', /* Estimated border color for success box */
                     }
                 }
             }
@@ -57,9 +71,10 @@
                         </a>
                         <!-- Transactions with sub-menu -->
                         <div class="relative">
+                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                             <a href="{{ url_for('main.transactions_paid') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                      {% if transactions_active %}
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
@@ -72,7 +87,7 @@
                             </a>
                             <!-- Sub-menu for Transactions -->
                             <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                        {% if transactions_active %}
                                             opacity-100 block
                                         {% else %}
                                             opacity-0 hidden group-hover:opacity-100 group-hover:block
@@ -104,12 +119,11 @@
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
                         </a>
 
-                        <!-- Active Link (Billings) -->
-                        <a href="{{ url_for('main.wallet') }}" class="block w-full py-3 bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md rounded-lg">
-                            <div class="flex items-center gap-4 px-4">
-                                <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
-                                <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
-                            </div>
+                        <!-- Active Link (Billings) - FIXED: Added active state logic -->
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
                         <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
@@ -124,6 +138,15 @@
                                 <i class="fa-solid fa-calendar-alt"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
+                        </a>
+
+                        {# ADDED: Archive link #}
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
                         </a>
 
                         {# ADDED: Settings link #}
@@ -177,6 +200,24 @@
                             </button>
                         </div>
                     </header>
+
+                    <!-- Flash message container - FIXED: Added flash messages -->
+                    <div id="flash-messages-container" class="mb-5 flash-message-local">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
+                                        {% if category == 'success' %}
+                                            bg-success-bg text-success-text border border-success-border
+                                        {% else %}
+                                            bg-[#d9534f] text-white
+                                        {% endif %}">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
 
                     <!-- Billings Content: Loan, Paid, Insufficient Cards -->
                     <div class="flex-1 grid grid-cols-2 gap-6">
@@ -264,6 +305,17 @@ document.addEventListener('DOMContentLoaded', function() {
             notificationPanel.classList.add('hidden');
         }
     });
+
+    // ADDED: Auto-fade for flash messages
+    const flashMessages = document.getElementById('flash-messages-container');
+    if (flashMessages) {
+        setTimeout(() => {
+            flashMessages.classList.add('fade-out');
+            flashMessages.addEventListener('transitionend', () => {
+                flashMessages.remove();
+            });
+        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
+    }
 });
 </script>
 

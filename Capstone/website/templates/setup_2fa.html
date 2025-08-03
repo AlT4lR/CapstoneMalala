@@ -1,3 +1,5 @@
+--- START OF FILE setup_2fa.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +25,15 @@
             border-color: #4a6842;
             box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3);
         }
+
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
     </style>
 </head>
 <body class="bg-[#4a6842] font-sans">
@@ -41,11 +52,13 @@
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="p-2 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+                    <div id="flash-messages-container" class="mb-5 flash-message-local"> {# FIXED: Changed class to flash-message-local #}
+                        {% for category, message in messages %}
+                            <div class="p-2 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% endif %}
             {% endwith %}
 
@@ -65,7 +78,7 @@
             <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
                 {# This is typically a single input for the full 6-digit code in setup_2fa #}
                 <div class="flex justify-center mb-6">
-                    <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input" required>
+                    <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input" inputmode="numeric" pattern="[0-9]" required>
                 </div>
 
                 <div class="space-y-4">
@@ -76,5 +89,30 @@
         </div>
     </main>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ADDED: Auto-fade for flash messages
+            const flashMessages = document.getElementById('flash-messages-container');
+            if (flashMessages) {
+                setTimeout(() => {
+                    flashMessages.classList.add('fade-out');
+                    flashMessages.addEventListener('transitionend', () => {
+                        flashMessages.remove();
+                    });
+                }, 5000); // Fades out after 5 seconds (5000 milliseconds)
+            }
+
+            // The single OTP input on this page doesn't require complex focus management.
+            // However, ensuring it only accepts numbers is good practice.
+            const otpInput = document.querySelector('.otp-input');
+            if (otpInput) {
+                otpInput.addEventListener('input', function (e) {
+                    const target = e.target;
+                    // Remove any non-digit characters
+                    target.value = target.value.replace(/\D/g, '');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

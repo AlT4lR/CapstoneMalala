@@ -1,3 +1,5 @@
+--- START OF FILE dashboard.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,6 +35,15 @@
         .animate-fade-in-up {
             animation: fade-in-up 0.3s ease-out forwards;
         }
+
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
     </style>
 
     <script>
@@ -45,6 +56,9 @@
                         'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
                         'custom-logo-text': '#f6f6e9', /* ADDED: Custom color for logo text */
+                        'success-bg': '#d4edda', /* Estimated light green for success box */
+                        'success-text': '#155724', /* Estimated dark green for success text */
+                        'success-border': '#c3e6cb', /* Estimated border color for success box */
                     }
                 }
             }
@@ -74,9 +88,10 @@
                         </a>
                         <!-- Transactions with sub-menu -->
                         <div class="relative">
+                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                             <a href="{{ url_for('main.transactions_paid') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                      {% if transactions_active %}
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
@@ -89,7 +104,7 @@
                             </a>
                             <!-- Sub-menu for Transactions -->
                             <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                        {% if transactions_active %}
                                             opacity-100 block
                                         {% else %}
                                             opacity-0 hidden group-hover:opacity-100 group-hover:block
@@ -137,6 +152,14 @@
                                 <i class="fa-solid fa-calendar-alt"></i>
                             </span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
+                        </a>
+
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
                         </a>
 
                         <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
@@ -195,6 +218,24 @@
                     </header>
 
                 <main class="flex-1 px-8 pb-8 overflow-y-auto custom-scrollbar">
+                    <!-- Flash message container - ADDED: Flash message display -->
+                    <div id="flash-messages-container" class="mb-5 flash-message-local">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
+                                        {% if category == 'success' %}
+                                            bg-success-bg text-success-text border border-success-border
+                                        {% else %}
+                                            bg-[#d9534f] text-white
+                                        {% endif %}">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
                     <section class="mb-10">
                         <h2 class="text-lg font-semibold tracking-widest text-gray-500 uppercase mb-4">Invoices Status</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -306,7 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         let cumulativePercentage = 0;
         const totalValue = data.reduce((sum, item) => sum + item.value, 0);
-        if (totalValue === 0) return;
+        if (totalValue === 0) { // Handle case with no data
+            chartEl.style.background = 'conic-gradient(#ccc 0% 100%)';
+            legendEl.innerHTML = '<div class="text-sm text-gray-500">No data available</div>';
+            labelsEl.innerHTML = '';
+            return;
+        }
 
         let gradientParts = [];
         let legendHTML = '';
@@ -352,6 +398,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 branchModal.classList.add('hidden');
             }
         });
+    }
+
+    // ADDED: Auto-fade for flash messages
+    const flashMessages = document.getElementById('flash-messages-container');
+    if (flashMessages) {
+        setTimeout(() => {
+            flashMessages.classList.add('fade-out');
+            flashMessages.addEventListener('transitionend', () => {
+                flashMessages.remove();
+            });
+        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
     }
 });
 </script>

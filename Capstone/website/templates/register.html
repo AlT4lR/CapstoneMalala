@@ -1,3 +1,5 @@
+--- START OF FILE register.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,12 +8,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* ADDED: CSS for fade-out animation */
-        .flash-message {
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
             opacity: 1;
             transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
         }
-        .flash-message.fade-out {
+        .flash-message-local.fade-out {
             opacity: 0;
         }
     </style>
@@ -33,10 +35,14 @@
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    {# ADDED: id="flash-messages-container" for JS targeting #}
-                    <div id="flash-messages-container" class="mb-5 flash-message">
+                    <div id="flash-messages-container" class="mb-5 flash-message-local"> {# FIXED: Changed class to flash-message-local #}
                         {% for category, message in messages %}
-                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
+                            <div class="p-2.5 mb-4 rounded-md text-center text-white
+                                {% if category == 'success' %}
+                                    bg-[#4a6842] {# Assuming this is the 'success' background color in Tailwind config for auth pages #}
+                                {% else %}
+                                    bg-[#d9534f]
+                                {% endif %}">
                                 {{ message }}
                             </div>
                         {% endfor %}

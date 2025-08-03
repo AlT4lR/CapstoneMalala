@@ -1,3 +1,5 @@
+--- START OF FILE settings.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +17,15 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
         .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+
+        /* ADDED: CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -26,6 +37,9 @@
                         'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
                         'custom-green-darker': '#6f8a6e',
                         'custom-logo-text': '#f6f6e9',
+                        'success-bg': '#d4edda', /* For flash messages */
+                        'success-text': '#155724', /* For flash messages */
+                        'success-border': '#c3e6cb', /* For flash messages */
                     }
                 }
             }
@@ -36,7 +50,7 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar (Copy from _archive.html or dashboard.html) -->
+            <!-- Sidebar -->
             <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
@@ -52,9 +66,10 @@
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
                         <div class="relative">
+                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                             <a href="{{ url_for('main.transactions_paid') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                      {% if transactions_active %}
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
@@ -66,7 +81,7 @@
                                 {% endif %}
                             </a>
                             <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                        {% if transactions_active %}
                                             opacity-100 block
                                         {% else %}
                                             opacity-0 hidden group-hover:opacity-100 group-hover:block
@@ -116,6 +131,14 @@
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
                         </a>
 
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
+                        </a>
+
                         <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
                                   {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
                             <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
@@ -153,13 +176,101 @@
             <!-- Main Content Area -->
             <div class="flex-1 flex flex-col pl-20 overflow-hidden">
                 <main class="flex-1 p-8 flex flex-col">
-                    <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider mb-6">Application Settings</h2>
+                    <header class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Application Settings</h2>
+                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
+                            <i class="fa-regular fa-bell fa-lg"></i>
+                            {% if inbox_notifications and inbox_notifications|length > 0 %}
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
+                            {% endif %}
+                        </button>
+                    </header>
+
+                    <!-- Flash message container - ADDED: Flash messages -->
+                    <div id="flash-messages-container" class="mb-5 flash-message-local">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
+                                        {% if category == 'success' %}
+                                            bg-success-bg text-success-text border border-success-border
+                                        {% else %}
+                                            bg-[#d9534f] text-white
+                                        {% endif %}">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
                     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex-1 flex items-center justify-center">
                         <p class="text-gray-500 text-lg">Content for Settings goes here.</p>
                     </div>
                 </main>
             </div>
+
+            <!-- Notification Panel -->
+            <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="font-semibold text-custom-text-dark">Notification</h3>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    {% if inbox_notifications %}
+                        <div class="p-2 space-y-2">
+                        {% for notification in inbox_notifications %}
+                            <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
+                                <div class="flex items-start gap-3">
+                                    <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
+                                        <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
+                                        <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="flex items-center justify-center h-full">
+                            <p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationPanel = document.getElementById('notification-panel');
+
+    if (notificationBtn && notificationPanel) {
+        notificationBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            notificationPanel.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
+                notificationPanel.classList.add('hidden');
+            }
+        });
+    }
+
+    // ADDED: Auto-fade for flash messages
+    const flashMessages = document.getElementById('flash-messages-container');
+    if (flashMessages) {
+        setTimeout(() => {
+            flashMessages.classList.add('fade-out');
+            flashMessages.addEventListener('transitionend', () => {
+                flashMessages.remove();
+            });
+        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
+    }
+});
+</script>
+
 </body>
 </html>
