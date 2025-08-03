@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice - Invoice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                        'custom-logo-text': '#f6f6e9',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
+
+            <!-- Sidebar (Same as other files, just make sure to keep it in sync) -->
+            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
+                <div>
+                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0">
+                            <i class="fa-solid fa-braille"></i>
+                        </span>
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1>
+                    </div>
+                    <nav class="flex flex-col space-y-2 px-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
+                        </a>
+                        <!-- Transactions with sub-menu -->
+                        <div class="relative">
+                            <a href="{{ url_for('main.transactions_paid') }}"
+                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
+                                      {% endif %}">
+                                <div class="flex items-center gap-4">
+                                    <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
+                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                                </div>
+                                {% if inbox_notifications and inbox_notifications|length > 0 %}
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">{{ inbox_notifications|length }}</span>
+                                {% endif %}
+                            </a>
+                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
+                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                                            opacity-100 block
+                                        {% else %}
+                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
+                                        {% endif %}">
+                                <a href="{{ url_for('main.transactions_paid') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions_paid' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Paid</a>
+                                <a href="{{ url_for('main.transactions_pending') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions_pending' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Pending</a>
+                                <a href="{{ url_for('main.add_transaction') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.add_transaction' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Add</a>
+                            </div>
+                        </div>
+
+                        {# ADDED: Invoice link #}
+                        <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
+                        </a>
+
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
+                        </a>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
+                        </a>
+
+                        {# ADDED: Schedules link #}
+                        <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-calendar-alt"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
+                        </a>
+
+                        {# ADDED: Settings link #}
+                        <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
+                        </a>
+
+                    </nav>
+                </div>
+                <!-- Admin Section and Logout Button -->
+                <div class="p-2">
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-full text-sm text-gray-700">
+                            <span class="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center text-gray-800 font-bold text-xs shrink-0">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Admin</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.branches') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Branches</span>
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content Area Wrapper -->
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                <main class="flex-1 p-8 flex flex-col">
+                    <header class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Archive</h2>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-800"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </header>
+
+                    <p class="text-sm text-gray-600 mb-6">
+                        Deleted Billings that have been in Archive more than 30 days will be automatically deleted.
+                    </p>
+
+                    <!-- Archived Items List -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                        <div class="space-y-3">
+                            {% for item in archived_items %}
+                            <div class="flex justify-between items-center bg-archive-item-bg p-4 rounded-lg shadow-sm">
+                                <div>
+                                    <p class="font-semibold text-custom-text-dark">{{ item.name }}</p>
+                                    <p class="text-sm text-gray-500">{{ item.id }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-custom-text-dark underline">{{ item.datetime }}</p>
+                                    <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="flex items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded-lg">
+                                <p class="text-gray-500">The archive is empty.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
