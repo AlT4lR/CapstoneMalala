@@ -1,0 +1,35 @@
+
+<div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out z-50">
+    <div class="p-4 border-b border-gray-200">
+        <h3 class="font-semibold text-custom-text-dark">Notification</h3>
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
+        {# Check if there are any notifications passed to the template #}
+        {% if inbox_notifications %}
+            <div class="p-2 space-y-2">
+            {# Loop through each notification #}
+            {% for notification in inbox_notifications %}
+                <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
+                    <div class="flex items-start gap-3">
+                        {# Display notification icon, assuming it's in static/images/ #}
+                        <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
+                        <div class="flex-1">
+                            {# Display notification name/title #}
+                            <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
+                            {# Display notification preview, truncated if long #}
+                            <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
+                            {# Display notification date/time #}
+                            <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+            </div>
+        {% else %}
+            {# Message to display if there are no notifications #}
+            <div class="flex items-center justify-center h-full">
+                <p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>

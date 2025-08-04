@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 from datetime import datetime, timedelta
 import random
 import string
-import pyotp # ADDED: Import pyotp
+import pyotp
 
 def get_user_by_username(username):
     """Retrieves a user document from MongoDB by username."""
@@ -28,7 +28,7 @@ def add_user(username, email, password):
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         # Generate a random base32 secret for PyOTP 2FA
-        otp_secret = pyotp.random_base32() # ADDED: Generate OTP secret
+        otp_secret = pyotp.random_base32()
 
         user_data = {
             'username': username,
@@ -38,9 +38,9 @@ def add_user(username, email, password):
             'isActive': False,  # User is inactive until initial email OTP verification
             'otp': None, # For email OTP
             'otpExpiresAt': None, # For email OTP
-            'otpSecret': otp_secret, # ADDED: For PyOTP 2FA
-            'failedLoginAttempts': 0, # ADDED: Track failed login attempts
-            'lockoutUntil': None, # ADDED: Timestamp for lockout duration
+            'otpSecret': otp_secret, # For PyOTP 2FA
+            'failedLoginAttempts': 0, # Track failed login attempts
+            'lockoutUntil': None, # Timestamp for lockout duration
             'lastLogin': None,
             'createdAt': datetime.utcnow(),
             'updatedAt': datetime.utcnow()
@@ -72,8 +72,8 @@ def update_last_login(username):
             {'username': {'$regex': f'^{username}$', '$options': 'i'}},
             {'$set': {
                 'lastLogin': datetime.utcnow(),
-                'failedLoginAttempts': 0, # ADDED: Reset failed attempts on successful login
-                'lockoutUntil': None, # ADDED: Clear lockout on successful login
+                'failedLoginAttempts': 0, # Reset failed attempts on successful login
+                'lockoutUntil': None, # Clear lockout on successful login
                 'updatedAt': datetime.utcnow()
             }}
         )
@@ -191,10 +191,102 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
 
         totp = pyotp.TOTP(otp_secret)
         # MODIFIED: Added valid_window=1 to allow for minor time drift
-        if totp.verify(submitted_otp, valid_window=1): # <--- IMPORTANT CHANGE HERE
+        if totp.verify(submitted_otp, valid_window=1):
             print(f"User {username} successfully verified via 2FA TOTP.")
             return True
         print(f"2FA TOTP verification failed for user {username}.")
         return False
     
     return False
+
+# ADDED: Schedule Management Functions
+def add_schedule(username, title, start_time, end_time, category, notes=None):
+    """
+    Adds a new schedule entry for a user.
+    start_time and end_time should be datetime objects.
+    """
+    mongo_db = get_db()
+    if mongo_db is None:
+        return False
+
+    schedule_data = {
+        'username': username,
+        'title': title,
+        'start_time': start_time,
+        'end_time': end_time,
+        'category': category,
+        'notes': notes,
+        'createdAt': datetime.utcnow(),
+        'updatedAt': datetime.utcnow()
+    }
+    try:
+        result = mongo_db.schedules.insert_one(schedule_data)
+        print(f"Schedule added: {result.inserted_id} for user {username}")
+        return True
+    except Exception as e:
+        print(f"Error adding schedule for user {username}: {e}")
+        return False
+
+def get_schedules_by_date_range(username, start_date, end_date):
+    """
+    Retrieves schedules for a given user within a date range.
+    start_date and end_date should be datetime objects, representing the inclusive range.
+    """
+    mongo_db = get_db()
+    if mongo_db is None:
+        return []
+
+    # Ensure start_date and end_date cover the entire day
+    # start_date = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0)
+    # end_date = datetime(end_date.year, end_date.month, end_date.day, 23, 59, 59)
+
+    query = {
+        'username': username,
+        'start_time': {
+            '$gte': start_date,
+            '$lte': end_date
+        }
+    }
+    
+    schedules = []
+    try:
+        # Sort by start_time to ensure chronological order
+        for doc in mongo_db.schedules.find(query).sort('start_time', 1):
+            doc['_id'] = str(doc['_id']) # Convert ObjectId to string for JSON serialization
+            schedules.append(doc)
+    except Exception as e:
+        print(f"Error fetching schedules for user {username}: {e}")
+    return schedules
+
+# For categories
+def get_all_categories(username):
+    """
+    Retrieves all unique categories for a user from existing schedules,
+    or returns a default set if no schedules exist or a fixed list is preferred.
+    """
+    mongo_db = get_db()
+    if mongo_db is None:
+        return ['Office', 'Meetings', 'Events', 'Personal', 'Others'] # Default categories
+
+    try:
+        # Aggregate to find distinct categories for the user
+        categories = mongo_db.schedules.distinct('category', {'username': username})
+        if not categories:
+            return ['Office', 'Meetings', 'Events', 'Personal', 'Others'] # Fallback to defaults
+        return categories
+    except Exception as e:
+        print(f"Error fetching categories for user {username}: {e}")
+        return ['Office', 'Meetings', 'Events', 'Personal', 'Others'] # Fallback on error
+
+def add_category(username, category_name):
+    """
+    Adds a new category. For simplicity, we'll store categories as part of user settings
+    or just ensure uniqueness when used in schedules.
+    For this implementation, it's mostly conceptual unless a dedicated 'categories' collection exists.
+    We'll simply ensure it can be used for new schedules.
+    """
+    # In a real app, you might have a dedicated 'categories' collection
+    # or an array of categories within the user document.
+    # For now, this function serves as a placeholder to acknowledge the action.
+    print(f"Category '{category_name}' added (conceptually) for user {username}.")
+    return True

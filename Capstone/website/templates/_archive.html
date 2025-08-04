@@ -50,52 +50,51 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar (Corrected) -->
+            <!-- Sidebar -->
             <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
                 <div>
                     <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0"> {# MODIFIED: Changed text color #}
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0">
                             <i class="fa-solid fa-braille"></i>
                         </span>
-                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1> {# MODIFIED: Changed text color and shadow #}
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1>
                     </div>
-                    <!-- All links are inactive in Archive view -->
                     <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/home.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
                         </a>
                         <!-- Transactions with sub-menu -->
                         <div class="relative">
-                            <a href="{{ url_for('main.transactions') }}"
+                            <a href="{{ url_for('main.transactions_paid') }}"
                                class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                      {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                                           bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
                                       {% endif %}">
                                 <div class="flex items-center gap-4">
                                     <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/transactions.svg') }});"></span>
                                     <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
                                 </div>
-                                {# MODIFIED: Removed inbox_notifications check as it's not relevant for sidebar link status #}
-                                {% if False %}
-                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">1</span>
+                                {% if inbox_notifications and inbox_notifications|length > 0 %} {# Display actual count if available #}
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">{{ inbox_notifications|length }}</span>
                                 {% endif %}
                             </a>
                             <!-- Sub-menu for Transactions -->
                             <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if request.blueprint == 'main' and (request.endpoint == 'main.transactions' or request.endpoint == 'main.add_transaction') %}
+                                        {% if request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
                                             opacity-100 block
                                         {% else %}
                                             opacity-0 hidden group-hover:opacity-100 group-hover:block
                                         {% endif %}">
-                                <a href="{{ url_for('main.transactions') }}"
+                                <a href="{{ url_for('main.transactions_paid') }}"
                                    class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
-                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') != 'pending' and request.args.get('filter') != 'add' %}
+                                          {% if request.endpoint == 'main.transactions_paid' %}
                                               text-white font-semibold bg-custom-green-active
                                           {% endif %}">Paid</a>
-                                <a href="{{ url_for('main.transactions') }}?filter=pending"
+                                <a href="{{ url_for('main.transactions_pending') }}"
                                    class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
-                                          {% if request.endpoint == 'main.transactions' and request.args.get('filter') == 'pending' %}
+                                          {% if request.endpoint == 'main.transactions_pending' %}
                                               text-white font-semibold bg-custom-green-active
                                           {% endif %}">Pending</a>
                                 <a href="{{ url_for('main.add_transaction') }}"
@@ -105,18 +104,73 @@
                                           {% endif %}">Add</a>
                             </div>
                         </div>
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+
+                        {# ADDED: Invoice link #}
+                        <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-file-invoice"></i> {# Using file-invoice for invoice #}
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
+                        </a>
+
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/billings.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
                         </a>
-                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
                             <span class="icon-mask w-6 h-6 shrink-0" style="--svg-icon: url({{ url_for('static', filename='svg/analytics.svg') }});"></span>
                             <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
                         </a>
+
+                        {# ADDED: Schedules link #}
+                        <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-calendar-alt"></i> {# Using calendar-alt for schedules #}
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
+                        </a>
+
+                        {# ADDED: Archive link - FIXED: Added active state logic #}
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-box-archive"></i> {# Using box-archive for archive #}
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
+                        </a>
+
+                        {# ADDED: Settings link #}
+                        <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-gear"></i> {# Using gear for settings #}
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
+                        </a>
+
                     </nav>
                 </div>
-                <!-- Logout Button -->
+                <!-- Admin Section and Logout Button -->
                 <div class="p-2">
+                    {# ADDED: Admin Section #}
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-full text-sm text-gray-700">
+                            <span class="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center text-gray-800 font-bold text-xs shrink-0">
+                                <i class="fa-solid fa-user-tie"></i> {# Example icon for Admin #}
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Admin</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.branches') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i> {# Using arrow icon for branches #}
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Branches</span>
+                    </a>
                     <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
                         <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
                             <i class="fa-solid fa-right-from-bracket"></i>

@@ -11,7 +11,7 @@ import qrcode
 import qrcode.image.svg
 import io
 import base64
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, set_access_cookies, set_refresh_cookies, unset_jwt_cookies # Removed current_user, as it's not directly used here but can be added if needed for other JWT handlers
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 
 auth = Blueprint('auth', __name__)
 jwt = get_jwt()
@@ -45,9 +45,9 @@ def invalid_token_response(callback):
     flash('Your session has expired or is invalid. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
-# Optional: Add error handler for expired tokens specifically if you want a different message
+# FIX: expired_token_loader must accept two arguments (jwt_header, jwt_payload)
 @jwt.expired_token_loader
-def expired_token_response(callback):
+def expired_token_response(jwt_header, jwt_payload):
     """
     Callback for when a JWT access token has expired.
     Redirects to the login page.
@@ -161,13 +161,13 @@ def register_post():
         flash('Invalid email address.', 'error')
         return render_template('register.html', username=username, email=email)
 
-    user_added = add_user(username, email, password) # This now generates otpSecret in models.py
+    user_added = add_user(username, email, password)
 
     if user_added:
-        otp_generated = set_user_otp(username, otp_type='email') # Send email OTP for initial activation
+        otp_generated = set_user_otp(username, otp_type='email')
         if otp_generated:
             send_otp_email(email, otp_generated)
-            session['username_for_otp'] = username # For email OTP verification
+            session['username_for_otp'] = username
             flash('Registration successful! Please verify your email with the OTP.', 'success')
             return redirect(url_for('auth.verify_otp'))
         else:
@@ -195,18 +195,18 @@ def verify_otp():
         otp_list = [request.form.get(f'otp{i}') for i in range(1, 7)]
         if not all(otp_list):
             flash('Please enter the complete 6-digit OTP.', 'error')
-            return render_template('otp_verify.html') # Stay on same page with error
+            return render_template('otp_verify.html')
 
         submitted_otp = "".join(otp_list)
 
         if verify_user_otp(username_for_otp, submitted_otp, otp_type='email'):
             flash('Email verified successfully! You can now set up your Two-Factor Authentication.', 'success')
-            session.pop('username_for_otp', None) # Clear email OTP session
-            session['username_for_2fa_setup'] = username_for_otp # Store for 2FA setup
-            return redirect(url_for('auth.setup_2fa')) # Redirect to 2FA setup
+            session.pop('username_for_otp', None)
+            session['username_for_2fa_setup'] = username_for_otp
+            return redirect(url_for('auth.setup_2fa'))
         else:
             flash('Invalid or expired OTP. Please try again.', 'error')
-            return render_template('otp_verify.html') # Stay on same page with error
+            return render_template('otp_verify.html')
 
     return render_template('otp_verify.html')
 
@@ -262,9 +262,6 @@ def setup_2fa():
             return render_template('setup_2fa.html', qr_code_svg=qr_code_svg, otp_secret=otp_secret)
 
         if verify_user_otp(username, otp_input, otp_type='2fa'):
-            # Successfully set up 2FA, now activate user and redirect to login
-            # isActive should have already been set by email OTP. If not, set it here.
-            # Assuming email OTP is a prerequisite for reaching here and sets isActive.
             flash('Two-Factor Authentication successfully set up! You can now log in.', 'success')
             session.pop('username_for_2fa_setup', None)
             return redirect(url_for('auth.login'))
@@ -296,7 +293,6 @@ def verify_2fa_login():
             return render_template('verify_2fa_login.html', username=username)
 
         if verify_user_otp(username, otp_input, otp_type='2fa'):
-            # 2FA verified, issue JWTs and redirect to dashboard
             access_token = create_access_token(identity=username)
             refresh_token = create_refresh_token(identity=username)
 
@@ -305,11 +301,11 @@ def verify_2fa_login():
             set_refresh_cookies(response, refresh_token)
             
             flash('Login successful!', 'success')
-            session.pop('username_for_2fa_login', None) # Clear 2FA login session
+            session.pop('username_for_2fa_login', None)
             return response
         else:
             flash('Invalid 2FA code. Please try again.', 'error')
-            record_failed_login_attempt(username) # Record failed 2FA attempt
+            record_failed_login_attempt(username)
             return render_template('verify_2fa_login.html', username=username)
 
     return render_template('verify_2fa_login.html', username=username)
@@ -318,7 +314,7 @@ def verify_2fa_login():
 @auth.route('/logout')
 def logout():
     response = make_response(redirect(url_for('auth.login')))
-    unset_jwt_cookies(response) # Unset JWT cookies
-    session.clear() # Clear Flask session
+    unset_jwt_cookies(response)
+    session.clear()
     flash('You have been logged out.', 'success')
     return response

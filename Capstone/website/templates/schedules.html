@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice - Schedules</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
+
+        /* CSS for fade-out animation for local flash messages */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
+        /* Specific styling for the calendar grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: minmax(60px, auto); /* Minimum row height for daily cells */
+            border-top: 1px solid rgba(255,255,255,0.2); /* For top border of grid */
+        }
+        .calendar-grid > div {
+            border-left: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 4px;
+            box-sizing: border-box;
+            position: relative; /* For positioning date numbers or events */
+        }
+        .calendar-grid > div:first-child { /* No left border for the first column */
+            border-left: none;
+        }
+        /* Style for the time slots (Week View) */
+        .time-slot-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr); /* Time column + 7 days */
+            grid-auto-rows: 60px; /* Each hour slot is 60px tall */
+            min-height: 500px; /* Minimum height for scrolling if content is small */
+            border-right: 1px solid rgba(255,255,255,0.2);
+            border-left: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .time-slot-grid .time-label {
+            text-align: right;
+            padding-right: 8px;
+            padding-top: 4px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.75rem; /* text-xs */
+            color: rgba(255,255,255,0.6); /* gray-400 */
+        }
+        .time-slot-grid .day-cell {
+            border-top: 1px solid rgba(255,255,255,0.2);
+            border-left: 1px solid rgba(255,255,255,0.2);
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden; /* To handle events not overflowing cell boundaries too much */
+        }
+        .time-slot-grid .day-cell:first-child { /* No left border for the first cell in a row of day-cells */
+             border-left: none;
+        }
+        /* Event styling */
+        .event-box {
+            color: white;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 0.75rem; /* text-xs */
+            position: absolute;
+            width: calc(100% - 8px); /* Adjust for padding */
+            left: 4px;
+            box-sizing: border-box;
+            z-index: 10;
+            cursor: pointer;
+            word-break: break-word; /* Ensure long words break */
+        }
+        .event-box.multi-day {
+            position: relative; /* For month view multi-day events */
+            width: auto;
+            left: auto;
+            margin-bottom: 2px;
+        }
+        /* Specific calendar view buttons */
+        .view-button.active {
+            background-color: theme('colors.gray.600'); /* bg-gray-600 */
+            color: white;
+        }
+    </style>
+    <script>
+        // Tailwind config should be defined globally, e.g., in base.html
+        // Keeping it here for now if not extending a base.html in your current setup.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0', 'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188', 'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                        'custom-logo-text': '#f6f6e9',
+                        'success-bg': '#d4edda', /* For flash messages */
+                        'success-text': '#155724', /* For flash messages */
+                        'success-border': '#c3e6cb', /* For flash messages */
+                        'calendar-bg-dark': '#3b513c', /* Dark green for main calendar grid */
+                        'calendar-header-bg': '#4a6842', /* Slightly lighter green for calendar header */
+                        'calendar-sidebar-bg': '#4a6842', /* Dark green for left calendar sidebar */
+                        
+                        /* Category Colors (can be extended from backend too) */
+                        'category-office': '#99cc99',
+                        'category-meetings': '#ff9999',
+                        'category-events': '#9999ff',
+                        'category-personal': '#ffff99',
+                        'category-others': '#cccccc',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
+
+            <!-- Sidebar - THIS SECTION HAS BEEN DUPLICATED IN MULTIPLE FILES -->
+            {# It is strongly recommended to replace this with: {% include "_sidebar.html" %} if extending a base.html #}
+            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
+                <div>
+                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
+                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0">
+                            <i class="fa-solid fa-braille"></i>
+                        </span>
+                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1>
+                    </div>
+                    <nav class="flex flex-col space-y-2 px-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-house"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
+                        </a>
+                        <div class="relative">
+                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
+                            <a href="{{ url_for('main.transactions_paid') }}"
+                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                      {% if transactions_active %}
+                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
+                                      {% endif %}">
+                                <div class="flex items-center gap-4">
+                                    <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                        <i class="fa-solid fa-truck"></i>
+                                    </span>
+                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
+                                </div>
+                                {% if inbox_notifications and inbox_notifications|length > 0 %}
+                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">{{ inbox_notifications|length }}</span>
+                                {% endif %}
+                            </a>
+                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
+                                        {% if transactions_active %}
+                                            opacity-100 block
+                                        {% else %}
+                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
+                                        {% endif %}">
+                                <a href="{{ url_for('main.transactions_paid') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions_paid' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Paid</a>
+                                <a href="{{ url_for('main.transactions_pending') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.transactions_pending' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Pending</a>
+                                <a href="{{ url_for('main.add_transaction') }}"
+                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
+                                          {% if request.endpoint == 'main.add_transaction' %}
+                                              text-white font-semibold bg-custom-green-active
+                                          {% endif %}">Add</a>
+                            </div>
+                        </div>
+
+                        <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
+                        </a>
+
+                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-dollar-sign"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
+                        </a>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
+                        </a>
+
+                        <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-calendar-alt"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
+                        </a>
+
+                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
+                        </a>
+
+                        <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
+                                  {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
+                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-gear"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
+                        </a>
+
+                    </nav>
+                </div>
+                <div class="p-2">
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="flex items-center gap-2 px-2 py-1 rounded-full text-sm text-gray-700">
+                            <span class="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center text-gray-800 font-bold text-xs shrink-0">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </span>
+                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Admin</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('main.branches') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Branches</span>
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
+                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </span>
+                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                <main class="flex-1 p-8 flex flex-col">
+                    <header class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Schedules Overview</h2>
+                        <!-- Notification button - THIS SECTION HAS BEEN DUPLICATED -->
+                        {# It is strongly recommended to replace this with: {% include "_notifications_panel.html" %} #}
+                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
+                            <i class="fa-regular fa-bell fa-lg"></i>
+                            {% if inbox_notifications and inbox_notifications|length > 0 %}
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
+                            {% endif %}
+                        </button>
+                    </header>
+
+                    <!-- Flash message container - THIS SECTION HAS BEEN DUPLICATED -->
+                    {# It is strongly recommended to replace this with: {% include "_flash_messages.html" %} #}
+                    <div id="flash-messages-container" class="mb-5 flash-message-local">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
+                                        {% if category == 'success' %}
+                                            bg-success-bg text-success-text border border-success-border
+                                        {% else %}
+                                            bg-[#d9534f] text-white
+                                        {% endif %}">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <!-- Schedules Content -->
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 bg-custom-bg rounded-xl p-6">
+                        <!-- Left Sidebar for Calendar Controls -->
+                        <div class="col-span-1 bg-calendar-sidebar-bg rounded-xl p-4 text-white flex flex-col items-center shadow-lg">
+                            <button id="create-schedule-btn" class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-3 rounded-lg mb-6 transition-colors shadow">Create Schedule</button>
+
+                            <!-- Mini Calendar/Date Picker -->
+                            <div class="w-full text-center mb-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <i id="mini-cal-prev-month" class="fas fa-chevron-left text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
+                                    <span id="mini-cal-month-year" class="text-lg font-semibold"></span>
+                                    <i id="mini-cal-next-month" class="fas fa-chevron-right text-lg cursor-pointer opacity-70 hover:opacity-100"></i>
+                                </div>
+                                <div id="mini-calendar-grid" class="grid grid-cols-7 gap-1 text-sm">
+                                    <div class="text-gray-300 font-medium">S</div>
+                                    <div class="text-gray-300 font-medium">M</div>
+                                    <div class="text-gray-300 font-medium">T</div>
+                                    <div class="text-gray-300 font-medium">W</div>
+                                    <div class="text-gray-300 font-medium">T</div>
+                                    <div class="text-gray-300 font-medium">F</div>
+                                    <div class="text-gray-300 font-medium">S</div>
+                                    <!-- Days will be dynamically inserted here -->
+                                </div>
+                            </div>
+
+                            <!-- Categories Section -->
+                            <div class="w-full text-left">
+                                <h3 class="text-md font-semibold mb-3">Categories</h3>
+                                <div id="category-list" class="space-y-2 text-sm">
+                                    <!-- Categories will be dynamically inserted here -->
+                                </div>
+                                <button id="add-category-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-lg mt-4 text-sm transition-colors shadow">Add Categories</button>
+                            </div>
+                        </div>
+
+                        <!-- Main Calendar Grid -->
+                        <div class="col-span-3 bg-calendar-bg-dark rounded-xl p-4 text-white flex flex-col shadow-lg overflow-hidden">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 id="main-cal-header-month-year" class="text-lg font-semibold"></h3>
+                                <div class="inline-flex items-center space-x-1 bg-gray-700 p-1 rounded-full text-xs">
+                                    <button id="view-day-btn" class="view-button px-3 py-1 font-semibold rounded-full">Day</button>
+                                    <button id="view-week-btn" class="view-button px-3 py-1 font-semibold rounded-full active">Week</button>
+                                    <button id="view-month-btn" class="view-button px-3 py-1 font-semibold rounded-full">Month</button>
+                                    <button id="view-year-btn" class="view-button px-3 py-1 font-semibold rounded-full">Year</button>
+                                </div>
+                            </div>
+
+                            <!-- Calendar views container -->
+                            <div id="calendar-views-container" class="flex-1 overflow-y-auto custom-scrollbar">
+                                <!-- Month View -->
+                                <div id="month-view" class="hidden">
+                                    <div class="calendar-grid bg-calendar-header-bg rounded-t-lg">
+                                        <div class="text-center font-medium">SUN</div>
+                                        <div class="text-center font-medium">MON</div>
+                                        <div class="text-center font-medium">TUE</div>
+                                        <div class="text-center font-medium">WED</div>
+                                        <div class="text-center font-medium">THU</div>
+                                        <div class="text-center font-medium">FRI</div>
+                                        <div class="text-center font-medium">SAT</div>
+                                    </div>
+                                    <div id="month-grid-days" class="calendar-grid border-b border-l border-r border-gray-700">
+                                        <!-- Days will be dynamically inserted here -->
+                                    </div>
+                                </div>
+
+                                <!-- Week View -->
+                                <div id="week-view">
+                                    <div class="time-slot-grid bg-calendar-header-bg rounded-t-lg">
+                                        <div class="time-label"></div>
+                                        <div class="text-center text-sm font-medium">SUN<br><span id="week-header-day-0"></span></div>
+                                        <div class="text-center text-sm font-medium">MON<br><span id="week-header-day-1"></span></div>
+                                        <div class="text-center text-sm font-medium">TUE<br><span id="week-header-day-2"></span></div>
+                                        <div class="text-center text-sm font-medium">WED<br><span id="week-header-day-3"></span></div>
+                                        <div class="text-center text-sm font-medium">THU<br><span id="week-header-day-4"></span></div>
+                                        <div class="text-center text-sm font-medium">FRI<br><span id="week-header-day-5"></span></div>
+                                        <div class="text-center text-sm font-medium">SAT<br><span id="week-header-day-6"></span></div>
+                                    </div>
+                                    <div id="week-grid-time-slots" class="flex-1 overflow-y-auto custom-scrollbar">
+                                        <div class="time-slot-grid">
+                                            {% for hour in range(0, 24) %} {# 00:00 to 23:00 #}
+                                                <div class="time-label">{{ hour if hour <= 12 else hour - 12 }} {{ 'AM' if hour < 12 else 'PM' }}</div>
+                                                {% for day_index in range(7) %}
+                                                    <div class="day-cell hour-{{ hour }} day-{{ day_index }}"></div>
+                                                {% endfor %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Day View -->
+                                <div id="day-view" class="hidden">
+                                    <div class="time-slot-grid bg-calendar-header-bg rounded-t-lg" style="grid-template-columns: 60px 1fr;">
+                                        <div class="time-label"></div>
+                                        <div class="text-center text-sm font-medium"><span id="day-header-date"></span></div>
+                                    </div>
+                                    <div id="day-grid-time-slots" class="flex-1 overflow-y-auto custom-scrollbar">
+                                        <div class="time-slot-grid" style="grid-template-columns: 60px 1fr;">
+                                            {% for hour in range(0, 24) %}
+                                                <div class="time-label">{{ hour if hour <= 12 else hour - 12 }} {{ 'AM' if hour < 12 else 'PM' }}</div>
+                                                <div class="day-cell hour-{{ hour }} day-0"></div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Year View (Placeholder) -->
+                                <div id="year-view" class="hidden text-center p-8">
+                                    <h3 class="text-2xl font-bold">Year View - Coming Soon!</h3>
+                                    <p class="text-gray-400 mt-2">This view will display a yearly overview of your schedules.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Notification Panel - THIS SECTION HAS BEEN DUPLICATED -->
+            {# It is strongly recommended to replace this with: {% include "_notifications_panel.html" %} #}
+            <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="font-semibold text-custom-text-dark">Notification</h3>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    {% if inbox_notifications %}
+                        <div class="p-2 space-y-2">
+                        {% for notification in inbox_notifications %}
+                            <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
+                                <div class="flex items-start gap-3">
+                                    <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
+                                        <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
+                                        <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="flex items-center justify-center h-full">
+                            <p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Create Schedule Modal -->
+            <div id="create-schedule-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#f6f6e9] rounded-xl shadow-xl w-11/12 max-w-lg p-8 relative">
+                    <button id="close-schedule-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                    <h2 class="text-xl font-bold text-custom-green-darker mb-6">Create New Schedule</h2>
+                    <form id="create-schedule-form" class="space-y-4">
+                        <div>
+                            <label for="event-title" class="block text-gray-700 text-sm font-semibold mb-1">Title</label>
+                            <input type="text" id="event-title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="event-start-time" class="block text-gray-700 text-sm font-semibold mb-1">Start Time</label>
+                                <input type="datetime-local" id="event-start-time" name="start_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                            </div>
+                            <div>
+                                <label for="event-end-time" class="block text-gray-700 text-sm font-semibold mb-1">End Time</label>
+                                <input type="datetime-local" id="event-end-time" name="end_time" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="event-category" class="block text-gray-700 text-sm font-semibold mb-1">Category</label>
+                            <select id="event-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active" required>
+                                <!-- Categories will be populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="event-notes" class="block text-gray-700 text-sm font-semibold mb-1">Notes (Optional)</label>
+                            <textarea id="event-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold py-2 rounded-lg transition-colors">Add Schedule</button>
+                    </form>
+                </div>
+            </div>
+
+             <!-- Event Details Modal -->
+            <div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#f6f6e9] rounded-xl shadow-xl w-11/12 max-w-md p-8 relative">
+                    <button id="close-event-details-modal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                    <h2 class="text-xl font-bold text-custom-green-darker mb-4" id="details-event-title"></h2>
+                    <p class="text-gray-700 text-sm mb-2"><strong class="font-semibold">Category:</strong> <span id="details-event-category" class="px-2 py-1 rounded-full text-xs font-semibold"></span></p>
+                    <p class="text-gray-700 text-sm mb-2"><strong class="font-semibold">Time:</strong> <span id="details-event-time"></span></p>
+                    <p class="text-gray-700 text-sm mb-4"><strong class="font-semibold">Notes:</strong> <span id="details-event-notes"></span></p>
+                    <div class="flex justify-end space-x-2">
+                        <button class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">Delete</button>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors">Edit</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // These global variables are set by Jinja2 from Flask views.py before index.js loads
+    const FLASK_INITIAL_DATE_ISO = "{{ current_date.isoformat() }}";
+    const FLASK_INITIAL_CATEGORIES_JSON = '{{ categories | tojson | safe }}';
+
+
+</script>
+<script src="{{ url_for('static', filename='index.js') }}"></script>
+
+</body>
+</html>
