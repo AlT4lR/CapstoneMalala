@@ -5,8 +5,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import pytz
 
-from Capstone.website.auth import get_remote_addr
-from .models import ( # Import model functions directly
+from Capstone.website.auth import get_remote_addr # Required for timezone handling
+from .models import ( # Direct imports for model functions
     add_category, get_user_by_username, add_user, check_password,
     update_last_login, set_user_otp, verify_user_otp, record_failed_login_attempt,
     add_schedule, get_schedules_by_date_range, get_all_categories
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
 
-# --- Mock Data (Replace with actual DB queries) ---
+# --- Mock Data (Replace with actual DB queries in a real app) ---
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'}, {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
     {'name': 'KASIGLAHAN', 'icon': 'building_icon.png'}, {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
@@ -77,7 +77,7 @@ analytics_supplier_data = [
     {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
 ]
 
-# --- Routes ---
+# --- Route Definitions ---
 
 @main.route('/branches')
 @jwt_required()
@@ -187,10 +187,10 @@ def add_transaction():
                                    })
 
         try:
-            # Use datetime.strptime for robust parsing, ensure it's UTC aware if needed for storage
-            # For display, convert to local time if necessary or keep as is
+            # Parse datetime string. Assume local time if no timezone; convert to UTC for consistency.
             transaction_datetime = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M')
-            # For display purposes:
+            # Make it UTC aware for consistent storage if necessary, though mock data uses strings
+            # For display formatting:
             transaction_date_display = transaction_datetime.strftime('%m/%d/%Y')
             transaction_time_display = transaction_datetime.strftime('%I:%M %p')
 
@@ -230,7 +230,7 @@ def add_transaction():
 @jwt_required()
 def archive():
     current_user_identity = get_jwt_identity()
-    return render_template('_archive.html', # Assuming this is the intended template name
+    return render_template('_archive.html', 
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            archived_items=archived_items_data,
@@ -297,9 +297,10 @@ def schedules():
         flash("Please select a branch to view schedules.", "info")
         return redirect(url_for('main.branches'))
 
-    categories = get_all_categories(current_user_identity) # Use imported function
+    categories = get_all_categories(current_user_identity)
 
-    today = datetime.now(pytz.utc) # Use UTC aware datetime
+    # Determine current date for calendar view, ensuring UTC awareness
+    today = datetime.now(pytz.utc)
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     day = request.args.get('day', type=int)
@@ -312,16 +313,17 @@ def schedules():
             current_date = today
     elif year and month:
         try:
-            current_date = datetime(year, month, 1, tzinfo=pytz.utc)
+            current_date = datetime(year, month, 1, tzinfo=pytz.utc) # Default to 1st of month
         except ValueError:
             flash("Invalid year or month.", "error")
             current_date = today
     else:
         current_date = today
 
+    # Calculate start date for mini-calendar (ensure it starts on a Sunday and is UTC aware)
     first_day_of_month = current_date.replace(day=1)
     mini_cal_start_date = first_day_of_month - timedelta(days=first_day_of_month.weekday() + 1)
-    if mini_cal_start_date.weekday() != 6:
+    if mini_cal_start_date.weekday() != 6: # Ensure it's Sunday (weekday() returns 0 for Monday, 6 for Sunday)
         mini_cal_start_date -= timedelta(days=(mini_cal_start_date.weekday() + 1) % 7)
     mini_cal_start_date = mini_cal_start_date.replace(tzinfo=pytz.utc)
 
@@ -334,7 +336,7 @@ def schedules():
                            categories=categories,
                            mini_cal_start_date=mini_cal_start_date)
 
-# --- API Routes ---
+# --- API Routes for Schedules ---
 @main.route('/api/schedules', methods=['GET'])
 @jwt_required()
 @current_app.limiter.limit("100 per hour; 10 per minute", key_func=get_remote_addr, 
@@ -387,6 +389,8 @@ def api_create_schedule():
         return jsonify({'error': 'Invalid date/time format. Use ISO 8601.'}), 400
 
     if add_schedule(current_user_identity, title, start_time, end_time, category, notes):
+        # Flash message is typically for HTML responses, not JSON APIs
+        # If you need to return success messages for API calls, JSON is better.
         return jsonify({'message': 'Schedule created successfully!'}), 201
     else:
         return jsonify({'error': 'Failed to create schedule.'}), 500
@@ -413,6 +417,7 @@ def api_add_category():
         return jsonify({'error': 'Category name is required.'}), 400
 
     if add_category(current_user_identity, category_name):
+        # Flash message might not be visible on API responses
         return jsonify({'message': f"Category '{category_name}' added successfully."}), 201
     else:
         return jsonify({'error': 'Failed to add category.'}), 500

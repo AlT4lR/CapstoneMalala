@@ -1,55 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Register - DecoOffice</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <style>
-        /* Global Styles */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
-        /* Flash message animation */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-        }
-        .flash-message-local.fade-out {
-            opacity: 0;
-        }
-    </style>
-    <script>
-        // Tailwind configuration for standalone pages
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
-                    colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-sidebar': '#d7e0d3',
-                        'custom-green-active': '#8aa188',
-                        'custom-text-dark': '#3a3a3a',
-                        'custom-green-darker': '#6f8a6e',
-                        'custom-logo-text': '#f6f6e9',
-                        'success-bg': '#d4edda', /* For flash messages */
-                        'success-text': '#155724', /* For flash messages */
-                        'success-border': '#c3e6cb', /* For flash messages */
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-custom-bg font-poppins antialiased">
+{# templates/register.html #}
 
+{% extends "base.html" %} {# Assuming register page extends base.html for layout #}
+
+{% block title %}Register - DecoOffice{% endblock %}
+
+{% block content %}
+    {# ... (rest of your template structure) ... #}
     <div class="flex w-11/12 max-w-3xl mx-auto mt-12 bg-white rounded-xl overflow-hidden shadow-xl">
 
         <!-- Left Column -->
@@ -92,33 +48,19 @@
 
                 <!-- Password validation rules -->
                 <div id="password-rules" class="text-sm px-1 mb-4 hidden">
-                    <p id="rule-length" class="text-gray-500 flex items-center mb-1">
-                        <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
-                        <span>At least 8 characters long</span>
-                    </p>
-                    <p id="rule-uppercase" class="text-gray-500 flex items-center mb-1">
-                        <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
-                        <span>At least one uppercase letter</span>
-                    </p>
-                    <p id="rule-lowercase" class="text-gray-500 flex items-center mb-1">
-                        <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
-                        <span>At least one lowercase letter</span>
-                    </p>
-                    <p id="rule-number" class="text-gray-500 flex items-center mb-1">
-                        <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
-                        <span>At least one number</span>
-                    </p>
-                    <p id="rule-special" class="text-gray-500 flex items-center">
-                        <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
-                        <span>At least one special character (e.g. !@#$%)</span>
-                    </p>
+                    <p id="rule-length" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least 8 characters long</span></p>
+                    <p id="rule-uppercase" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one uppercase letter</span></p>
+                    <p id="rule-lowercase" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one lowercase letter</span></p>
+                    <p id="rule-number" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one number</span></p>
+                    <p id="rule-special" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one special character (e.g. !@#$%)</span></p>
                 </div>
 
-                <!-- Honeypot Field -->
-                <div class="hidden">
-                    <label for="honeypot">Don’t fill this field:</label>
-                    <input type="text" id="honeypot" name="honeypot" tabindex="-1" autocomplete="off" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-custom-green-active">
+                {# --- Honeypot Field --- #}
+                <div class="hidden"> {# This div hides the field visually #}
+                    <label for="honeypot">Don't fill this field:</label>
+                    <input type="text" id="honeypot" name="honeypot" tabindex="-1" autocomplete="off" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
                 </div>
+                {# --- End Honeypot Field --- #}
 
                 <button type="submit" class="w-full bg-custom-green-active text-white border-none p-3 rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Register</button>
             </form>
@@ -132,6 +74,10 @@
     </div>
 
     <script>
+        // This script block should ideally be in its own JS file (e.g., register.js)
+        // and loaded only on the register page, similar to calendar.js.
+        // For simplicity here, it's included inline.
+
         document.addEventListener('DOMContentLoaded', function() {
             const passwordField = document.getElementById('register-password');
             const togglePassword = document.getElementById('toggle-register-password');
@@ -141,16 +87,15 @@
             // Function to update the checkmark/cross icon for password rules
             function updateRule(ruleElement, isValid) {
                 const icon = ruleElement.querySelector('i');
-                // Reset classes first
                 icon.classList.remove('fa-times-circle', 'text-red-500', 'fa-check-circle', 'text-green-500');
                 ruleElement.classList.remove('text-gray-500', 'text-green-700');
 
                 if (isValid) {
-                    icon.classList.add('fa-check-circle', 'text-green-500'); // Show checkmark
-                    ruleElement.classList.add('text-green-700'); 
+                    icon.classList.add('fa-check-circle', 'text-green-500');
+                    ruleElement.classList.add('text-green-700');
                 } else {
-                    icon.classList.add('fa-times-circle', 'text-red-500'); // Show cross
-                    ruleElement.classList.add('text-gray-500'); 
+                    icon.classList.add('fa-times-circle', 'text-red-500');
+                    ruleElement.classList.add('text-gray-500');
                 }
             }
 
@@ -162,9 +107,8 @@
                 const hasUppercase = /[A-Z]/.test(password);
                 const hasLowercase = /[a-z]/.test(password);
                 const hasNumber = /[0-9]/.test(password);
-                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password); // Common special characters
+                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-                // Update the visual feedback for each rule
                 updateRule(document.getElementById('rule-length'), isLengthValid);
                 updateRule(document.getElementById('rule-uppercase'), hasUppercase);
                 updateRule(document.getElementById('rule-lowercase'), hasLowercase);
@@ -174,20 +118,18 @@
 
             // Event listeners for password field
             if (passwordField) {
-                // Show rules when the password field gains focus
                 passwordField.addEventListener('focus', function() {
                     passwordRules.classList.remove('hidden');
                     checkPasswordStrength(); // Check strength immediately on focus if field is not empty
                 });
 
-                // Hide rules when the field loses focus IF it's empty
                 passwordField.addEventListener('blur', function() {
+                    // Hide rules only if the field is empty after losing focus
                     if (passwordField.value === '') {
                         passwordRules.classList.add('hidden');
                     }
                 });
 
-                // Update strength check as the user types
                 passwordField.addEventListener('input', checkPasswordStrength);
 
                 // If the password field is pre-filled (e.g., after a validation error), show rules and check strength
@@ -213,13 +155,13 @@
             if (flashMessagesContainer) {
                 setTimeout(() => {
                     flashMessagesContainer.classList.add('fade-out');
-                    // Remove the element from DOM after the transition completes
                     flashMessagesContainer.addEventListener('transitionend', () => {
-                        flashMessagesContainer.remove();
+                        if (flashMessagesContainer.parentNode) {
+                            flashMessagesContainer.remove();
+                        }
                     });
-                }, 5000); // Fades out after 5 seconds (5000 milliseconds)
+                }, 5000);
             }
         });
     </script>
-</body>
-</html>
+{% endblock %}

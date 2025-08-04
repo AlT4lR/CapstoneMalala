@@ -24,24 +24,28 @@ LOCKOUT_DURATION_MINUTES = 10
 # --- JWT Error Handlers ---
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
+    """Callback for when a JWT is missing from a protected endpoint."""
     flash('Please log in to access this page.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.invalid_token_loader
 def invalid_token_response(callback):
+    """Callback for when a JWT is invalid (e.g., expired, tampered)."""
     flash('Your session has expired or is invalid. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.expired_token_loader
 def expired_token_response(jwt_header, jwt_payload):
+    """Callback for when a JWT access token has expired."""
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
 # --- Helper Functions ---
 def send_otp_email(recipient_email, otp):
+    """Sends the OTP code to the user's email."""
     mail = current_app.mail
     if not mail:
-        logger.error("Mail extension not initialized.")
+        logger.error("Mail extension not initialized. Cannot send email.")
         flash('Could not send OTP email due to a server configuration error.', 'error')
         return
 
@@ -58,8 +62,7 @@ def send_otp_email(recipient_email, otp):
         logger.error(f"Failed to send email to {recipient_email}: {e}")
         flash('Failed to send OTP email. Please try again later.', 'error')
 
-# Helper function for Flask-Limiter
-def get_remote_addr():
+def get_remote_addr(): # Helper for Flask-Limiter key_func
     return request.remote_addr
 
 # --- Routes ---
@@ -68,7 +71,8 @@ def login():
     return render_template('login.html')
 
 @auth.route('/login', methods=['POST'])
-@current_app.limiter.limit("5 per minute; 100 per day", key_func=get_remote_addr,
+# Apply specific rate limit to the login route
+@current_app.limiter.limit("5 per minute; 100 per day", key_func=get_remote_addr, 
                            error_message="Too many login attempts from this IP. Please try again later.")
 def login_post():
     username = request.form.get('username')
@@ -76,33 +80,39 @@ def login_post():
 
     user = current_app.get_user_by_username(username)
 
+    # Check if user exists and is locked out
     if user and user.get('lockoutUntil') and user['lockoutUntil'] > datetime.utcnow():
         remaining_time = user['lockoutUntil'] - datetime.utcnow()
         minutes, seconds = divmod(int(remaining_time.total_seconds()), 60)
         flash(f'Account locked. Please try again in {minutes}m {seconds}s.', 'error')
-        current_app.record_failed_login_attempt(username)
+        current_app.record_failed_login_attempt(username) # Record attempt even if locked
         return redirect(url_for('auth.login'))
 
+    # Verify credentials
     if not user or not current_app.check_password(user['passwordHash'], password):
-        if user:
+        if user: # If user exists but password was wrong
             current_app.record_failed_login_attempt(username)
             if user.get('failedLoginAttempts', 0) >= LOGIN_ATTEMPT_LIMIT:
                  flash(f'Too many failed attempts. Your account has been locked for {LOCKOUT_DURATION_MINUTES} minutes.', 'error')
-        else:
+        else: # User does not exist
             flash('Invalid username or password.', 'error')
         return redirect(url_for('auth.login'))
 
+    # If account is not active (email not verified)
     if not user.get('isActive', False):
         flash('Your account is not verified. Please check your email for the OTP.', 'error')
-        session['username_for_otp'] = user['username']
+        session['username_for_otp'] = user['username'] # Store username for OTP verification
         return redirect(url_for('auth.verify_otp'))
 
+    # Successful login: Reset failed attempts, update last login
     current_app.update_last_login(user['username'])
 
+    # Check for 2FA setup
     if user.get('otpSecret'):
-        session['username_for_2fa_login'] = user['username']
+        session['username_for_2fa_login'] = user['username'] # Store username for 2FA verification step
         return redirect(url_for('auth.verify_2fa_login'))
     else:
+        # No 2FA required/setup, proceed to issue JWTs and log in user
         access_token = create_access_token(identity=user['username'])
         refresh_token = create_refresh_token(identity=user['username'])
 
@@ -111,7 +121,7 @@ def login_post():
         set_refresh_cookies(response, refresh_token)
         
         flash('Login successful!', 'success')
-        session.clear()
+        session.clear() # Clear any transient session data from login/otp steps
         return response
 
 @auth.route('/register', methods=['GET'])
@@ -231,6 +241,7 @@ def setup_2fa():
 
     otp_secret = user['otpSecret']
     totp = pyotp.TOTP(otp_secret)
+    # Use provided email for the provisioning URI name
     provisioning_uri = totp.provisioning_uri(name=user['email'], issuer_name="DecoOffice")
 
     img = qrcode.make(provisioning_uri, image_factory=qrcode.image.svg.SvgImage)

@@ -13,11 +13,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+        // DOM Elements for Mini Calendar
         const miniCalMonthYearEl = document.getElementById('mini-cal-month-year');
         const miniCalendarGridEl = document.getElementById('mini-calendar-grid');
         const miniCalPrevMonthBtn = document.getElementById('mini-cal-prev-month');
         const miniCalNextMonthBtn = document.getElementById('mini-cal-next-month');
 
+        // DOM Elements for Main Calendar
         const mainCalHeaderMonthYearEl = document.getElementById('main-cal-header-month-year');
         const monthViewEl = document.getElementById('month-view');
         const monthGridDaysEl = document.getElementById('month-grid-days');
@@ -29,10 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayGridTimeSlotsEl = document.getElementById('day-grid-time-slots');
         const yearViewEl = document.getElementById('year-view');
 
+        // Navigation & Modal Elements
         const viewButtons = document.querySelectorAll('.view-button');
         const createScheduleBtn = document.getElementById('create-schedule-btn');
         const createScheduleModal = document.getElementById('create-schedule-modal');
         const closeScheduleModalBtn = document.getElementById('close-schedule-modal');
+        const createScheduleForm = document.getElementById('create-schedule-form'); // For AJAX submission
         const eventCategorySelect = document.getElementById('event-category');
         const categoryListEl = document.getElementById('category-list');
         const addCategoryBtn = document.getElementById('add-category-btn');
@@ -44,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const detailsEventTimeEl = document.getElementById('details-event-time');
         const detailsEventNotesEl = document.getElementById('details-event-notes');
 
+        // Category Colors Mapping
         const categoryColors = {
             'Office': 'bg-category-office',
             'Meetings': 'bg-category-meetings',
@@ -53,47 +58,88 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         // --- Initial Date Setup (Uses global variable from schedules.html) ---
-        // Ensure FLASK_INITIAL_DATE_ISO is available globally
+        // Ensure FLASK_INITIAL_DATE_ISO is available globally from Jinja2
+        // Initialize currentMainDate as a UTC-aware date object
         currentMainDate = new Date(FLASK_INITIAL_DATE_ISO);
-        currentMainDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        if (isNaN(currentMainDate.getTime())) { // Check if parsing failed
+            currentMainDate = new Date(Date.now()); // Fallback to current time
+        }
+        currentMainDate.setHours(0, 0, 0, 0); // Normalize to start of day (locally, but will be treated as UTC contextually)
+        currentMainDate.setUTCHours(0, 0, 0, 0); // Ensure it's UTC-based for consistency
 
-        let miniCalMonth = currentMainDate.getMonth();
+        let miniCalMonth = currentMainDate.getMonth(); // Month is 0-indexed locally
         let miniCalYear = currentMainDate.getFullYear();
 
         // --- Helper Functions ---
+        // Function to get the start of the week (Sunday) for a given date
         function getWeekStartDate(date) {
-            let day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-            let diff = date.getDate() - day; // Adjust date to Sunday
-            return new Date(date.getFullYear(), date.getMonth(), diff);
+            // Ensure date is UTC-aware
+            const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            let dayOfWeek = utcDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            let diff = utcDate.getDate() - dayOfWeek; // Number of days to subtract to get to Sunday
+            const sundayOfThatWeek = new Date(utcDate.setDate(diff));
+            return sundayOfThatWeek;
         }
 
-        function formatTime(dateString) {
-            const date = new Date(dateString);
+        // Formats a date string into a time (e.g., "10:30 AM")
+        function formatTime(dateStringOrDate) {
+            let date;
+            if (typeof dateStringOrDate === 'string') {
+                date = new Date(dateStringOrDate);
+            } else if (dateStringOrDate instanceof Date) {
+                date = dateStringOrDate;
+            } else {
+                return 'Invalid Time';
+            }
+            // Using toLocaleTimeString for user's local time, adjust if UTC display is needed
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        // Formats a date for display (e.g., "Mon, Jan 1")
         function formatDateForDisplay(date) {
+            // Assuming date is a Date object
             return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         }
 
+        // Gets Tailwind CSS class for a given category
         function getCategoryColorClass(category) {
             const baseClass = 'px-2 py-1 rounded-full text-xs font-semibold';
-            return `${baseClass} ${categoryColors[category] || 'bg-gray-500'}`;
+            return `${baseClass} ${categoryColors[category] || 'bg-gray-500'}`; // Fallback to gray if category not mapped
         }
 
+        // Fetches schedules from the API, ensuring proper date formatting and CSRF headers
         async function fetchSchedules(start, end) {
             try {
-                // Use the overridden fetch which includes CSRF token and Content-Type
-                const response = await fetch(`/api/schedules?start=${start.toISOString()}&end=${end.toISOString()}`); 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error("Error fetching schedules:", errorData.error);
+                // Use the globally available getCsrfToken from common.js
+                const csrfToken = await window.getCsrfToken();
+                if (!csrfToken) {
+                    console.error("CSRF token not available for fetching schedules.");
                     return [];
                 }
+
+                // Ensure dates are correctly formatted for API query (ISO String)
+                const startISO = start.toISOString();
+                const endISO = end.toISOString();
+
+                const response = await fetch(`/api/schedules?start=${startISO}&end=${endISO}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Error fetching schedules:", errorData.error || response.statusText);
+                    return []; // Return empty array on error
+                }
                 const schedules = await response.json();
+                
+                // Convert fetched date strings back to Date objects for easier manipulation in JS
                 return schedules.map(s => ({
                     ...s,
-                    start_time: new Date(s.start_time),
+                    start_time: new Date(s.start_time), // Parse ISO string back to Date object
                     end_time: new Date(s.end_time)
                 }));
             } catch (error) {
@@ -102,34 +148,61 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Fetches categories (initially via JSON, potentially via API later)
         async function fetchCategories() {
             try {
-                // Ensure FLASK_INITIAL_CATEGORIES_JSON is correctly parsed
-                const categories = JSON.parse(FLASK_INITIAL_CATEGORIES_JSON); 
-                if (categories && categories.length > 0) {
+                // Use the globally available getCsrfToken from common.js
+                const csrfToken = await window.getCsrfToken();
+                if (!csrfToken) {
+                    console.warn("CSRF token not available for fetching categories.");
+                    // Fallback if token is missing or not needed for GET (depends on your Flask route)
+                    // If GET requests also require CSRF, handle accordingly.
+                    // For now, assuming GET might not strictly need it, but it's safer if it does.
+                }
+
+                const response = await fetch('/api/categories', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken // Include token if required for GET API
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Error fetching categories:", errorData.error || response.statusText);
+                    return ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback on error
+                }
+                const categories = await response.json();
+                
+                // Ensure categories is an array and return defaults if empty
+                if (Array.isArray(categories) && categories.length > 0) {
                     return categories;
                 }
                 return ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback
             } catch (error) {
-                console.error("Error parsing initial categories JSON:", error);
+                console.error("Network or parsing error fetching categories:", error);
                 return ['Office', 'Meetings', 'Events', 'Personal', 'Others']; // Fallback
             }
         }
 
+        // Populates the <select> for the form and the radio buttons for the sidebar category list
         async function populateCategorySelectAndList(initialCategories = null) {
             const categories = initialCategories || await fetchCategories();
             
-            eventCategorySelect.innerHTML = '';
-            categoryListEl.innerHTML = '';
+            eventCategorySelect.innerHTML = ''; // Clear existing options
+            categoryListEl.innerHTML = ''; // Clear existing radio buttons
 
             categories.forEach(cat => {
+                // Option for the <select> dropdown
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = cat;
                 eventCategorySelect.appendChild(option);
 
+                // Radio button for the sidebar category list
                 const label = document.createElement('label');
-                label.className = 'flex items-center';
+                label.className = 'flex items-center mb-1'; // Add margin-bottom for spacing
                 label.innerHTML = `
                     <input type="radio" name="sidebar-category" value="${cat}" class="form-radio h-4 w-4 text-custom-green-active">
                     <span class="ml-2">${cat}</span>
@@ -140,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Render Mini Calendar ---
         function renderMiniCalendar() {
+            // Clear previous content (except day headers)
             miniCalendarGridEl.innerHTML = `
                 <div class="text-gray-300 font-medium">S</div>
                 <div class="text-gray-300 font-medium">M</div>
@@ -151,48 +225,55 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             miniCalMonthYearEl.textContent = `${monthNames[miniCalMonth]} ${miniCalYear}`;
 
-            let firstDayOfMonth = new Date(miniCalYear, miniCalMonth, 1);
-            let startingDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
+            // Get the first day of the month and its day of the week (0=Sunday)
+            const firstDayOfMonth = new Date(miniCalYear, miniCalMonth, 1);
+            let startingDay = firstDayOfMonth.getDay(); 
 
-            let daysInMonth = new Date(miniCalYear, miniCalMonth + 1, 0).getDate();
-            let daysInPrevMonth = new Date(miniCalYear, miniCalMonth, 0).getDate();
+            // Get total days in the month
+            const daysInMonth = new Date(miniCalYear, miniCalMonth + 1, 0).getDate();
+            // Get days in the previous month (for padding)
+            const daysInPrevMonth = new Date(miniCalYear, miniCalMonth, 0).getDate();
 
-            // Add padding days from previous month
+            // Add padding days from the previous month
             for (let i = 0; i < startingDay; i++) {
                 const dayEl = document.createElement('div');
-                dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400';
+                dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400'; // Faded text for prev month days
                 dayEl.textContent = daysInPrevMonth - startingDay + i + 1;
                 miniCalendarGridEl.appendChild(dayEl);
             }
 
-            // Add days of current month
+            // Add days of the current month
             for (let i = 1; i <= daysInMonth; i++) {
                 const dayEl = document.createElement('div');
                 dayEl.className = 'p-1 rounded-full flex items-center justify-center cursor-pointer';
+                
+                // Highlight the current day being displayed in the main calendar
                 if (i === currentMainDate.getDate() && miniCalMonth === currentMainDate.getMonth() && miniCalYear === currentMainDate.getFullYear()) {
                     dayEl.classList.add('font-bold', 'bg-custom-green-active');
                 } else {
                     dayEl.classList.add('hover:bg-gray-700'); // Light hover effect for non-active days
                 }
                 dayEl.textContent = i;
-                dayEl.dataset.date = new Date(miniCalYear, miniCalMonth, i).toISOString(); // Store full date
+                // Store the full date for click handling
+                dayEl.dataset.date = new Date(Date.UTC(miniCalYear, miniCalMonth, i)).toISOString(); 
 
                 dayEl.addEventListener('click', (e) => {
                     const selectedDate = new Date(e.target.dataset.date);
-                    currentMainDate = selectedDate;
-                    renderCalendar(); // Re-render main calendar based on selected day
+                    currentMainDate = selectedDate; // Update the main calendar date
+                    renderCalendar(); // Re-render main calendar
                     renderMiniCalendar(); // Re-render mini calendar to update active day
                 });
 
                 miniCalendarGridEl.appendChild(dayEl);
             }
 
-            // Add padding days from next month (fill up to 6 weeks for consistency)
-            const totalCells = miniCalendarGridEl.children.length - 7; // Subtract initial day headers
-            const remainingCells = 42 - totalCells; // 6 rows * 7 days = 42 cells
+            // Fill remaining cells to ensure 6 weeks (42 cells total) for consistent layout
+            const totalCellsUsed = miniCalendarGridEl.children.length - 7; // Subtract day headers
+            const totalGridCells = 42; // 6 weeks * 7 days
+            const remainingCells = totalGridCells - totalCellsUsed;
             for (let i = 1; i <= remainingCells; i++) {
                 const dayEl = document.createElement('div');
-                dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400';
+                dayEl.className = 'p-1 rounded-full flex items-center justify-center text-gray-400'; // Faded text for padding days
                 dayEl.textContent = i;
                 miniCalendarGridEl.appendChild(dayEl);
             }
@@ -200,15 +281,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Render Main Calendar ---
         async function renderCalendar() {
+            // Update main header with current month/year
             mainCalHeaderMonthYearEl.textContent = `${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getFullYear()}`;
             
-            // Hide all views first
+            // Hide all views initially
             monthViewEl.classList.add('hidden');
             weekViewEl.classList.add('hidden');
             dayViewEl.classList.add('hidden');
             yearViewEl.classList.add('hidden');
 
-            // Set active view button
+            // Update active view button styling
             viewButtons.forEach(btn => btn.classList.remove('active', 'bg-gray-600', 'text-white'));
             document.getElementById(`view-${currentView.toLowerCase()}-btn`).classList.add('active', 'bg-gray-600', 'text-white');
 
@@ -219,10 +301,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 monthViewEl.classList.remove('hidden');
                 mainCalHeaderMonthYearEl.textContent = `${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getFullYear()}`;
 
-                let firstDayOfMonth = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), 1);
-                startDate = getWeekStartDate(firstDayOfMonth); // Get Sunday of the first week of the month
+                let firstDayOfMonth = new Date(Date.UTC(currentMainDate.getFullYear(), currentMainDate.getMonth(), 1));
+                startDate = getWeekStartDate(firstDayOfMonth); // Sunday of the first week
                 endDate = new Date(startDate);
-                endDate.setDate(startDate.getDate() + 41); // Display 6 weeks (42 days)
+                endDate.setDate(startDate.getDate() + 41); // Display 6 full weeks (42 days)
 
                 events = await fetchSchedules(startDate, endDate);
                 renderMonthView(startDate, events);
@@ -231,56 +313,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 weekViewEl.classList.remove('hidden');
                 startDate = getWeekStartDate(currentMainDate);
                 endDate = new Date(startDate);
-                endDate.setDate(startDate.getDate() + 6); // End of the week (Saturday)
+                endDate.setDate(startDate.getDate() + 6); // Saturday of the current week
 
-                // Update week view headers
+                // Update week view headers with day numbers
                 for (let i = 0; i < 7; i++) {
                     const date = new Date(startDate);
                     date.setDate(startDate.getDate() + i);
                     weekHeaderDayEls[i].textContent = date.getDate();
-                    if (date.toDateString() === new Date().toDateString()) { // Highlight today
+                    // Highlight today's date in the week header
+                    if (date.toDateString() === new Date().toDateString()) { 
                         weekHeaderDayEls[i].parentElement.classList.add('text-custom-green-active');
                     } else {
                         weekHeaderDayEls[i].parentElement.classList.remove('text-custom-green-active');
                     }
                 }
+                // Update main header for the week range
                 mainCalHeaderMonthYearEl.textContent = `${monthNames[startDate.getMonth()]} ${startDate.getDate()} - ${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${startDate.getFullYear()}`;
-
 
                 events = await fetchSchedules(startDate, endDate);
                 renderWeekView(startDate, events);
 
             } else if (currentView === 'Day') {
                 dayViewEl.classList.remove('hidden');
-                startDate = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate());
-                endDate = new Date(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate(), 23, 59, 59);
+                // Define start and end of the day for the query, ensuring UTC
+                startDate = new Date(Date.UTC(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate()));
+                endDate = new Date(Date.UTC(currentMainDate.getFullYear(), currentMainDate.getMonth(), currentMainDate.getDate(), 23, 59, 59));
 
+                // Update day header
                 dayHeaderDateEl.textContent = `${dayNames[currentMainDate.getDay()]}, ${monthNames[currentMainDate.getMonth()]} ${currentMainDate.getDate()}, ${currentMainDate.getFullYear()}`;
                 mainCalHeaderMonthYearEl.textContent = `Schedules for ${dayHeaderDateEl.textContent}`;
 
                 events = await fetchSchedules(startDate, endDate);
-                renderDayView(startDate, events);
+                renderDayView(currentMainDate, events); // Pass the specific day for rendering
 
             } else if (currentView === 'Year') {
                 yearViewEl.classList.remove('hidden');
                 mainCalHeaderMonthYearEl.textContent = `Yearly Overview for ${currentMainDate.getFullYear()}`;
-                // No specific rendering for Year view beyond placeholder.
+                // Placeholder for Year View
             }
         }
 
+        // Renders events for the Month View
         function renderMonthView(startDate, events) {
             monthGridDaysEl.innerHTML = ''; // Clear previous days
 
-            for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+            for (let i = 0; i < 42; i++) { // Render 6 weeks (42 days)
                 const date = new Date(startDate);
                 date.setDate(startDate.getDate() + i);
 
                 const dayCell = document.createElement('div');
-                dayCell.className = 'p-1 relative border-b border-l border-r border-gray-700 h-28'; // Fixed height for month cells
+                // Base classes for day cells
+                dayCell.className = 'p-1 relative border-b border-l border-r border-gray-700 h-28'; // Fixed height
+                
+                // Style days outside the current month
                 if (date.getMonth() !== currentMainDate.getMonth()) {
-                    dayCell.classList.add('text-gray-500'); // Faded for prev/next month days
+                    dayCell.classList.add('text-gray-500'); 
                 } else {
                      dayCell.classList.add('cursor-pointer', 'hover:bg-gray-700');
+                     // Add click listener to switch to Day view for this date
                      dayCell.addEventListener('click', () => {
                          currentMainDate = date;
                          currentView = 'Day';
@@ -289,26 +379,30 @@ document.addEventListener('DOMContentLoaded', function() {
                      });
                 }
                 
+                // Display the day number
                 dayCell.innerHTML = `<div class="text-right font-medium">${date.getDate()}</div>`;
 
+                // Filter and sort events for this specific day
                 const dailyEvents = events.filter(event => 
                     event.start_time.getFullYear() === date.getFullYear() &&
                     event.start_time.getMonth() === date.getMonth() &&
                     event.start_time.getDate() === date.getDate()
-                ).sort((a, b) => a.start_time - b.start_time); // Sort events by time
+                ).sort((a, b) => a.start_time - b.start_time); // Sort by start time
 
-                dailyEvents.slice(0, 3).forEach(event => { // Display max 3 events
+                // Display up to 3 events on the day cell
+                dailyEvents.slice(0, 3).forEach(event => { 
                     const eventEl = document.createElement('div');
                     eventEl.className = `event-box ${getCategoryColorClass(event.category)}`;
                     eventEl.textContent = event.title;
                     eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)})`;
                     eventEl.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent day cell click
+                        e.stopPropagation(); // Prevent day cell click propagation
                         showEventDetails(event);
                     });
                     dayCell.appendChild(eventEl);
                 });
 
+                // Show "+ X more" if there are more events than displayed
                 if (dailyEvents.length > 3) {
                     const moreEl = document.createElement('div');
                     moreEl.className = 'text-xs text-gray-400 mt-1 cursor-pointer hover:underline';
@@ -327,29 +421,37 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Renders events for the Week View
         function renderWeekView(startDate, events) {
-            weekGridTimeSlotsEl.querySelectorAll('.day-cell').forEach(cell => cell.innerHTML = ''); // Clear previous events
+            // Clear any previously rendered events in the week grid
+            weekGridTimeSlotsEl.querySelectorAll('.day-cell').forEach(cell => cell.innerHTML = ''); 
 
             events.forEach(event => {
-                const eventDay = event.start_time.getDay(); // 0-6 (Sunday-Saturday)
+                const eventDay = event.start_time.getDay(); // Day of the week (0=Sun, 6=Sat)
                 const eventHour = event.start_time.getHours();
                 const eventMinute = event.start_time.getMinutes();
+                // Calculate duration in hours for height calculation
                 const durationHours = (event.end_time - event.start_time) / (1000 * 60 * 60);
 
+                // Find the target cell for this event
                 const targetCell = weekGridTimeSlotsEl.querySelector(`.day-cell.hour-${eventHour}.day-${eventDay}`);
                 if (targetCell) {
                     const eventEl = document.createElement('div');
                     eventEl.className = `event-box ${getCategoryColorClass(event.category)}`;
+                    // Event content: title, time, and notes if available
                     eventEl.innerHTML = `
                         <p class="font-semibold leading-tight">${event.title}</p>
                         <p class="text-xs opacity-80">${formatTime(event.start_time)} - ${formatTime(event.end_time)}</p>
                         ${event.notes ? `<p class="text-xs opacity-80 truncate">${event.notes}</p>` : ''}
                     `;
-                    eventEl.style.top = `${eventMinute / 60 * 60}px`; // Position vertically within the hour slot
-                    eventEl.style.height = `${durationHours * 60 - 8}px`; // Height based on duration, minus padding
+                    // Position the event vertically within its hour slot
+                    eventEl.style.top = `${eventMinute / 60 * 60}px`; // 60px per hour slot
+                    eventEl.style.height = `${durationHours * 60 - 8}px`; // Height based on duration, accounting for padding/margins
                     eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)}) - ${event.notes || ''}`;
+                    
+                    // Add click listener to show event details
                     eventEl.addEventListener('click', (e) => {
-                        e.stopPropagation();
+                        e.stopPropagation(); // Prevent triggering the day cell click
                         showEventDetails(event);
                     });
                     targetCell.appendChild(eventEl);
@@ -357,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        // Renders events for the Day View
         function renderDayView(date, events) {
             dayGridTimeSlotsEl.querySelectorAll('.day-cell').forEach(cell => cell.innerHTML = ''); // Clear previous events
 
@@ -365,7 +468,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const eventMinute = event.start_time.getMinutes();
                 const durationHours = (event.end_time - event.start_time) / (1000 * 60 * 60);
 
-                const targetCell = dayGridTimeSlotsEl.querySelector(`.day-cell.hour-${eventHour}.day-0`); // day-0 for the single day
+                // Find the target cell for this event (day-0 for single day view)
+                const targetCell = dayGridTimeSlotsEl.querySelector(`.day-cell.hour-${eventHour}.day-0`); 
                 if (targetCell) {
                     const eventEl = document.createElement('div');
                     eventEl.className = `event-box ${getCategoryColorClass(event.category)}`;
@@ -374,9 +478,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="text-xs opacity-80">${formatTime(event.start_time)} - ${formatTime(event.end_time)}</p>
                         ${event.notes ? `<p class="text-xs opacity-80 truncate">${event.notes}</p>` : ''}
                     `;
-                    eventEl.style.top = `${eventMinute / 60 * 60}px`;
-                    eventEl.style.height = `${durationHours * 60 - 8}px`;
+                    eventEl.style.top = `${eventMinute / 60 * 60}px`; // Position vertically
+                    eventEl.style.height = `${durationHours * 60 - 8}px`; // Height based on duration
                     eventEl.title = `${event.title} (${formatTime(event.start_time)} - ${formatTime(event.end_time)}) - ${event.notes || ''}`;
+                    
                     eventEl.addEventListener('click', (e) => {
                         e.stopPropagation();
                         showEventDetails(event);
@@ -386,6 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        // Displays event details in a modal
         function showEventDetails(event) {
             detailsEventTitleEl.textContent = event.title;
             detailsEventCategoryEl.textContent = event.category;
@@ -396,44 +502,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // --- Event Listeners for Navigation ---
+        // Previous month button for mini calendar
         miniCalPrevMonthBtn.addEventListener('click', () => {
             miniCalMonth--;
             if (miniCalMonth < 0) {
-                miniCalMonth = 11;
+                miniCalMonth = 11; // December
                 miniCalYear--;
             }
-            currentMainDate = new Date(miniCalYear, miniCalMonth, currentMainDate.getDate()); // Keep current date as reference
+            // Update currentMainDate reference for calendar rendering
+            currentMainDate = new Date(Date.UTC(miniCalYear, miniCalMonth, currentMainDate.getDate()));
             renderMiniCalendar();
-            renderCalendar();
+            renderCalendar(); // Re-render main calendar
         });
 
+        // Next month button for mini calendar
         miniCalNextMonthBtn.addEventListener('click', () => {
             miniCalMonth++;
             if (miniCalMonth > 11) {
-                miniCalMonth = 0;
+                miniCalMonth = 0; // January
                 miniCalYear++;
             }
-            currentMainDate = new Date(miniCalYear, miniCalMonth, currentMainDate.getDate());
+            currentMainDate = new Date(Date.UTC(miniCalYear, miniCalMonth, currentMainDate.getDate()));
             renderMiniCalendar();
             renderCalendar();
         });
 
+        // View buttons (Day, Week, Month, Year)
         viewButtons.forEach(button => {
             button.addEventListener('click', () => {
-                currentView = button.textContent; // Or button.dataset.view if you use that
-                renderCalendar();
+                currentView = button.textContent; // Set the current view based on button text
+                renderCalendar(); // Re-render the calendar with the new view
             });
         });
 
         // --- Create Schedule Modal Logic ---
         createScheduleBtn.addEventListener('click', () => {
             createScheduleModal.classList.remove('hidden');
-            populateCategorySelectAndList(); // Ensure categories are up-to-date
+            populateCategorySelectAndList(); // Load categories into the select and radio list
         });
 
         closeScheduleModalBtn.addEventListener('click', () => {
             createScheduleModal.classList.add('hidden');
-            createScheduleForm.reset(); // Clear form on close
+            createScheduleForm.reset(); // Clear form fields on close
         });
 
         // --- Add Category Logic ---
@@ -441,21 +551,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const newCategory = prompt("Enter new category name:");
             if (newCategory && newCategory.trim() !== "") {
                 try {
-                    const csrfToken = await getCsrfToken(); // Get token for API call
+                    // Use global getCsrfToken from common.js
+                    const csrfToken = await window.getCsrfToken();
                     const response = await fetch('/api/categories', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                         body: JSON.stringify({ category_name: newCategory.trim() }),
                     });
+                    
                     if (response.ok) {
                         alert(`Category '${newCategory.trim()}' added!`);
+                        // Dynamically add color class if not predefined
                         if (!categoryColors[newCategory.trim()]) {
                              const randomHue = Math.floor(Math.random() * 360);
                              const newCategoryColorClass = `bg-[hsl(${randomHue},_70%,_70%)]`; 
                              categoryColors[newCategory.trim()] = newCategoryColorClass;
                         }
-                        populateCategorySelectAndList(); // Re-populate to show new category
-                        renderCalendar(); // Re-render to ensure new category is available in event displays
+                        await populateCategorySelectAndList(); // Re-populate select/radios
+                        renderCalendar(); // Re-render calendar to potentially show new category usage
                     } else {
                         const errorData = await response.json();
                         alert('Failed to add category: ' + (errorData.error || response.statusText));
@@ -473,7 +586,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // --- Initial Render ---
+        // Ensure the initial date setup is correct and UTC-aware
+        if (isNaN(currentMainDate.getTime())) { // Check if initial date was invalid
+            currentMainDate = new Date(Date.now()); // Fallback to current time, make UTC-aware
+            currentMainDate.setUTCHours(0,0,0,0);
+        }
+        
+        // Update mini calendar month/year based on initial currentMainDate
+        miniCalMonth = currentMainDate.getMonth();
+        miniCalYear = currentMainDate.getFullYear();
+
         renderMiniCalendar();
         renderCalendar(); // Render main calendar initially (defaults to Week view)
     }
 });
+
+// Helper function to get CSRF token (if not already globally defined by common.js)
+// This ensures that if this script were somehow loaded without common.js, it would still try.
+// However, ideally, common.js should handle this exclusively.
+if (typeof window.getCsrfToken !== 'function') {
+    window.getCsrfToken = async function() {
+        let csrfToken = null;
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfTokenMeta) {
+            csrfToken = csrfTokenMeta.getAttribute('content');
+        } else {
+            const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrf_access_token='));
+            if (csrfCookie) {
+                csrfToken = csrfCookie.split('=')[1];
+            }
+        }
+        if (!csrfToken) {
+            console.warn("CSRF token not found in calendar.js. AJAX requests may fail.");
+        }
+        return csrfToken;
+    };
+}
