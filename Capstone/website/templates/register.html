@@ -20,7 +20,7 @@
         /* Flash message animation */
         .flash-message-local {
             opacity: 1;
-            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+            transition: opacity 0.5s ease-out;
         }
         .flash-message-local.fade-out {
             opacity: 0;
@@ -63,7 +63,7 @@
         <div class="flex-1 p-10 rounded-r-xl">
             <h2 class="text-custom-text-dark mb-5 font-bold">Create Account</h2>
 
-            {# Flash messages are handled by the meta tag and common.js for AJAX, but can be rendered here for initial load #}
+            <!-- Flash Messages -->
             <div id="flash-messages-container" class="mb-5 flash-message-local">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -90,7 +90,7 @@
                     </span>
                 </div>
 
-                <!-- Password Validation Rules - Initially hidden -->
+                <!-- Password validation rules -->
                 <div id="password-rules" class="text-sm px-1 mb-4 hidden">
                     <p id="rule-length" class="text-gray-500 flex items-center mb-1">
                         <i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i>
@@ -113,7 +113,13 @@
                         <span>At least one special character (e.g. !@#$%)</span>
                     </p>
                 </div>
-            
+
+                <!-- Honeypot Field -->
+                <div class="hidden">
+                    <label for="honeypot">Don’t fill this field:</label>
+                    <input type="text" id="honeypot" name="honeypot" tabindex="-1" autocomplete="off" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-custom-green-active">
+                </div>
+
                 <button type="submit" class="w-full bg-custom-green-active text-white border-none p-3 rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Register</button>
             </form>
 
@@ -132,28 +138,33 @@
             const passwordRules = document.getElementById('password-rules');
             const flashMessagesContainer = document.getElementById('flash-messages-container');
 
+            // Function to update the checkmark/cross icon for password rules
             function updateRule(ruleElement, isValid) {
                 const icon = ruleElement.querySelector('i');
+                // Reset classes first
                 icon.classList.remove('fa-times-circle', 'text-red-500', 'fa-check-circle', 'text-green-500');
                 ruleElement.classList.remove('text-gray-500', 'text-green-700');
 
                 if (isValid) {
-                    icon.classList.add('fa-check-circle', 'text-green-500');
+                    icon.classList.add('fa-check-circle', 'text-green-500'); // Show checkmark
                     ruleElement.classList.add('text-green-700'); 
                 } else {
-                    icon.classList.add('fa-times-circle', 'text-red-500');
+                    icon.classList.add('fa-times-circle', 'text-red-500'); // Show cross
                     ruleElement.classList.add('text-gray-500'); 
                 }
             }
 
+            // Function to check password strength against rules
             function checkPasswordStrength() {
                 const password = passwordField.value;
+
                 const isLengthValid = password.length >= 8;
                 const hasUppercase = /[A-Z]/.test(password);
                 const hasLowercase = /[a-z]/.test(password);
                 const hasNumber = /[0-9]/.test(password);
-                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password); // Common special characters
 
+                // Update the visual feedback for each rule
                 updateRule(document.getElementById('rule-length'), isLengthValid);
                 updateRule(document.getElementById('rule-uppercase'), hasUppercase);
                 updateRule(document.getElementById('rule-lowercase'), hasLowercase);
@@ -161,27 +172,38 @@
                 updateRule(document.getElementById('rule-special'), hasSpecial);
             }
 
+            // Event listeners for password field
             if (passwordField) {
+                // Show rules when the password field gains focus
                 passwordField.addEventListener('focus', function() {
                     passwordRules.classList.remove('hidden');
-                    checkPasswordStrength(); // Check on focus
+                    checkPasswordStrength(); // Check strength immediately on focus if field is not empty
                 });
+
+                // Hide rules when the field loses focus IF it's empty
                 passwordField.addEventListener('blur', function() {
-                    if (passwordField.value === '') { // Only hide if field is empty after blur
+                    if (passwordField.value === '') {
                         passwordRules.classList.add('hidden');
                     }
                 });
+
+                // Update strength check as the user types
                 passwordField.addEventListener('input', checkPasswordStrength);
-                if (passwordField.value !== '') { // Initial check if field is pre-filled
+
+                // If the password field is pre-filled (e.g., after a validation error), show rules and check strength
+                if (passwordField.value !== '') {
                     passwordRules.classList.remove('hidden');
                     checkPasswordStrength();
                 }
             }
 
+            // Event listener for toggling password visibility
             if (togglePassword) {
                 togglePassword.addEventListener('click', function () {
                     const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordField.setAttribute('type', type);
+                    
+                    // Toggle the eye icon
                     this.querySelector('i').classList.toggle('fa-eye');
                     this.querySelector('i').classList.toggle('fa-eye-slash');
                 });
@@ -191,10 +213,11 @@
             if (flashMessagesContainer) {
                 setTimeout(() => {
                     flashMessagesContainer.classList.add('fade-out');
+                    // Remove the element from DOM after the transition completes
                     flashMessagesContainer.addEventListener('transitionend', () => {
                         flashMessagesContainer.remove();
                     });
-                }, 5000);
+                }, 5000); // Fades out after 5 seconds (5000 milliseconds)
             }
         });
     </script>

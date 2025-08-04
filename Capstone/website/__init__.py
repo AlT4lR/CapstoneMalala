@@ -1,6 +1,6 @@
 # website/__init__.py
 
-from flask import Flask
+from flask import Flask, request, abort, g
 from pymongo import MongoClient
 from flask_mail import Mail
 from flask_jwt_extended import JWTManager
@@ -9,8 +9,11 @@ from flask_limiter.util import get_remote_address
 import os
 import logging
 from logging.config import dictConfig
+import re
+from flask_talisman import Talisman # Import Talisman
+import pytz # For timezone handling
 
-# Configure logging
+# --- Logging Configuration ---
 log_config = dict({
     'version': 1,
     'disable_existing_loggers': False,
@@ -28,44 +31,35 @@ log_config = dict({
         },
     },
     'loggers': {
-        '': {  # Root logger
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True
-        },
-        'flask': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False
-        },
-        'pymongo': {
-            'handlers': ['console'],
-            'level': 'WARNING', # PyMongo can be verbose, set to WARNING
-            'propagate': False
-        },
-        'werkzeug': { # For Werkzeug debugger/server logs
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False
-        }
+        '': { 'handlers': ['console'], 'level': 'INFO', 'propagate': True },
+        'flask': { 'handlers': ['console'], 'level': 'INFO', 'propagate': False },
+        'pymongo': { 'handlers': ['console'], 'level': 'WARNING', 'propagate': False },
+        'werkzeug': { 'handlers': ['console'], 'level': 'INFO', 'propagate': False },
+        '__main__': { 'handlers': ['console'], 'level': 'INFO', 'propagate': False },
+        'flask_talisman': { 'handlers': ['console'], 'level': 'WARNING', 'propagate': False } # Reduce Talisman verbosity if needed
     }
 })
 dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-
-# Flask extensions will be initialized within create_app and attached to app
+# Flask extensions
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter()
+talisman = Talisman() # Initialize Talisman
+
+# --- Security Configurations ---
+# User Agent Filtering Patterns
+BAD_USER_AGENTS = [
+    re.compile(r'python-requests', re.IGNORECASE),
+    re.compile(r'scraperbot', re.IGNORECASE),
+    re.compile(r'curl', re.IGNORECASE),
+]
 
 def create_app():
-    """
-    Factory function to create and configure the Flask application.
-    """
     app = Flask(__name__)
     
-    # --- Security & Secret Keys ---
+    # --- Secret Keys & Security ---
     app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'default-insecure-secret-key-for-dev')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-insecure-jwt-secret-key-for-dev')
     
@@ -73,7 +67,7 @@ def create_app():
     app.config['MONGO_URI'] = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
     app.config['MONGO_DB_NAME'] = os.environ.get('MONGO_DB_NAME', "deco_db")
 
-    # --- Email (Flask-Mail) Configuration ---
+    # --- Email Configuration ---
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
     app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
@@ -84,6 +78,7 @@ def create_app():
 
     # --- JWT Configuration ---
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+    # Ensure JWT_COOKIE_SECURE is True in production (HTTPS)
     app.config["JWT_COOKIE_SECURE"] = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
     app.config["SESSION_COOKIE_SECURE"] = app.config["JWT_COOKIE_SECURE"]
     app.config["JWT_COOKIE_SAMESITE"] = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
@@ -94,15 +89,40 @@ def create_app():
     limiter_db_name = os.environ.get('MONGO_DB_NAME', "deco_db") + "_limiter"
     app.config["LIMITER_STORAGE_URI"] = f"{app.config['MONGO_URI']}{limiter_db_name}"
     app.config["LIMITER_DEFAULT_LIMITS"] = ["200 per day", "50 per hour"]
+    app.config["LIMITER_API_LIMITS"] = ["100 per hour", "10 per minute"]
     app.config["LIMITER_HEADERS_ENABLED"] = True
-    app.config["LIMITER_STRATEGY"] = "fixed-window" # Explicitly set a strategy
+    app.config["LIMITER_STRATEGY"] = "fixed-window"
 
-    # Initialize extensions with the app
+    # --- Initialize Extensions ---
     mail.init_app(app)
     jwt.init_app(app)
-    limiter.init_app(app, key_func=get_remote_address, default_limits=app.config["LIMITER_DEFAULT_LIMITS"], storage_uri=app.config["LIMITER_STORAGE_URI"], headers_enabled=app.config["LIMITER_HEADERS_ENABLED"], strategy=app.config["LIMITER_STRATEGY"])
+    limiter.init_app(
+        app,
+        key_func=get_remote_address,
+        default_limits=app.config["LIMITER_DEFAULT_LIMITS"],
+        storage_uri=app.config["LIMITER_STORAGE_URI"],
+        headers_enabled=app.config["LIMITER_HEADERS_ENABLED"],
+        strategy=app.config["LIMITER_STRATEGY"]
+    )
+    
+    # --- Content Security Policy (CSP) and other Security Headers ---
+    # Configure CSP to allow specific resources
+    csp_rules = {
+        'default-src': "'self'",
+        'script-src': "'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com",
+        'style-src': "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+        'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+        'img-src': "'self' data:",
+        'connect-src': "'self' https://api.example.com", # Example: if you call external APIs
+        # Add other directives as needed
+    }
+    # Apply Talisman with CSP
+    talisman.init_app(app, content_security_policy=csp_rules, 
+                      force_https=app.config["JWT_COOKIE_SECURE"], # Force HTTPS if JWT cookies are secure
+                      frame_options='DENY', # Prevent clickjacking
+                      x_content_type_options=True) # Prevent MIME-sniffing
 
-    # Attach DB to app context for easier access
+    # --- MongoDB Connection & Indexing ---
     try:
         if not app.config['MONGO_URI']:
             raise ValueError("MONGO_URI is not configured.")
@@ -110,33 +130,29 @@ def create_app():
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         
-        # Verify connection
         mongo_client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB database: {app.config['MONGO_DB_NAME']}")
 
-        # Index creation (consider a more robust migration strategy for production)
+        # Index creation (consider migrations for production)
         users_collection = app.db.users
         users_collection.create_index([('username', 1)], unique=True, background=True, 
-                                      collation={'locale': 'en', 'strength': 2}) # Case-insensitive unique index
+                                      collation={'locale': 'en', 'strength': 2})
         users_collection.create_index([('email', 1)], unique=True, background=True, 
-                                      collation={'locale': 'en', 'strength': 2}) # Case-insensitive unique index
+                                      collation={'locale': 'en', 'strength': 2})
         logger.info("Ensured unique indexes on 'users' collection (case-insensitive).")
 
     except ValueError as ve:
         logger.error(f"MongoDB configuration error: {ve}")
-        app.db = None # Ensure app.db is None if config fails
+        app.db = None
     except Exception as e:
         logger.error(f"Could not connect to MongoDB or create indexes: {e}")
         app.db = None
 
     # --- Register Blueprints ---
     from .auth import auth as auth_blueprint
-    app.register_blueprint(auth_blueprint, url_prefix='/') # url_prefix is optional here
+    app.register_blueprint(auth_blueprint, url_prefix='/')
 
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint, url_prefix='/')
     
     return app
-
-# Removed global get_db, get_mail, get_jwt, get_limiter functions.
-# Extensions are now accessed via current_app or app.extension_name.
