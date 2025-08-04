@@ -1,13 +1,14 @@
-{# website/templates/_flash_messages.html #}
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <div id="flash-messages-container" class="mb-5 flash-message-local"> {# Using class consistent with other pages #}
+        {# Use the consistent ID and class for common JS targeting #}
+        {# Added margin-bottom here, adjust if base.html adds its own global margin #}
+        <div id="flash-messages-container" class="mb-6 flash-message-local"> 
             {% for category, message in messages %}
                 <div class="inline-block px-4 py-2 rounded-md text-sm font-medium
                     {% if category == 'success' %}
                         bg-success-bg text-success-text border border-success-border
                     {% else %}
-                        bg-[#d9534f] text-white {# Error message styling #}
+                        bg-[#d9534f] text-white
                     {% endif %}">
                     {{ message }}
                 </div>

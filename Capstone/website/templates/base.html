@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DecoOffice{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        /* Common Styles Section */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+        .icon-mask {
+            display: inline-block;
+            background-color: currentColor;
+            mask-image: var(--svg-icon);
+            mask-repeat: no-repeat;
+            mask-position: center;
+            mask-size: contain;
+        }
+        /* Flash message animation styles */
+        .flash-message-local {
+            opacity: 1;
+            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+        }
+        .flash-message-local.fade-out {
+            opacity: 0;
+        }
+        /* Add any other global styles here */
+    </style>
+    {# Crucial for CSRF protection with AJAX #}
+    <meta name="csrf-token" content="{{ csrf_token() }}"> 
+    
+    <script>
+        // Global Tailwind config should be here or loaded dynamically
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0',
+                        'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188',
+                        'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                        'archive-item-bg': '#d7e0d3',
+                        'custom-logo-text': '#f6f6e9', 
+                        'success-bg': '#d4edda',
+                        'success-text': '#155724',
+                        'success-border': '#c3e6cb',
+                        'table-header-bg': '#d7e0d3',
+                        'table-row-bg': '#f6f6e9',
+                        'status-paid': '#92b38f',
+                        'status-pending': '#fcd34d',
+                        'calendar-bg-dark': '#3b513c',
+                        'calendar-header-bg': '#4a6842',
+                        'calendar-sidebar-bg': '#4a6842',
+                        'category-office': '#99cc99',
+                        'category-meetings': '#ff9999',
+                        'category-events': '#9999ff',
+                        'category-personal': '#ffff99',
+                        'category-others': '#cccccc',
+                        'supplier-card-bg': '#0f172a', 
+                    }
+                }
+            }
+        }
+    </script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
+
+            {% include "_sidebar.html" %}
+
+            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
+                {# Flash messages are rendered here, globally visible #}
+                {% include "_flash_messages.html" %}
+                {% block content %}{% endblock %}
+            </div>
+
+            {# Notification panel and button are included here for global access #}
+            {% include "_notifications_panel.html" %}
+
+        </div>
+    </div>
+
+    <!-- Common Scripts -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

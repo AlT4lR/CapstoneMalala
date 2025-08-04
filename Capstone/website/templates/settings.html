@@ -1,5 +1,3 @@
---- START OF FILE settings.html ---
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,8 +26,6 @@
         }
     </style>
     <script>
-        // Tailwind config should be defined globally, e.g., in base.html
-        // Keeping it here for now if not extending a base.html in your current setup.
         tailwind.config = {
             theme: {
                 extend: {
@@ -52,156 +48,20 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            <!-- Sidebar - THIS SECTION HAS BEEN DUPLICATED IN MULTIPLE FILES -->
-            {# It is strongly recommended to replace this with: {% include "_sidebar.html" %} if extending a base.html #}
-            {# For direct replacement if not using base.html, paste the content of _sidebar.html here. #}
-            <aside class="absolute left-0 top-0 h-full w-20 hover:w-64 bg-custom-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out group overflow-hidden z-50">
-                <div>
-                    <div class="flex items-center gap-3 py-6 px-6 mb-5">
-                        <span class="w-8 h-8 text-custom-logo-text flex items-center justify-center text-2xl shrink-0">
-                            <i class="fa-solid fa-braille"></i>
-                        </span>
-                        <h1 class="text-2xl font-bold text-custom-logo-text opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">DecoOffice</h1>
-                    </div>
-                    <nav class="flex flex-col space-y-2 px-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.dashboard' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl"> {# FIXED: Standardized text-xl for icons #}
-                                <i class="fa-solid fa-house"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Home</span>
-                        </a>
-                        <div class="relative">
-                            {% set transactions_active = request.blueprint == 'main' and (request.endpoint.startswith('main.transactions_') or request.endpoint == 'main.add_transaction') %}
-                            <a href="{{ url_for('main.transactions_paid') }}"
-                               class="flex items-center justify-between px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                      {% if transactions_active %}
-                                          bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md
-                                      {% endif %}">
-                                <div class="flex items-center gap-4">
-                                    <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                        <i class="fa-solid fa-truck"></i>
-                                    </span>
-                                    <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Transaction</span>
-                                </div>
-                                {% if inbox_notifications and inbox_notifications|length > 0 %}
-                                <span class="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">{{ inbox_notifications|length }}</span>
-                                {% endif %}
-                            </a>
-                            <div class="mt-2 text-custom-text-dark pl-12 transition-opacity duration-200
-                                        {% if transactions_active %}
-                                            opacity-100 block
-                                        {% else %}
-                                            opacity-0 hidden group-hover:opacity-100 group-hover:block
-                                        {% endif %}">
-                                <a href="{{ url_for('main.transactions_paid') }}"
-                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
-                                          {% if request.endpoint == 'main.transactions_paid' %}
-                                              text-white font-semibold bg-custom-green-active
-                                          {% endif %}">Paid</a>
-                                <a href="{{ url_for('main.transactions_pending') }}"
-                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
-                                          {% if request.endpoint == 'main.transactions_pending' %}
-                                              text-white font-semibold bg-custom-green-active
-                                          {% endif %}">Pending</a>
-                                <a href="{{ url_for('main.add_transaction') }}"
-                                   class="block py-1 whitespace-nowrap hover:bg-custom-green-darker hover:text-white rounded-md px-2
-                                          {% if request.endpoint == 'main.add_transaction' %}
-                                              text-white font-semibold bg-custom-green-active
-                                          {% endif %}">Add</a>
-                            </div>
-                        </div>
-
-                        <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.invoice' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-file-invoice"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Invoice</span>
-                        </a>
-
-                        <a href="{{ url_for('main.wallet') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.wallet' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-dollar-sign"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Billings</span>
-                        </a>
-                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.analytics' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-chart-line"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Analytics</span>
-                        </a>
-
-                        <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.schedules' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-calendar-alt"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Schedules</span>
-                        </a>
-
-                        <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.archive' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-box-archive"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Archive</span>
-                        </a>
-
-                        <a href="{{ url_for('main.settings') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors
-                                  {% if request.endpoint == 'main.settings' %}bg-[linear-gradient(to_right,theme(colors.custom-green-active),#b7c5b4)] text-white shadow-md{% endif %}">
-                            <span class="w-6 h-6 shrink-0 flex items-center justify-center text-xl">
-                                <i class="fa-solid fa-gear"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Settings</span>
-                        </a>
-
-                    </nav>
-                </div>
-                <div class="p-2">
-                    <div class="flex items-center justify-center mb-4">
-                        <div class="flex items-center gap-2 px-2 py-1 rounded-full text-sm text-gray-700">
-                            <span class="w-8 h-8 rounded-full bg-yellow-300 flex items-center justify-center text-gray-800 font-bold text-xs shrink-0">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </span>
-                            <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Admin</span>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('main.branches') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
-                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-arrow-right-to-bracket fa-rotate-180"></i>
-                        </span>
-                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Branches</span>
-                    </a>
-                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-4 px-4 py-3 text-custom-text-dark hover:bg-custom-green-darker hover:text-white rounded-lg transition-colors">
-                        <span class="w-6 h-6 shrink-0 flex items-center justify-center text-lg">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </span>
-                        <span class="font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
-                    </a>
-                </div>
-            </aside>
+            <!-- Sidebar -->
+            {% include "_sidebar.html" %}
 
             <!-- Main Content Area -->
             <div class="flex-1 flex flex-col pl-20 overflow-hidden">
                 <main class="flex-1 p-8 flex flex-col">
                     <header class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Application Settings</h2>
-                        <!-- Notification button - THIS SECTION HAS BEEN DUPLICATED -->
-                        {# It is strongly recommended to replace this with: {% include "_notifications_panel.html" %} #}
-                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
-                            <i class="fa-regular fa-bell fa-lg"></i>
-                            {% if inbox_notifications and inbox_notifications|length > 0 %}
-                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
-                            {% endif %}
-                        </button>
+                        <!-- Notification button -->
+                        {% include "_notification_button.html" %}
                     </header>
 
-                    <!-- Flash message container - THIS SECTION HAS BEEN DUPLICATED -->
-                    {# It is strongly recommended to replace this with: {% include "_flash_messages.html" %} #}
+                    <!-- Flash message container -->
+                    {# This element is targeted by common.js for auto-fade #}
                     <div id="flash-messages-container" class="mb-5 flash-message-local">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
@@ -225,69 +85,15 @@
                 </main>
             </div>
 
-            <!-- Notification Panel - THIS SECTION HAS BEEN DUPLICATED -->
-            {# It is strongly recommended to replace this with: {% include "_notifications_panel.html" %} #}
-            <div id="notification-panel" class="hidden absolute top-4 right-4 w-80 h-[calc(100%-2rem)] max-h-[500px] bg-custom-bg border border-gray-200 rounded-xl shadow-lg flex flex-col transition-transform duration-300 ease-in-out">
-                <div class="p-4 border-b border-gray-200">
-                    <h3 class="font-semibold text-custom-text-dark">Notification</h3>
-                </div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar">
-                    {% if inbox_notifications %}
-                        <div class="p-2 space-y-2">
-                        {% for notification in inbox_notifications %}
-                            <a href="#" class="block p-3 rounded-lg hover:bg-gray-200 transition-colors">
-                                <div class="flex items-start gap-3">
-                                    <img src="{{ url_for('static', filename='images/' + notification.icon) }}" alt="{{ notification.name }}" class="w-8 h-8 rounded-full object-cover mt-1">
-                                    <div class="flex-1">
-                                        <p class="font-semibold text-sm text-custom-text-dark">{{ notification.name }}</p>
-                                        <p class="text-sm text-gray-600 truncate">{{ notification.preview }}</p>
-                                        <p class="text-xs text-gray-400 mt-1">{{ notification.date }}</p>
-                                    </div>
-                                </div>
-                            </a>
-                        {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="flex items-center justify-center h-full">
-                            <p class="text-sm text-gray-500 p-4 text-center">You have no new notifications.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+            <!-- Notification Panel -->
+            {# This panel is managed by common.js #}
+            {% include "_notifications_panel.html" %}
+
         </div>
     </div>
 
-<script>
-// THIS JAVASCRIPT IS DUPLICATED. IT SHOULD BE MOVED TO A COMMON SCRIPT FILE (e.g., in base.html or static/common.js)
-document.addEventListener('DOMContentLoaded', function() {
-    const notificationBtn = document.getElementById('notification-btn');
-    const notificationPanel = document.getElementById('notification-panel');
-
-    if (notificationBtn && notificationPanel) {
-        notificationBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            notificationPanel.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
-                notificationPanel.classList.add('hidden');
-            }
-        });
-    }
-
-    // Auto-fade for flash messages
-    const flashMessages = document.getElementById('flash-messages-container');
-    if (flashMessages) {
-        setTimeout(() => {
-            flashMessages.classList.add('fade-out');
-            flashMessages.addEventListener('transitionend', () => {
-                flashMessages.remove();
-            });
-        }, 5000); // Fades out after 5 seconds (5000 milliseconds)
-    }
-});
-</script>
-
+    <!-- Common Scripts -->
+    {# If not using a base.html, ensure this script inclusion is handled correctly #}
+    {# <script src="{{ url_for('static', filename='js/common.js') }}"></script> #}
 </body>
 </html>

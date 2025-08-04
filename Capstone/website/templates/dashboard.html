@@ -1,3 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}DecoOffice Dashboard{% endblock %}
+
+{% block head %}
+    {# No page-specific head content needed here as common styles are in base.html #}
+{% endblock %}
+
+{% block content %}
+    <main class="flex-1 p-8 flex flex-col">
+        <header class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Dashboard</h2>
+            <!-- Notification button is included globally via base.html -->
+            {% include "_notification_button.html" %}
+        </header>
+
+        {# Flash messages are handled globally by base.html #}
+
+        {# Dashboard specific content #}
+        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
+            <div class="text-center">
+                <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Budget Overview</h2>
+                <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
+                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
+                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
+                    <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
+                </div>
+            </div>
+            
+            <div class="flex-grow flex items-center justify-center mt-8">
+                 {# This is where your budget visualization content (charts, etc.) would go #}
+                 <p class="text-gray-500 text-lg">Budget visualization content goes here.</p>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {# No page-specific scripts needed here #}
+{% endblock %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,7 +107,7 @@
     <div class="flex h-screen p-2">
         <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            {# Sidebar is now included via _sidebar.html #}
+            <!-- Sidebar -->
             {% include "_sidebar.html" %}
 
             <!-- Main Content Area Wrapper -->
@@ -78,17 +118,11 @@
                         <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Dashboard</h2>
                         
                         <!-- Notification button -->
-                        {# THIS SHOULD BE REPLACED BY {% include "_notifications_panel.html" %} and its triggering JS #}
-                        <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
-                            <i class="fa-regular fa-bell fa-lg"></i>
-                            {% if inbox_notifications and inbox_notifications|length > 0 %}
-                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
-                            {% endif %}
-                        </button>
+                        {% include "_notification_button.html" %}
                     </header>
 
                     <!-- Flash message container -->
-                    {# This is duplicated, should ideally be in base.html or included once #}
+                    {# This element is targeted by common.js for auto-fade #}
                     <div id="flash-messages-container" class="mb-5 flash-message-local">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
@@ -125,43 +159,55 @@
                 </main>
             </div>
 
-            {# Include the notification panel partial #}
+            <!-- Notification Panel -->
+            {# This panel is managed by common.js #}
             {% include "_notifications_panel.html" %}
 
         </div>
     </div>
 
-    <script>
-    // THIS JAVASCRIPT SHOULD BE PART OF A GLOBAL SCRIPT IN base.html OR A COMMON JS FILE
-    document.addEventListener('DOMContentLoaded', function() {
-        const notificationBtn = document.getElementById('notification-btn');
-        const notificationPanel = document.getElementById('notification-panel');
-
-        if (notificationBtn && notificationPanel) {
-            notificationBtn.addEventListener('click', (event) => {
-                event.stopPropagation(); // Prevent document click from immediately closing it
-                notificationPanel.classList.toggle('hidden');
-            });
-
-            document.addEventListener('click', (event) => {
-                // Close notification panel if clicked outside
-                if (!notificationPanel.contains(event.target) && !notificationBtn.contains(event.target) && !notificationPanel.classList.contains('hidden')) {
-                    notificationPanel.classList.add('hidden');
-                }
-            });
-        }
-
-        // Auto-fade for flash messages
-        const flashMessages = document.getElementById('flash-messages-container');
-        if (flashMessages) {
-            setTimeout(() => {
-                flashMessages.classList.add('fade-out');
-                flashMessages.addEventListener('transitionend', () => {
-                    flashMessages.remove();
-                });
-            }, 5000); // Fades out after 5 seconds (5000 milliseconds)
-        }
-    });
-    </script>
+    <!-- Common Scripts -->
+    {# If not using a base.html, ensure this script inclusion is handled correctly #}
+    {# <script src="{{ url_for('static', filename='js/common.js') }}"></script> #}
 </body>
 </html>
+{% extends "base.html" %}
+
+{% block title %}DecoOffice Dashboard{% endblock %}
+
+{% block head %}
+    {# No page-specific head content needed here as common styles are in base.html #}
+{% endblock %}
+
+{% block content %}
+    <main class="flex-1 p-8 flex flex-col">
+        <header class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Dashboard</h2>
+            <!-- Notification button is included globally via base.html -->
+            {% include "_notification_button.html" %}
+        </header>
+
+        {# Flash messages are handled globally by base.html #}
+
+        {# Dashboard specific content #}
+        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
+            <div class="text-center">
+                <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Budget Overview</h2>
+                <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
+                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
+                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
+                    <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
+                </div>
+            </div>
+            
+            <div class="flex-grow flex items-center justify-center mt-8">
+                 {# This is where your budget visualization content (charts, etc.) would go #}
+                 <p class="text-gray-500 text-lg">Budget visualization content goes here.</p>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {# No page-specific scripts needed here #}
+{% endblock %}

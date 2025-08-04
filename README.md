@@ -10,9 +10,9 @@ A Flask web application designed to manage operations for Decolores Merchandise 
 
 ## About the Project
 
-This project serves as the capstone development for managing the operational aspects of Decolores Merchandise Stores. It aims to provide a centralized system for tasks such as {next time kase alam ko naman na di to babasahin ng mga kagrupo ko}.
+This project serves as a capstone development for managing the operational aspects of Decolores Merchandise Stores. It provides a centralized system for key business tasks, enhancing efficiency and data management across different store branches.
 
-The application is structured using the Flask framework and follows a modular design with blueprints for different functionalities like authentication and core application views. It's currently configured to support operations for stores in specific regions [Mention specific regions if relevant, or just keep "multiple regions"].
+The application is built with the Flask framework, employing a modular design with blueprints for distinct functionalities like user authentication and core application views. It's configured to support operations for multiple store branches, allowing users to select a specific branch to view relevant data and perform tasks.
 
 ---
 
@@ -20,11 +20,19 @@ The application is structured using the Flask framework and follows a modular de
 
 ✨ **Key Features:**
 
-*   **User Authentication:** Secure login, registration, and logout.
-*   **Branch Selection:** Users can select a specific store branch to view relevant data.
-*   **Dashboard:** Overview of key metrics (e.g., invoices, budget summary) for the selected branch.
-*   **Transaction Viewing:** Browse a list of transactions and view individual transaction details.
+* **User Authentication**: Secure registration, login, logout, email OTP verification, and optional Two-Factor Authentication (2FA) setup.
 
+* **Branch Management**: Users can select a specific store branch to tailor the application's data and context.
+
+* **Dashboard**: Provides an overview of key metrics (e.g., financial summaries, budget status) specific to the selected branch.
+
+* **Transaction Management**: Browse, view, and add financial transactions, with filtering by status (Paid/Pending) and branch.
+
+* **Schedule Management**: A calendar interface for viewing and creating schedules, with category filtering and event details.
+
+* **Analytics**: Visualizations for branch revenue and supplier performance metrics.
+
+* **Archiving**: A system for archiving old data.
 
 ---
 
@@ -36,6 +44,8 @@ Follow these steps to get your development environment set up and running.
 
 *   Python 3.6+
 *   pip (Python package installer)
+*   MongoDB: A running MongoDB instance (local or cloud-based like MongoDB Atlas).
+*   Email Account: An email account (like Gmail) configured for sending transactional emails, with app passwords enabled if using Gmail.
 
 ### Installation
 
@@ -114,7 +124,7 @@ Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details
 
 ## License
 
-
+Uma Musume Trainer PhD
 
 ---
 

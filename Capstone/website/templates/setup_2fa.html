@@ -2,119 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Setup Two-Factor Authentication - DecoOffice</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/output.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Setup 2FA - DecoOffice</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
-        /* FIXED: Adjusted width and font-size for single 6-digit input, and border-radius for visual alignment */
         .otp-input {
-            width: 12rem; /* Increased width to fit 6 digits comfortably */
-            height: 3.5rem; /* Slightly reduced height for better proportions with new width */
+            width: 12rem;
+            height: 3.5rem;
             text-align: center;
-            font-size: 1.8rem; /* Increased font size for better readability within wider box */
-            border: 1px solid #d3d6c4;
-            border-radius: 0.5rem; /* Standardized square-ish corners */
-            color: #2f4f2f;
+            font-size: 1.8rem;
+            border: 1px solid #d3d6c4; /* Use a neutral border color */
+            border-radius: 0.5rem;
+            color: #2f4f2f; /* Use theme color */
             box-sizing: border-box;
             line-height: 1;
         }
         .otp-input:focus {
             outline: none;
-            border-color: #4a6842;
-            box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3);
+            border-color: #4a6842; /* Use theme color */
+            box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3); /* Use theme color */
         }
-
-        /* ADDED: CSS for fade-out animation for local flash messages */
+         /* Flash message animation */
         .flash-message-local {
             opacity: 1;
-            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+            transition: opacity 0.5s ease-out;
         }
         .flash-message-local.fade-out {
             opacity: 0;
         }
     </style>
+    <script>
+        // Tailwind configuration for standalone pages
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0',
+                        'custom-sidebar': '#d7e0d3',
+                        'custom-green-active': '#8aa188',
+                        'custom-text-dark': '#3a3a3a',
+                        'custom-green-darker': '#6f8a6e',
+                        'custom-logo-text': '#f6f6e9',
+                        'success-bg': '#d4edda', /* For flash messages */
+                        'success-text': '#155724', /* For flash messages */
+                        'success-border': '#c3e6cb', /* For flash messages */
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-[#4a6842] font-sans">
+<body class="bg-custom-green-darker font-poppins antialiased">
+<main class="flex items-center justify-center py-10" style="min-height: calc(100vh - 80px);">
+    <div class="w-11/12 max-w-lg mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-2xl p-8 text-center">
+        
+        <h1 class="text-custom-text-dark mb-4 text-2xl font-bold">Setup Two-Factor Authentication</h1>
 
-    <header class="flex items-center justify-between p-5 text-white text-xl font-bold">
-        <a href="{{ url_for('auth.login') }}" class="text-white opacity-70 hover:opacity-100 transition-colors">
-            <i class="fas fa-chevron-left"></i>
-            <span class="ml-2">DecoOffice</span>
-        </a>
-    </header>
+        <p class="text-gray-600 mb-6">
+            Scan the QR code below with your authenticator app (e.g., Google Authenticator, Authy).
+        </p>
 
-    <main class="flex items-center justify-center py-10" style="min-height: calc(100vh - 80px);">
-        <div class="w-11/12 max-w-lg mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-2xl p-8 text-center">
-            
-            <h1 class="text-[#2f4f2f] mb-4 text-2xl font-bold">Setup Two-Factor Authentication</h1>
+        <div class="flex justify-center mb-6 p-4 border border-gray-300 rounded-lg bg-white">
+            <img src="data:image/svg+xml;base64,{{ qr_code_svg }}" alt="QR Code for 2FA Setup" class="w-48 h-48">
+        </div>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div id="flash-messages-container" class="mb-5 flash-message-local">
-                        {% for category, message in messages %}
-                            <div class="p-2 mb-4 rounded-md text-center text-white {{ 'bg-[#4a6842]' if category == 'success' else 'bg-[#d9534f]' }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+        <p class="text-gray-600 mb-4">
+            Or manually enter this key:<br>
+            <span class="font-bold text-custom-text-dark select-all break-words">{{ otp_secret }}</span>
+        </p>
 
-            <p class="text-gray-600 mb-6">
-                Scan the QR code below with your authenticator app (e.g., Google Authenticator, Authy) to set up 2FA for your account.
-            </p>
-
-            <div class="flex justify-center mb-6 p-4 border border-gray-300 rounded-lg bg-white">
-                <img src="data:image/svg+xml;base64,{{ qr_code_svg }}" alt="QR Code for 2FA Setup" class="w-48 h-48">
+        <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
+            <div class="flex justify-center mb-6">
+                <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input"
+                       inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
             </div>
 
-            <p class="text-gray-600 mb-4">
-                Alternatively, you can manually enter the secret key:
-                <br><span class="font-bold text-[#2f4f2f] select-all break-words">{{ otp_secret }}</span>
-            </p>
-
-            <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
-                <div class="flex justify-center mb-6">
-                    {# FIXED: Added pattern for 6 digits and inputmode="numeric" for mobile keyboards #}
-                    <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input"
-                           inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
-                </div>
-
-                <div class="space-y-4">
-                    <button type="submit" class="w-full bg-[#adcaa2] text-[#2f4f2f] border-none p-4 rounded-full font-bold cursor-pointer transition duration-200 shadow hover:bg-[#9cb791] hover:shadow-md">Verify & Enable 2FA</button>
-                    <a href="{{ url_for('auth.logout') }}" class="block w-full bg-transparent text-[#2f4f2f] border-2 border-[#d3d6c4] p-3.5 rounded-full font-bold cursor-pointer transition duration-200 hover:bg-[#e0e3d4] hover:border-[#adcaa2]">Cancel & Logout</a>
-                </div>
-            </form>
-        </div>
-    </main>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // ADDED: Auto-fade for flash messages
-            const flashMessages = document.getElementById('flash-messages-container');
-            if (flashMessages) {
-                setTimeout(() => {
-                    flashMessages.classList.add('fade-out');
-                    flashMessages.addEventListener('transitionend', () => {
-                        flashMessages.remove();
-                    });
-                }, 5000); // Fades out after 5 seconds (5000 milliseconds)
-            }
-
-            // Ensure OTP input only accepts digits and manages length
-            const otpInput = document.querySelector('.otp-input');
-            if (otpInput) {
-                otpInput.addEventListener('input', function (e) {
-                    const target = e.target;
-                    // Remove any non-digit characters
-                    target.value = target.value.replace(/\D/g, '');
-                    // Truncate to maxlength if somehow exceeded (should be handled by maxlength attribute)
-                    if (target.value.length > target.maxLength) {
-                        target.value = target.value.slice(0, target.maxLength);
-                    }
-                });
-            }
+            <div class="space-y-4">
+                <button type="submit" class="w-full bg-custom-green-active text-white border-none p-4 rounded-full font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Verify & Enable 2FA</button>
+                <a href="{{ url_for('auth.logout') }}" class="block w-full bg-transparent text-custom-text-dark border-2 border-custom-green-darker p-3.5 rounded-full font-bold cursor-pointer transition duration-200 hover:bg-custom-green-darker hover:border-custom-green-active">Cancel & Logout</a>
+            </div>
+        </form>
+    </div>
+</main>
+<script>
+    const otpInput = document.querySelector('.otp-input');
+    if (otpInput) {
+        otpInput.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
         });
-    </script>
+    }
+</script>
 </body>
 </html>
