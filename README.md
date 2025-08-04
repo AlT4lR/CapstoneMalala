@@ -12,7 +12,7 @@ A Flask web application designed to manage operations for Decolores Merchandise 
 
 This project serves as a capstone development for managing the operational aspects of Decolores Merchandise Stores. It provides a centralized system for key business tasks, enhancing efficiency and data management across different store branches.
 
-The application is structured using the Flask framework and follows a modular design with blueprints for different functionalities like authentication and core application views. It's currently configured to support operations for stores in specific regions [Mention specific regions if relevant, or just keep "multiple regions"].
+The application is structured using the Flask framework and follows a modular design with blueprints for different functionalities like authentication and core application views. It's currently configured to support operations for stores in specific regions [dun sa may pake kong kagrupo].
 
 ---
 
