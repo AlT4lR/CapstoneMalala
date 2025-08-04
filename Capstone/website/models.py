@@ -8,6 +8,7 @@ import random
 import string
 import pyotp
 
+
 def get_user_by_username(username):
     """Retrieves a user document from MongoDB by username."""
     mongo_db = get_db()
@@ -16,6 +17,7 @@ def get_user_by_username(username):
         return mongo_db.users.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
     
     return None
+
 
 def add_user(username, email, password):
     """
@@ -290,3 +292,41 @@ def add_category(username, category_name):
     # For now, this function serves as a placeholder to acknowledge the action.
     print(f"Category '{category_name}' added (conceptually) for user {username}.")
     return True
+
+
+def insert_transaction(transaction_id, name, date_part, time_part, amount, payment_method, status, selected_branch):
+    mongo_db = get_db()
+    if mongo_db is None:
+        return False
+
+    try: 
+        mongo_db['transactions'].insert_one({
+            'id': transaction_id,
+            'name': name,
+            'date': date_part,
+            'time': time_part,
+            'amount': float(amount),
+            'method': payment_method,
+            'status': status,
+            'notes': 'Added via form.',
+            'branch': selected_branch 
+        })
+        return True 
+    except Exception as e:
+        print(f"Error adding transaction: {e}")
+        return False
+
+def get_transactions():
+    mongo_db = get_db()
+    if mongo_db is None:
+        return []
+
+    transactions = []
+    try:
+        for transaction in mongo_db['transactions'].find().sort('date', -1):  # Sort by date descending
+            transaction['_id'] = str(transaction['_id'])  # Convert ObjectId to string for JSON serialization
+            transactions.append(transaction)
+    except Exception as e:
+        print(f"Error fetching transactions: {e}")
+    
+    return transactions

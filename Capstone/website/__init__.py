@@ -48,7 +48,7 @@ def create_app():
     # --- FIX ENDS HERE ---
     
     app.config["JWT_COOKIE_SAMESITE"] = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = True
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False # Di gagana POST, PUT, DELETE request pag naka True
     app.config["JWT_CSRF_CHECK_FORM"] = True
 
     # --- Flask-Limiter Configuration ---

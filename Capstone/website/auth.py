@@ -34,6 +34,7 @@ def unauthorized_response(callback):
     Redirects to the login page.
     """
     flash('Please log in to access this page.', 'error')
+    print("[ERROR] JWT unauthorized access detected. Redirecting to login.")
     return redirect(url_for('auth.login'))
 
 @jwt.invalid_token_loader
@@ -43,6 +44,7 @@ def invalid_token_response(callback):
     Redirects to the login page.
     """
     flash('Your session has expired or is invalid. Please log in again.', 'error')
+    print("[ERROR] JWT invalid token detected. Redirecting to login.")
     return redirect(url_for('auth.login'))
 
 # FIX: expired_token_loader must accept two arguments (jwt_header, jwt_payload)
@@ -53,6 +55,7 @@ def expired_token_response(jwt_header, jwt_payload):
     Redirects to the login page.
     """
     flash('Your session has expired. Please log in again.', 'error')
+    print("[ERROR] JWT expired token detected. Redirecting to login.")
     return redirect(url_for('auth.login'))
 
 
@@ -131,7 +134,6 @@ def login_post():
         set_refresh_cookies(response, refresh_token)
         
         flash('Login successful!', 'success')
-        session.clear() # Clear any old session data
         return response
 
 

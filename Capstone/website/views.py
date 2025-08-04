@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from .models import (
     add_category, get_user_by_username, add_user, check_password, update_last_login,
     set_user_otp, verify_user_otp, record_failed_login_attempt,
-    add_schedule, get_schedules_by_date_range, get_all_categories
+    add_schedule, get_schedules_by_date_range, get_all_categories, insert_transaction, get_transactions
 )
 
 main = Blueprint('main', __name__)
@@ -139,7 +139,6 @@ def select_branch(branch_name):
 def dashboard():
     current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch', 'DEFAULT') # Get selected branch, default to 'DEFAULT'
-    
     # Retrieve budget data specific to the selected branch, fallback to 'DEFAULT'
     current_budget_data = ALL_BRANCH_BUDGET_DATA.get(selected_branch, ALL_BRANCH_BUDGET_DATA['DEFAULT'])
 
@@ -163,13 +162,14 @@ def transactions():
 def transactions_paid():
     current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
+    all_transactions = get_transactions()
 
     # Filter transactions based on selected branch
     if selected_branch:
-        paid_transactions = [t for t in transactions_data if t['status'] == 'Paid' and t['branch'] == selected_branch]
+        paid_transactions = [t for t in all_transactions if t['status'] == 'Paid' and t['branch'] == selected_branch]
     else:
         # If no specific branch selected, show all paid transactions (or prompt to select a branch)
-        paid_transactions = [t for t in transactions_data if t['status'] == 'Paid']
+        paid_transactions = [t for t in all_transactions if t['status'] == 'Paid']
         flash("Please select a branch to view branch-specific transactions.", "info")
     
     return render_template('paid_transactions.html',
@@ -186,13 +186,17 @@ def transactions_paid():
 def transactions_pending():
     current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
+    all_transactions = get_transactions()
+
+
+
 
     # Filter transactions based on selected branch
     if selected_branch:
-        pending_transactions = [t for t in transactions_data if t['status'] == 'Pending' and t['branch'] == selected_branch]
+        pending_transactions = [t for t in all_transactions if t['status'] == 'Pending' and t['branch'] == selected_branch]
     else:
         # If no specific branch selected, show all pending transactions (or prompt to select a branch)
-        pending_transactions = [t for t in transactions_data if t['status'] == 'Pending']
+        pending_transactions = [t for t in all_transactions if t['status'] == 'Pending']
         flash("Please select a branch to view branch-specific transactions.", "info")
     
     return render_template('pending_transactions.html',
@@ -215,6 +219,8 @@ def add_transaction():
         return redirect(url_for('main.branches')) # Redirect to branch selection
 
     if request.method == 'POST':
+        print("LMAO")
+
         name = request.form.get('name')
         transaction_id = request.form.get('transaction_id')
         date_time_str = request.form.get('date_time')
@@ -225,20 +231,13 @@ def add_transaction():
         date_part = date_time_str.split('T')[0] if date_time_str else ''
         time_part = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M').strftime('%I:%M %p') if date_time_str else ''
 
-        transactions_data.append({
-            'id': transaction_id,
-            'name': name,
-            'date': date_part,
-            'time': time_part,
-            'amount': float(amount),
-            'method': payment_method,
-            'status': status,
-            'notes': 'Added via form.',
-            'branch': selected_branch # Associate with the selected branch
-        })
-
-        flash('Successfully Added a Transaction!', 'success')
+        model_response = insert_transaction(transaction_id, name, date_part, time_part, amount, payment_method, status, selected_branch)
+        if not model_response:
+            flash('Failed to add transaction. Please try again.', 'error')
+            return redirect(url_for('main.add_transaction'))
         
+
+        flash('Successfully Added a Transaction!', 'success')        
         if status == 'Paid':
             return redirect(url_for('main.transactions_paid'))
         elif status == 'Pending':
@@ -246,6 +245,9 @@ def add_transaction():
         else:
             return redirect(url_for('main.transactions_paid'))
 
+    print("FLAG", request.method)
+    print("SESSION FLAG", session)
+    print("JWT IDENTITY FLAG", get_jwt_identity())
     return render_template('add_transaction.html',
                            username=current_user_identity,
                            inbox_notifications=dummy_inbox_notifications,
