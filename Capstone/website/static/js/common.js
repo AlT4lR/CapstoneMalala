@@ -120,3 +120,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Add similar handlers for other forms submitting via AJAX if necessary.
 });
+

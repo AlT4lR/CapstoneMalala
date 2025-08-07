@@ -1,3 +1,5 @@
+<!-- templates/login.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,6 +28,8 @@
             opacity: 0;
         }
     </style>
+    {# ADDED: CSRF token meta tag #}
+    <meta name="csrf-token" content="{{ csrf_token() }}"> 
     <script>
         // Tailwind configuration for standalone pages
         tailwind.config = {
@@ -75,6 +79,10 @@
             </div>
 
             <form action="{{ url_for('auth.login_post') }}" method="POST">
+                {# REMOVED: {{ form.hidden_tag() }} #} 
+                {# ADDED: Manual CSRF token field #}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
                 <input type="text" name="username" placeholder="Username" required class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
                 
                 <div class="relative w-full mb-4">
@@ -86,9 +94,10 @@
                     </span>
                 </div>
 
-                <a href="{{ url_for('auth.request_reset_token') }}" class="text-sm text-custom-green-active underline block mb-5">Forgot your password?</a>
+                {# Removed the problematic "Forgot your password?" link for now #}
+                {# <a href="{{ url_for('auth.request_reset_token') }}" class="text-sm text-custom-green-active underline block mb-5">Forgot your password?</a> #}
+                
                 <button type="submit" class="w-full bg-custom-green-active text-white border-none p-3 rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Login</button>
-                {# CSRF token handling through meta tag and common.js #}
             </form>
 
             <p class="text-center my-5 text-sm text-gray-500">or login with</p>
@@ -99,32 +108,7 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const passwordField = document.getElementById('login-password');
-            const togglePassword = document.getElementById('toggle-login-password');
-            const flashMessagesContainer = document.getElementById('flash-messages-container');
-
-            if (passwordField && togglePassword) {
-                togglePassword.addEventListener('click', function () {
-                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordField.setAttribute('type', type);
-                    
-                    this.querySelector('i').classList.toggle('fa-eye');
-                    this.querySelector('i').classList.toggle('fa-eye-slash');
-                });
-            }
-
-            // Auto-fade for flash messages
-            if (flashMessagesContainer) {
-                setTimeout(() => {
-                    flashMessagesContainer.classList.add('fade-out');
-                    flashMessagesContainer.addEventListener('transitionend', () => {
-                        flashMessagesContainer.remove();
-                    });
-                }, 5000);
-            }
-        });
-    </script>
+    {# Include the new login-specific JavaScript file #}
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>

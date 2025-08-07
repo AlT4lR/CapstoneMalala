@@ -7,199 +7,35 @@
 {% endblock %}
 
 {% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Branches</h2>
-            </div>
-            <!-- Notification button is included globally via base.html -->
-            {% include "_notification_button.html" %}
-        </header>
+    {# Main content area for the branches page #}
+    <main class="flex-1 p-8 flex flex-col branch-bg"> {# Apply the branch background here #}
+        {# REMOVED: Header with top-left BRANCHES title and notification button #}
+        {# The header with "Branches" title inside the card will be the main focus #}
 
-        <div class="flex-grow w-full max-w-3xl mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl p-8 text-center flex flex-col items-center">
-            <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
+        {# Container for the branch list - this is where the main visual change happens #}
+        <div class="flex-grow w-full max-w-3xl mx-auto bg-branch-card-bg rounded-xl overflow-hidden shadow-xl p-8 text-center flex flex-col items-center">
+            {# The "BRANCHES" title is now inside this card, styled with white text #}
+            <h1 class="text-branch-title-color mb-8 text-2xl font-bold border-b-2 border-gray-400/50 pb-2 inline-block">BRANCHES</h1> {# Use branch title color #}
 
             <!-- Flash message container is handled globally by base.html -->
 
-            <!-- Container for the list of branches -->
-            <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
+            {# Container for the list of branches with specific styling #}
+            <div class="w-full bg-branch-card-bg rounded-lg overflow-hidden shadow-sm">
                 {% for branch in branches %}
-                    <!-- Each branch item -->
-                    <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
+                    {# Each branch item styled as a clickable card #}
+                    <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-gray-400/50 transition duration-200 hover:bg-gray-400/30"> {# Adjust border and hover colors #}
+                        {# Branch icon container #}
                         <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
-                             <i class="fas fa-building text-[#4a6842] text-xl"></i>
+                             {# Using Font Awesome for the building icon #}
+                             <i class="fas fa-building text-branch-arrow-color text-xl"></i> {# Use branch arrow color for icon #}
                         </div>
+                        {# Branch name - ensuring it doesn't overflow #}
                         <div class="flex-grow mr-2 overflow-hidden text-left">
-                            <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
+                            {# Apply white text color to the branch name #}
+                            <div class="font-bold text-branch-title-color text-base truncate">{{ branch.name }}</div> {# Use branch title color for white text #}
                         </div>
-                         <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
-                    </a>
-                {% endfor %}
-            </div>
-        </div>
-    </main>
-{% endblock %}
-
-{% block scripts %}
-    {# No page-specific scripts needed here #}
-{% endblock %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DecoOffice - Select Branch</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
-        .icon-mask { display: inline-block; background-color: currentColor; mask-image: var(--svg-icon); mask-repeat: no-repeat; mask-position: center; mask-size: contain; }
-
-        /* ADDED: CSS for fade-out animation for local flash messages */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
-        }
-        .flash-message-local.fade-out {
-            opacity: 0;
-        }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
-                    colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-sidebar': '#d7e0d3',
-                        'custom-green-active': '#8aa188',
-                        'custom-text-dark': '#3a3a3a',
-                        'custom-green-darker': '#6f8a6e',
-                        'custom-logo-text': '#f6f6e9',
-                        'success-bg': '#d4edda', /* For flash messages */
-                        'success-text': '#155724', /* For flash messages */
-                        'success-border': '#c3e6cb', /* For flash messages */
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-gray-900 font-poppins text-custom-text-dark antialiased">
-    <div class="flex h-screen p-2">
-        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
-
-            <!-- Sidebar -->
-            {% include "_sidebar.html" %}
-
-            <!-- Main Content Area Wrapper -->
-            <div class="flex-1 flex flex-col pl-20 overflow-hidden">
-                <main class="flex-1 p-8 flex flex-col">
-                    <header class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-3">
-                            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Branches</h2>
-                        </div>
-                        <!-- Notification button -->
-                        {% include "_notification_button.html" %}
-                    </header>
-
-                    <div class="flex-grow w-full max-w-3xl mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl p-8 text-center flex flex-col items-center">
-                        <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
-
-                        <!-- Flash message container -->
-                        {# This element is targeted by common.js for auto-fade #}
-                        <div id="flash-messages-container" class="mb-5 w-full flash-message-local">
-                            {% with messages = get_flashed_messages(with_categories=true) %}
-                                {% if messages %}
-                                    {% for category, message in messages %}
-                                        <div class="p-2.5 mb-4 rounded-md text-center text-white
-                                            {% if category == 'success' %}
-                                                bg-success-bg text-success-text border border-success-border
-                                            {% else %}
-                                                bg-[#d9534f] text-white
-                                            {% endif %}">
-                                            {{ message }}
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endwith %}
-                        </div>
-
-                        <!-- Container for the list of branches -->
-                        <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
-                            {% for branch in branches %}
-                                <!-- Each branch item -->
-                                <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
-                                    <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
-                                         <i class="fas fa-building text-[#4a6842] text-xl"></i>
-                                    </div>
-                                    <div class="flex-grow mr-2 overflow-hidden text-left">
-                                        <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
-                                    </div>
-                                     <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
-                                </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </main>
-            </div>
-
-            <!-- Notification Panel -->
-            {# This panel is managed by common.js #}
-            {% include "_notifications_panel.html" %}
-
-        </div>
-    </div>
-
-    <!-- Common Scripts -->
-    {# If not using a base.html, ensure this script inclusion is handled correctly #}
-    {# <script src="{{ url_for('static', filename='js/common.js') }}"></script> #}
-</body>
-</html>
-{% extends "base.html" %}
-
-{% block title %}DecoOffice - Select Branch{% endblock %}
-
-{% block head %}
-    {# No page-specific head content needed here as common styles are in base.html #}
-{% endblock %}
-
-{% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Branches</h2>
-            </div>
-            <!-- Notification button is included globally via base.html -->
-            {% include "_notification_button.html" %}
-        </header>
-
-        <div class="flex-grow w-full max-w-3xl mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-xl p-8 text-center flex flex-col items-center">
-            <h1 class="text-[#4a6842] mb-8 text-2xl font-bold border-b-2 border-[#d3d6c4] pb-2 inline-block">BRANCHES</h1>
-
-            <!-- Flash message container is handled globally by base.html -->
-
-            <!-- Container for the list of branches -->
-            <div class="w-full bg-[#e0e3d4] rounded-lg overflow-hidden shadow-sm">
-                {% for branch in branches %}
-                    <!-- Each branch item -->
-                    <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-[#d3d6c4] transition duration-200 hover:bg-[#d3d6c4]">
-                        <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
-                             <i class="fas fa-building text-[#4a6842] text-xl"></i>
-                        </div>
-                        <div class="flex-grow mr-2 overflow-hidden text-left">
-                            <div class="font-bold text-[#2f4f2f] text-base truncate">{{ branch.name }}</div>
-                        </div>
-                         <div class="text-[#4a6842] text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div>
+                         {# Arrow indicator #}
+                         <div class="text-branch-arrow-color text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div> {# Use branch arrow color #}
                     </a>
                 {% endfor %}
             </div>

@@ -5,6 +5,12 @@
 {% block head %}
     {# Specific CSS for calendar elements #}
     <style>
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; }
+
         /* Specific calendar view buttons */
         .view-button.active {
             background-color: theme('colors.gray.600'); /* bg-gray-600 */
@@ -237,8 +243,8 @@
 {% endblock %}
 
 {% block scripts %}
-    {# Load calendar-specific JS only on this page #}
-    {# IMPORTANT: Ensure common.js is loaded BEFORE calendar.js if they share functions, or that calendar.js only uses its own scope. #}
-    <script src="{{ url_for('static', filename='js/common.js') }}"></script> {# Load common utilities first #}
+    {# Load common utilities first, then calendar-specific logic #}
+    {# We assume common.js is already loaded globally by base.html. #}
+    {# If common.js was NOT loaded globally, you would include it here first. #}
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script> {# Load calendar-specific logic #}
 {% endblock %}

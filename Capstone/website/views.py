@@ -4,14 +4,23 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import pytz
+from flask_babel import gettext as _ # Import gettext for i18n
 
-from Capstone.website.auth import get_remote_addr # Required for timezone handling
-from .models import ( # Direct imports for model functions
+# Correct the import statement:
+# - Use a relative import (from .)
+# - Import 'limiter' and 'get_remote_address' from __init__.py
+# from .auth import get_remote_address # This is fine, but we also need limiter - Not needed as imported from __init__
+# from . import limiter # <-- ADD THIS IMPORT - Not needed as imported from __init__
+
+# Import model functions directly or via current_app (as done in auth.py and __init__.py)
+from .models import (
     add_category, get_user_by_username, add_user, check_password,
     update_last_login, set_user_otp, verify_user_otp, record_failed_login_attempt,
     add_schedule, get_schedules_by_date_range, get_all_categories
 )
 import logging
+from flask_limiter.util import get_remote_address
+from . import limiter  # Import limiter instance from __init__.py
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +85,25 @@ analytics_supplier_data = [
     {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
     {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
 ]
+
+# --- NEW HELPER FUNCTION ---
+def get_week_start_date_utc(date_obj):
+    """
+    Calculates the start of the week (Sunday) for a given UTC-aware datetime object.
+    """
+    if date_obj.tzinfo is None:
+        date_obj = date_obj.replace(tzinfo=pytz.utc) # Ensure it's UTC aware
+
+    day_of_week = date_obj.weekday() # Monday is 0, Sunday is 6
+    # Calculate days to subtract to get to the previous Sunday.
+    # (day_of_week + 1) % 7 gives days to add to Monday to reach Sunday.
+    # Subtracting this from the current date gets us to the previous Sunday.
+    days_to_subtract = (day_of_week + 1) % 7
+    start_of_week = date_obj - timedelta(days=days_to_subtract)
+    
+    # Set time to the beginning of the day (00:00:00)
+    return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+# --- END NEW HELPER FUNCTION ---
 
 # --- Route Definitions ---
 
@@ -175,6 +203,7 @@ def add_transaction():
 
         if not all([name, transaction_id, date_time_str, amount, payment_method, status]):
             flash('All transaction fields are required.', 'error')
+            # Re-render with form data to show errors
             return render_template('add_transaction.html', 
                                    username=current_user_identity,
                                    selected_branch=selected_branch,
@@ -187,12 +216,18 @@ def add_transaction():
                                    })
 
         try:
-            # Parse datetime string. Assume local time if no timezone; convert to UTC for consistency.
-            transaction_datetime = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M')
-            # Make it UTC aware for consistent storage if necessary, though mock data uses strings
-            # For display formatting:
-            transaction_date_display = transaction_datetime.strftime('%m/%d/%Y')
-            transaction_time_display = transaction_datetime.strftime('%I:%M %p')
+            # Parse the datetime string from the input. It's typically in the user's local time.
+            transaction_datetime_local_naive = datetime.fromisoformat(date_time_str)
+            
+            # Assume this naive datetime represents the user's local time.
+            # Convert it to UTC for consistent storage.
+            # This assumes the system's local timezone is correctly set for conversion.
+            # A more robust solution might involve JavaScript to detect the user's TZ.
+            transaction_datetime_utc = pytz.timezone('UTC').localize(transaction_datetime_local_naive)
+
+            # For display, format the UTC time in a user-friendly way.
+            transaction_date_display = transaction_datetime_utc.strftime('%m/%d/%Y')
+            transaction_time_display = transaction_datetime_utc.strftime('%I:%M %p') # AM/PM format
 
             transactions_data.append({
                 'id': transaction_id, 'name': name, 'date': transaction_date_display,
@@ -203,12 +238,17 @@ def add_transaction():
 
             flash('Successfully Added a Transaction!', 'success')
             
-            if status == 'Paid': return redirect(url_for('main.transactions_paid'))
-            elif status == 'Pending': return redirect(url_for('main.transactions_pending'))
-            else: return redirect(url_for('main.transactions_paid'))
+            # Redirect based on status
+            if status == 'Paid': 
+                return redirect(url_for('main.transactions_paid'))
+            elif status == 'Pending': 
+                return redirect(url_for('main.transactions_pending'))
+            else: # Fallback redirect if status is something else
+                return redirect(url_for('main.transactions_paid'))
 
         except ValueError:
             flash('Invalid date or amount format.', 'error')
+            # Re-render with form data and error
             return render_template('add_transaction.html', 
                                    username=current_user_identity,
                                    selected_branch=selected_branch,
@@ -220,6 +260,7 @@ def add_transaction():
                                        'payment_method': payment_method, 'status': status
                                    })
 
+    # For GET requests, render the form template
     return render_template('add_transaction.html',
                            username=current_user_identity,
                            selected_branch=selected_branch,
@@ -257,6 +298,7 @@ def analytics():
         flash("Please select a branch to view analytics.", "info")
         return redirect(url_for('main.branches'))
 
+    # Use current_app to access model functions if needed for dynamic data
     current_revenue_data = ALL_BRANCH_BUDGET_DATA.get(selected_branch, ALL_BRANCH_BUDGET_DATA['DEFAULT'])
     
     return render_template('analytics.html',
@@ -297,49 +339,51 @@ def schedules():
         flash("Please select a branch to view schedules.", "info")
         return redirect(url_for('main.branches'))
 
-    categories = get_all_categories(current_user_identity)
+    # Use current_app to access model functions
+    categories = current_app.get_all_categories(current_user_identity)
 
     # Determine current date for calendar view, ensuring UTC awareness
-    today = datetime.now(pytz.utc)
+    # If year, month, day are provided, use them; otherwise, default to today in UTC.
+    today_utc = datetime.now(pytz.utc)
     year = request.args.get('year', type=int)
     month = request.args.get('month', type=int)
     day = request.args.get('day', type=int)
 
+    current_date_utc = today_utc # Default to today in UTC
+
     if year and month and day:
         try:
-            current_date = datetime(year, month, day, tzinfo=pytz.utc)
+            current_date_utc = datetime(year, month, day, tzinfo=pytz.utc)
         except ValueError:
             flash("Invalid date parameters.", "error")
-            current_date = today
+            # Keep current_date_utc as today_utc
     elif year and month:
         try:
-            current_date = datetime(year, month, 1, tzinfo=pytz.utc) # Default to 1st of month
+            # For month/year views, default to the first day of the month in UTC
+            current_date_utc = datetime(year, month, 1, tzinfo=pytz.utc)
         except ValueError:
             flash("Invalid year or month.", "error")
-            current_date = today
-    else:
-        current_date = today
+            # Keep current_date_utc as today_utc
+    # If only year is provided, or no date params, it defaults to today_utc.
 
     # Calculate start date for mini-calendar (ensure it starts on a Sunday and is UTC aware)
-    first_day_of_month = current_date.replace(day=1)
-    mini_cal_start_date = first_day_of_month - timedelta(days=first_day_of_month.weekday() + 1)
-    if mini_cal_start_date.weekday() != 6: # Ensure it's Sunday (weekday() returns 0 for Monday, 6 for Sunday)
-        mini_cal_start_date -= timedelta(days=(mini_cal_start_date.weekday() + 1) % 7)
-    mini_cal_start_date = mini_cal_start_date.replace(tzinfo=pytz.utc)
+    # Use the helper function to get the start of the week for the current date
+    mini_cal_start_date = get_week_start_date_utc(current_date_utc)
 
     return render_template('schedules.html',
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
                            show_notifications_button=True,
-                           current_date=current_date,
+                           current_date=current_date_utc, # Pass current_date for calendar context
                            categories=categories,
-                           mini_cal_start_date=mini_cal_start_date)
+                           mini_cal_start_date=mini_cal_start_date) # Pass mini calendar start date
 
 # --- API Routes for Schedules ---
 @main.route('/api/schedules', methods=['GET'])
 @jwt_required()
-@current_app.limiter.limit("100 per hour; 10 per minute", key_func=get_remote_addr, 
+# Use the globally imported limiter instance
+@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
                            error_message="Too many requests. Please try again later.")
 def api_get_schedules():
     current_user_identity = get_jwt_identity()
@@ -350,17 +394,20 @@ def api_get_schedules():
         return jsonify({'error': 'Missing start or end date parameters.'}), 400
 
     try:
+        # Parse ISO format strings, ensuring they are timezone-aware (UTC)
+        # .replace('Z', '+00:00') correctly handles ISO strings ending in Z
         start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).astimezone(pytz.utc)
         end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).astimezone(pytz.utc)
     except ValueError:
         return jsonify({'error': 'Invalid date format. Use ISO 8601.'}), 400
 
-    schedules = get_schedules_by_date_range(current_user_identity, start_date, end_date)
+    # Use current_app to access model functions
+    schedules = current_app.get_schedules_by_date_range(current_user_identity, start_date, end_date)
     return jsonify(schedules)
 
 @main.route('/api/schedules', methods=['POST'])
 @jwt_required()
-@current_app.limiter.limit("100 per hour; 10 per minute", key_func=get_remote_addr, 
+@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
                            error_message="Too many requests. Please try again later.")
 def api_create_schedule():
     current_user_identity = get_jwt_identity()
@@ -379,6 +426,7 @@ def api_create_schedule():
         return jsonify({'error': 'Missing required fields (title, start_time, end_time, category).'}), 400
 
     try:
+        # Parse ISO format strings, ensuring they are timezone-aware (UTC)
         start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00')).astimezone(pytz.utc)
         end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00')).astimezone(pytz.utc)
         
@@ -388,7 +436,8 @@ def api_create_schedule():
     except ValueError:
         return jsonify({'error': 'Invalid date/time format. Use ISO 8601.'}), 400
 
-    if add_schedule(current_user_identity, title, start_time, end_time, category, notes):
+    # Use current_app to access model functions
+    if current_app.add_schedule(current_user_identity, title, start_time, end_time, category, notes):
         # Flash message is typically for HTML responses, not JSON APIs
         # If you need to return success messages for API calls, JSON is better.
         return jsonify({'message': 'Schedule created successfully!'}), 201
@@ -397,16 +446,17 @@ def api_create_schedule():
 
 @main.route('/api/categories', methods=['GET'])
 @jwt_required()
-@current_app.limiter.limit("100 per hour; 10 per minute", key_func=get_remote_addr, 
+@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
                            error_message="Too many requests. Please try again later.")
 def api_get_categories():
     current_user_identity = get_jwt_identity()
-    categories = get_all_categories(current_user_identity)
+    # Use current_app to access model functions
+    categories = current_app.get_all_categories(current_user_identity)
     return jsonify(categories)
 
 @main.route('/api/categories', methods=['POST'])
 @jwt_required()
-@current_app.limiter.limit("100 per hour; 10 per minute", key_func=get_remote_addr, 
+@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
                            error_message="Too many requests. Please try again later.")
 def api_add_category():
     current_user_identity = get_jwt_identity()
@@ -416,7 +466,8 @@ def api_add_category():
     if not category_name:
         return jsonify({'error': 'Category name is required.'}), 400
 
-    if add_category(current_user_identity, category_name):
+    # Use current_app to access model functions
+    if current_app.add_category(current_user_identity, category_name):
         # Flash message might not be visible on API responses
         return jsonify({'message': f"Category '{category_name}' added successfully."}), 201
     else:

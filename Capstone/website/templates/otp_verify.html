@@ -12,7 +12,6 @@
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
-        /* Custom styles for OTP inputs */
         .otp-input {
             width: 4rem;
             height: 4rem;
@@ -30,7 +29,7 @@
             border-color: #4a6842; /* Use theme color */
             box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3); /* Use theme color */
         }
-        /* Flash message animation */
+         /* Flash message animation */
         .flash-message-local {
             opacity: 1;
             transition: opacity 0.5s ease-out;
@@ -97,6 +96,9 @@
             </p>
 
             <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST">
+                {# Add CSRF token field here #}
+                {{ form.hidden_tag() }} 
+
                 {# This div contains the six individual input boxes #}
                 <div class="flex justify-center mb-6" id="otp-inputs">
                     <input type="text" name="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
@@ -114,72 +116,13 @@
 
                 <div class="space-y-4">
                     <button type="submit" class="w-full bg-custom-green-active text-white border-none p-4 rounded-full font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Verify</button>
-                    <a href="{{ url_for('auth.login') }}" class="block w-full bg-transparent text-custom-text-dark border-2 border-custom-green-darker p-3.5 rounded-full font-bold cursor-pointer transition duration-200 hover:bg-custom-green-darker hover:border-custom-green-active">Cancel</a>
+                    <a href="{{ url_for('auth.login') }}" class="block w-full bg-transparent text-custom-text-dark border-2 border-custom-green-darker p-3.5 rounded-full font-bold cursor-pointer transition duration-200 hover:bg-custom-green-darker hover:border-custom-green-active">Cancel & Logout</a>
                 </div>
             </form>
         </div>
     </main>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const inputs = document.getElementById('otp-inputs');
-            const flashMessagesContainer = document.getElementById('flash-messages-container');
-            
-            inputs.addEventListener('input', function (e) {
-                const target = e.target;
-                const val = target.value;
-                if (isNaN(val)) {
-                    target.value = '';
-                    return;
-                }
-                if (val != '') {
-                    const next = target.nextElementSibling;
-                    if (next && next.classList.contains('otp-input')) {
-                        next.focus();
-                    }
-                }
-            });
-
-            inputs.addEventListener('keyup', function (e) {
-                const target = e.target;
-                const key = e.key.toLowerCase();
-
-                if ((key == 'backspace' || key == 'delete') && target.value == '') {
-                    const prev = target.previousElementSibling;
-                    if (prev && prev.classList.contains('otp-input')) {
-                        prev.focus();
-                    }
-                    return;
-                }
-            });
-
-            // Timer logic
-            const timerElement = document.querySelector('#timer span');
-            let timeLeft = 600; // 10 minutes in seconds
-
-            const timerInterval = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    timerElement.textContent = "Expired";
-                    // Consider disabling resend link or making it active again
-                    return;
-                }
-                timeLeft--;
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
-
-            // Auto-fade for flash messages
-            if (flashMessagesContainer) {
-                setTimeout(() => {
-                    flashMessagesContainer.classList.add('fade-out');
-                    flashMessagesContainer.addEventListener('transitionend', () => {
-                        flashMessagesContainer.remove();
-                    });
-                }, 5000);
-            }
-        });
-    </script>
+    {# Include the new otp_verify-specific JavaScript file #}
+    <script src="{{ url_for('static', filename='js/otp_verify.js') }}"></script>
 </body>
 </html>

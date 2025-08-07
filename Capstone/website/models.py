@@ -10,18 +10,32 @@ import string
 import pyotp
 import pytz # For timezone handling
 from flask import current_app # For accessing app context
-
+from website.constants import LOGIN_ATTEMPT_LIMIT as LOCKOUT_THRESHOLD, LOCKOUT_DURATION_MINUTES # Import constants
 logger = logging.getLogger(__name__)
+
+# Define default schedule categories if not imported
+DEFAULT_SCHEDULE_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
 
 # --- User Operations ---
 def get_user_by_username(username):
     """Retrieves a user document from MongoDB by username (case-insensitive)."""
     db = current_app.db
-    if not db:
+    if db is None: 
         logger.error("Database not available.")
         return None
     
     return db.users.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
+
+# --- NEW FUNCTION ---
+def get_user_by_email(email):
+    """Retrieves a user document from MongoDB by email (case-insensitive)."""
+    db = current_app.db
+    if db is None:
+        logger.error("Database not available.")
+        return None
+    
+    return db.users.find_one({'email': email.strip().lower()})
+# --- END NEW FUNCTION ---
 
 def add_user(username, email, password):
     """
@@ -30,7 +44,7 @@ def add_user(username, email, password):
     Returns True on success, False on failure.
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return False
 
@@ -78,7 +92,7 @@ def check_password(stored_hash, provided_password):
 def update_last_login(username):
     """Updates the lastLogin timestamp and resets login attempts/lockout."""
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return
 
@@ -100,12 +114,13 @@ def update_last_login(username):
 def record_failed_login_attempt(username):
     """Increments failed login attempts and applies lockout if threshold is met."""
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return
 
-    LOCKOUT_THRESHOLD = 5
-    LOCKOUT_DURATION_MINUTES = 10
+    # Using imported constants
+    # LOCKOUT_THRESHOLD = 5
+    # LOCKOUT_DURATION_MINUTES = 10
 
     user = get_user_by_username(username)
     if not user:
@@ -134,7 +149,7 @@ def set_user_otp(username, otp_type='email'):
     Returns the generated OTP or secret if applicable, None on failure.
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return None
 
@@ -194,7 +209,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     Returns True if verification is successful, False otherwise.
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return False
 
@@ -248,7 +263,7 @@ def add_schedule(username, title, start_time, end_time, category, notes=None):
     Requires timezone-aware datetime objects for start_time and end_time (UTC recommended).
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return False
 
@@ -287,7 +302,7 @@ def get_schedules_by_date_range(username, start_date, end_date):
     start_date and end_date must be timezone-aware datetime objects (UTC).
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
         return []
 
@@ -311,6 +326,7 @@ def get_schedules_by_date_range(username, start_date, end_date):
     try:
         for doc in db.schedules.find(query).sort('start_time', 1):
             doc['_id'] = str(doc['_id'])
+            # Ensure dates are serialized to ISO format for JSON response
             doc['start_time'] = doc['start_time'].isoformat() if isinstance(doc['start_time'], datetime) else doc['start_time']
             doc['end_time'] = doc['end_time'].isoformat() if isinstance(doc['end_time'], datetime) else doc['end_time']
             schedules.append(doc)
@@ -328,21 +344,21 @@ def get_all_categories(username):
     Returns a default list if no categories are found or DB is unavailable.
     """
     db = current_app.db
-    if not db:
+    if db is None:
         logger.error("Database not available.")
-        return ['Office', 'Meetings', 'Events', 'Personal', 'Others']
+        return ['Office', 'Meetings', 'Events', 'Personal', 'Others'] # Using imported constants
 
-    DEFAULT_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
+    # DEFAULT_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
 
     try:
         categories = db.schedules.distinct('category', {'username': username})
         if not categories:
             logger.info(f"No categories found in schedules for user '{username}'. Returning defaults.")
-            return DEFAULT_CATEGORIES
+            return DEFAULT_SCHEDULE_CATEGORIES # Using imported constants
         return categories
     except Exception as e:
         logger.error(f"Error fetching categories for user '{username}': {e}")
-        return DEFAULT_CATEGORIES
+        return DEFAULT_SCHEDULE_CATEGORIES # Using imported constants
 
 def add_category(username, category_name):
     """

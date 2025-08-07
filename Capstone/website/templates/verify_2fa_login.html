@@ -70,6 +70,9 @@
         </p>
 
         <form action="{{ url_for('auth.verify_2fa_login') }}" method="POST">
+            {# Add CSRF token field here #}
+            {{ form.hidden_tag() }} 
+
             <div class="flex justify-center mb-6">
                 <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input"
                        inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
@@ -82,13 +85,7 @@
         </form>
     </div>
 </main>
-<script>
-    const otpInput = document.querySelector('.otp-input');
-    if (otpInput) {
-        otpInput.addEventListener('input', function (e) {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-        });
-    }
-</script>
+{# Include the new verify_2fa_login-specific JavaScript file #}
+<script src="{{ url_for('static', filename='js/verify_2fa_login.js') }}"></script>
 </body>
 </html>
