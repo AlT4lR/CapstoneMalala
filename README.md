@@ -2,7 +2,7 @@
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-0.020-yellow)
+![Version](https://img.shields.io/badge/version-0.022-yellow)
 
 A Flask web application designed to manage operations for Decolores Merchandise Stores across multiple regions.
 
@@ -132,3 +132,7 @@ Uma Musume Trainer PhD
 
 *   **Author:** Altair
 *   **Figma:** Valenzuela, Herrera
+
+## Collaborators
+* https://github.com/talipapa
+* https://github.com/SSL-ACTX
