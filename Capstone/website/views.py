@@ -1,7 +1,7 @@
 # website/views.py
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, make_response, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime, timedelta
 import pytz
 from flask_babel import gettext as _ # Import gettext for i18n
@@ -106,6 +106,26 @@ def get_week_start_date_utc(date_obj):
 # --- END NEW HELPER FUNCTION ---
 
 # --- Route Definitions ---
+
+# --- NEW: Root route handler ---
+@main.route('/')
+def root_route():
+    """
+    Handles the root URL. Redirects to dashboard if logged in, otherwise to login.
+    """
+    try:
+        # Attempt to verify the JWT token from cookies.
+        # If the token is valid, the user is considered logged in.
+        verify_jwt_in_request()
+        # If JWT is valid, redirect to the dashboard
+        return redirect(url_for('main.dashboard'))
+    except Exception as e:
+        # If JWT verification fails (e.g., token missing or invalid),
+        # the user is not logged in, so redirect to the login page.
+        # You might want to log this exception for debugging.
+        # logger.debug(f"JWT verification failed for root route: {e}")
+        return redirect(url_for('auth.login'))
+# --- END NEW ---
 
 @main.route('/branches')
 @jwt_required()
@@ -370,12 +390,13 @@ def schedules():
     # Use the helper function to get the start of the week for the current date
     mini_cal_start_date = get_week_start_date_utc(current_date_utc)
 
+    # Pass current_date_utc to the template in ISO format for JS to parse
     return render_template('schedules.html',
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
                            show_notifications_button=True,
-                           current_date=current_date_utc, # Pass current_date for calendar context
+                           FLASK_INITIAL_DATE_ISO=current_date_utc.isoformat(), # Pass as ISO string
                            categories=categories,
                            mini_cal_start_date=mini_cal_start_date) # Pass mini calendar start date
 

@@ -20,10 +20,10 @@ DEFAULT_SCHEDULE_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Othe
 def get_user_by_username(username):
     """Retrieves a user document from MongoDB by username (case-insensitive)."""
     db = current_app.db
-    if db is None: 
+    if db is None:
         logger.error("Database not available.")
         return None
-    
+
     return db.users.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
 
 # --- NEW FUNCTION ---
@@ -33,7 +33,7 @@ def get_user_by_email(email):
     if db is None:
         logger.error("Database not available.")
         return None
-    
+
     return db.users.find_one({'email': email.strip().lower()})
 # --- END NEW FUNCTION ---
 
@@ -50,14 +50,14 @@ def add_user(username, email, password):
 
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     otp_secret = pyotp.random_base32()
-    
+
     user_data = {
         'username': username.strip(),
         'email': email.strip().lower(),
         'passwordHash': hashed_password,
         'role': 'user',
         'isActive': False,
-        'otp': None, 
+        'otp': None,
         'otpExpiresAt': None,
         'otpSecret': otp_secret,
         'failedLoginAttempts': 0,
@@ -74,7 +74,7 @@ def add_user(username, email, password):
     except DuplicateKeyError:
         logger.warning(f"Registration failed: Username '{username}' or Email '{email}' already exists.")
         return False
-    except OperationFailure as e: 
+    except OperationFailure as e:
         logger.error(f"MongoDB operation failed during user registration for {username}: {e}")
         return False
     except Exception as e:
@@ -85,7 +85,7 @@ def check_password(stored_hash, provided_password):
     """Checks a provided password against a stored bcrypt hash."""
     try:
         return bcrypt.checkpw(provided_password.encode('utf-8'), stored_hash)
-    except (TypeError, ValueError): 
+    except (TypeError, ValueError):
         logger.error("Invalid password hash format encountered.")
         return False
 
@@ -98,7 +98,7 @@ def update_last_login(username):
 
     try:
         result = db.users.update_one(
-            {'username': {'$regex': f'^{username}$', '$options': 'i'}}, 
+            {'username': {'$regex': f'^{username}$', '$options': 'i'}},
             {'$set': {
                 'lastLogin': datetime.now(pytz.utc), # Store UTC aware
                 'failedLoginAttempts': 0,
@@ -134,10 +134,10 @@ def record_failed_login_attempt(username):
         lockout_time = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         update_fields['lockoutUntil'] = lockout_time
         logger.warning(f"User '{username}' locked out until {lockout_time} due to {new_attempts} failed attempts.")
-    
+
     try:
         db.users.update_one(
-            {'username': user['username']}, 
+            {'username': user['username']},
             {'$set': update_fields}
         )
     except Exception as e:
@@ -180,7 +180,7 @@ def set_user_otp(username, otp_type='email'):
         except Exception as e:
             logger.error(f"Error setting email OTP for user {username}: {e}")
             return None
-            
+
     elif otp_type == '2fa':
         if not user.get('otpSecret'):
             new_secret = pyotp.random_base32()
@@ -200,7 +200,7 @@ def set_user_otp(username, otp_type='email'):
                 return None
         else:
             return user.get('otpSecret')
-            
+
     return None
 
 def verify_user_otp(username, submitted_otp, otp_type='email'):
@@ -219,8 +219,19 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         return False
 
     if otp_type == 'email':
+        # --- FIX: Make the datetime from the DB timezone-aware before comparing ---
+        otp_expires_at = user.get('otpExpiresAt')
+        if otp_expires_at:
+            # Ensure it's UTC aware if it's not already (e.g., if DB stored naive)
+            # If the DB consistently stores UTC aware datetimes, this .replace might be redundant
+            # but it's safer to ensure awareness before comparison.
+            if otp_expires_at.tzinfo is None:
+                otp_expires_at = pytz.utc.localize(otp_expires_at)
+        # --- END FIX ---
+
         # Check OTP match and expiration (UTC comparison)
-        if user.get('otp') == submitted_otp and user.get('otpExpiresAt') and user.get('otpExpiresAt') > datetime.now(pytz.utc):
+        # Note: user.get('otpExpiresAt') is now guaranteed to be timezone-aware if it exists.
+        if user.get('otp') == submitted_otp and otp_expires_at and otp_expires_at > datetime.now(pytz.utc):
             try:
                 result = db.users.update_one(
                     {'username': user['username']},
@@ -239,7 +250,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         else:
             logger.info(f"Email OTP verification failed for user '{username}': Invalid or expired OTP.")
             return False
-            
+
     elif otp_type == '2fa':
         otp_secret = user.get('otpSecret')
         if not otp_secret:
@@ -253,7 +264,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         else:
             logger.info(f"2FA TOTP verification failed for user '{username}'.")
             return False
-    
+
     return False
 
 # --- Schedule Operations ---
@@ -270,7 +281,7 @@ def add_schedule(username, title, start_time, end_time, category, notes=None):
     if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
         logger.error("start_time and end_time must be datetime objects.")
         return False
-        
+
     # Ensure datetime objects are timezone-aware (default to UTC if naive)
     if start_time.tzinfo is None:
         start_time = start_time.replace(tzinfo=pytz.utc)
@@ -287,7 +298,7 @@ def add_schedule(username, title, start_time, end_time, category, notes=None):
         'createdAt': datetime.now(pytz.utc),
         'updatedAt': datetime.now(pytz.utc)
     }
-    
+
     try:
         result = db.schedules.insert_one(schedule_data)
         logger.info(f"Schedule added: {result.inserted_id} for user '{username}' ({title}).")
@@ -321,7 +332,7 @@ def get_schedules_by_date_range(username, start_date, end_date):
             '$lte': end_date
         }
     }
-    
+
     schedules = []
     try:
         for doc in db.schedules.find(query).sort('start_time', 1):

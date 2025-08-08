@@ -24,6 +24,10 @@ from .models import (
     record_failed_login_attempt, set_user_otp, verify_user_otp,
     add_schedule, get_schedules_by_date_range, get_all_categories, add_category
 )
+# --- FIX 1: Import get_user_by_email ---
+from .models import get_user_by_email
+# --- END FIX 1 ---
+
 
 # --- Logging Configuration ---
 log_config = dict({
@@ -104,9 +108,12 @@ def create_app(config_name='dev'): # Default to development config
     #     return request.accept_languages.best_match(['en', 'es'])
     # --- END Babel Locale Selector ---
 
-    # --- Attach model functions to the app instance ---
-    # ... (this part remains the same) ...
+    # --- Attach model functions and extensions to the app instance ---
     app.get_user_by_username = get_user_by_username
+    # --- FIX 2: Attach get_user_by_email to the app instance ---
+    app.get_user_by_email = get_user_by_email
+    # --- END FIX 2 ---
+
     app.add_user = add_user
     app.check_password = check_password
     app.update_last_login = update_last_login
@@ -117,6 +124,11 @@ def create_app(config_name='dev'): # Default to development config
     app.get_schedules_by_date_range = get_schedules_by_date_range
     app.get_all_categories = get_all_categories
     app.add_category = add_category
+
+    # --- FIX 3: Make mail instance accessible via app ---
+    # This is necessary because send_otp_email in auth.py accesses app.mail
+    app.mail = mail 
+    # --- END FIX 3 ---
 
 
     # --- MongoDB Connection & Indexing ---
@@ -172,12 +184,13 @@ def create_app(config_name='dev'): # Default to development config
         app.db = None
 
     # --- Register Blueprints ---
-    # ... (this part remains the same) ...
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
     from .views import main as main_blueprint
-    app.register_blueprint(main_blueprint, url_prefix='/')
+    # MODIFIED: Register main blueprint without a url_prefix
+    # This allows the @main.route('/') to be the application's root.
+    app.register_blueprint(main_blueprint) 
 
     # --- Register Custom Error Handlers ---
     # ... (this part remains the same) ...

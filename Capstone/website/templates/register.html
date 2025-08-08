@@ -1,29 +1,81 @@
-{# templates/register.html #}
+<!-- templates/register.html -->
 
-{% extends "base.html" %} {# Assuming register page extends base.html for layout #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - DecoOffice</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        /* Input field focus styles */
+        .focus\:ring-custom-green-active:focus {
+            --tw-ring-color: #8aa188; /* Muted green for focus ring */
+            --tw-ring-offset-color: #8aa188; /* Muted green for focus ring offset */
+        }
+        /* Password toggle icon styles */
+        .password-toggle-icon {
+            cursor: pointer;
+            color: #9ca3af; /* Gray-400 */
+            transition: color 0.2s ease-in-out;
+        }
+        .password-toggle-icon:hover {
+            color: #374151; /* Gray-700 */
+        }
+        /* Custom styles for the rounded corners of the panels */
+        .panel-rounded-l { border-top-left-radius: 2rem; border-bottom-left-radius: 2rem; }
+        .panel-rounded-r { border-top-right-radius: 2rem; border-bottom-right-radius: 2rem; }
+    </style>
+    <!-- CSRF token meta tag -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // Tailwind configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'custom-bg': '#f5f5f0', /* Light creamy background */
+                        'custom-green-active': '#8aa188', /* Muted green for active elements */
+                        'custom-green-darker': '#6f8a6e', /* Darker green for buttons/accents */
+                        'google-button-bg': '#E8F0FE', /* Light blue for Google button background */
+                        'google-button-text': '#4285F4', /* Google blue for text */
+                        'success-bg': '#d4edda', /* For flash messages */
+                        'success-text': '#155724', /* For flash messages */
+                        'success-border': '#c3e6cb', /* For flash messages */
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 font-poppins antialiased"> <!-- Dark background for the whole viewport -->
 
-{% block title %}Register - DecoOffice{% endblock %}
+    <div class="flex h-screen">
 
-{% block content %}
-    <div class="flex w-11/12 max-w-3xl mx-auto mt-12 bg-white rounded-xl overflow-hidden shadow-xl">
+        <!-- Left Panel: Sign Up Form -->
+        <div class="flex-1 bg-custom-bg flex flex-col justify-center items-center p-10 panel-rounded-l">
+            <h2 class="text-2xl font-bold text-custom-green-darker mb-8">Sign Up</h2>
 
-        <!-- Left Column -->
-        <div class="flex-1 p-10 bg-custom-green-darker text-white flex flex-col justify-center text-center rounded-l-xl">
-            <h2 class="text-2xl mb-2.5 font-bold">Welcome Back!</h2>
-            <p>Already have an account? Log in below.</p>
-            <a href="{{ url_for('auth.login') }}" class="inline-block px-5 py-2.5 mt-5 border border-white text-white no-underline rounded-lg transition duration-200 hover:bg-white/10 hover:border-white">Login</a>
-        </div>
-
-        <!-- Right Column (Create Account Form) -->
-        <div class="flex-1 p-10 rounded-r-xl">
-            <h2 class="text-custom-text-dark mb-5 font-bold">Create Account</h2>
-
-            <!-- Flash Messages -->
-            <div id="flash-messages-container" class="mb-5 flash-message-local">
+            <!-- Flash messages -->
+            <div id="flash-messages-container" class="mb-5 flash-message-local w-full max-w-sm">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="p-2.5 mb-4 rounded-md text-center text-white {{ 'bg-custom-green-active' if category == 'success' else 'bg-[#d9534f]' }}">
+                            <div class="p-3 mb-4 rounded-md text-center text-sm font-medium
+                                {% if category == 'success' %}
+                                    bg-success-bg text-success-text border border-success-border
+                                {% elif category == 'error' %}
+                                    bg-[#d9534f] text-white
+                                {% else %}
+                                    bg-gray-200 text-gray-800
+                                {% endif %}">
                                 {{ message }}
                             </div>
                         {% endfor %}
@@ -31,24 +83,33 @@
                 {% endwith %}
             </div>
 
-            <form action="{{ url_for('auth.register_post') }}" method="POST">
-                {# ADDED: Manual CSRF token field #}
+            <form action="{{ url_for('auth.register') }}" method="POST" class="w-full max-w-sm">
+                <!-- CSRF token -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <input type="text" name="username" placeholder="Username" required value="{{ username or '' }}" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
-                <input type="email" name="email" placeholder="Email" required value="{{ email or '' }}" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
-                
-                <!-- Password field with toggle icon -->
-                <div class="relative w-full mb-2">
-                    <input type="password" name="password" id="register-password" placeholder="Password" required 
-                           class="block w-full p-3 pr-12 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
-                    <span class="absolute right-4 flex items-center top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 z-10" 
-                          id="toggle-register-password">
-                        <i class="fas fa-eye-slash"></i>
-                    </span>
+                <!-- Username Input -->
+                <div class="relative mb-5">
+                    <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" name="username" placeholder="Username" required
+                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
                 </div>
 
-                <!-- Password validation rules -->
+                <!-- Email Input -->
+                <div class="relative mb-5">
+                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="email" name="email" placeholder="Email" required
+                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                </div>
+
+                <!-- Password Input -->
+                <div class="relative mb-5">
+                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" name="password" id="register-password" placeholder="Password" required
+                           class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                    <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 password-toggle-icon"></i>
+                </div>
+
+                <!-- Password validation rules (keep these for registration) -->
                 <div id="password-rules" class="text-sm px-1 mb-4 hidden">
                     <p id="rule-length" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least 8 characters long</span></p>
                     <p id="rule-uppercase" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one uppercase letter</span></p>
@@ -57,26 +118,35 @@
                     <p id="rule-special" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one special character (e.g. !@#$%)</span></p>
                 </div>
 
-                {# --- Honeypot Field --- #}
-                <div class="hidden"> {# This div hides the field visually #}
-                    <label for="honeypot">Don't fill this field:</label>
-                    <input type="text" id="honeypot" name="honeypot" tabindex="-1" autocomplete="off" class="block w-full p-3 mb-4 border border-custom-green-darker rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-active">
+                <!-- Register Button -->
+                <button type="submit" class="w-full bg-custom-green-darker text-white py-3 rounded-full font-bold shadow-md hover:bg-custom-green-active transition-colors">Register</button>
+
+                <!-- Divider -->
+                <div class="flex items-center my-6">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-500">or register with</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
                 </div>
-                {# --- End Honeypot Field --- #}
 
-                <button type="submit" class="w-full bg-custom-green-active text-white border-none p-3 rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Register</button>
+                <!-- Google Sign-Up Button -->
+                <button type="button" class="w-full bg-google-button-bg text-google-button-text py-3 rounded-full font-bold shadow-md hover:bg-gray-200 transition-colors flex items-center justify-center google-button-shadow">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" class="w-6 h-6 mr-3">
+                    Continue with Google
+                </button>
             </form>
+        </div>
 
-            <p class="text-center my-5 text-sm text-gray-500">or register with</p>
-            <button class="flex items-center justify-center w-full bg-custom-green-active text-white p-3 border-none rounded-md font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 align-middle mr-2">
-                Continue with Google
-            </button>
+        <!-- Right Panel: Welcome/Prompt Section -->
+        <div class="w-1/2 bg-custom-green-darker flex flex-col justify-center items-center p-10 panel-rounded-r text-white">
+            <h2 class="text-2xl font-bold mb-4">Hello, Welcome!</h2>
+            <p class="text-center mb-8">Already have an account? Click below.</p>
+            <a href="{{ url_for('auth.login') }}" class="border border-white text-white bg-transparent hover:bg-white hover:text-custom-green-darker py-3 px-8 rounded-full font-bold transition-all duration-300">
+                Login
+            </a>
         </div>
     </div>
-{% endblock %}
 
-{% block scripts %}
-    {# Load register-specific script here #}
+    <!-- Include register.js for password toggle and password strength -->
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
-{% endblock %}
+</body>
+</html>

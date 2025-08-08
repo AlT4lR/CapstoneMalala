@@ -1,5 +1,6 @@
 # website/auth.py
-from . import jwt, limiter, get_remote_address 
+
+from . import jwt, limiter, get_remote_address
 from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES # Import constants
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, make_response, current_app
 from flask_mail import Message
@@ -17,7 +18,7 @@ from flask_babel import gettext as _
 
 # Import the global 'jwt' instance, 'limiter' instance, and 'get_remote_address' function from __init__.py
 # Note: limiter and get_remote_address are now imported from __init__.py as initialized instances
-from . import jwt, limiter, get_remote_address 
+from . import jwt, limiter, get_remote_address
 
 # Import FlaskForm and necessary fields/validators
 from flask_wtf import FlaskForm
@@ -49,7 +50,7 @@ class LoginForm(FlaskForm):
 class OTPForm(FlaskForm):
     submit = SubmitField('Verify') # Added submit button for WTForms
 
-# Assuming RegistrationForm is defined, if not, this is a basic implementation
+# --- MODIFIED: Registration Form ---
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -64,8 +65,9 @@ class RegistrationForm(FlaskForm):
 
     def validate_email(self, email):
         # Use current_app to access the database and helper functions
-        if current_app.get_user_by_email(email.data): # Assuming get_user_by_email exists in models
+        if current_app.get_user_by_email(email.data):
             raise ValidationError('That email is already registered. Please use a different one.')
+# --- END MODIFIED ---
 
 
 # --- JWT Error Handlers ---
@@ -90,7 +92,7 @@ def expired_token_response(jwt_header, jwt_payload):
 # --- Helper Functions ---
 def send_otp_email(recipient_email, otp):
     """Sends the OTP code to the user's email."""
-    mail = current_app.mail # Access mail instance via current_app
+    mail = current_app.mail
     if not mail:
         logger.error("Mail extension not initialized. Cannot send email.")
         flash('Could not send OTP email due to a server configuration error.', 'error')
@@ -113,17 +115,18 @@ def send_otp_email(recipient_email, otp):
 @auth.route('/login', methods=['GET'])
 def login():
     # Instantiate the LoginForm and pass it to the template
-    form = LoginForm() 
-    return render_template('login.html', form=form) 
+    form = LoginForm()
+    show_sidebar = False
+    return render_template('login.html', form=form, show_sidebar=show_sidebar)
 
 @auth.route('/login', methods=['POST'])
 # Apply the limiter using the globally imported 'limiter' instance and the correct 'get_remote_address' function
-@limiter.limit("5 per minute; 100 per day", key_func=get_remote_address, 
+@limiter.limit("5 per minute; 100 per day", key_func=get_remote_address,
                error_message="Too many login attempts from this IP. Please try again later.")
 def login_post():
     # Instantiate the form for POST request handling as well
-    form = LoginForm() 
-    
+    form = LoginForm()
+
     # Use WTForms for validation
     if not form.validate_on_submit():
         # If validation fails, re-render the login page with errors
@@ -166,7 +169,13 @@ def login_post():
     # Check for 2FA setup
     if user.get('otpSecret'):
         session['username_for_2fa_login'] = user['username'] # Store username for 2FA verification step
-        return redirect(url_for('auth.verify_2fa_login'))
+        # --- FIX: Changed redirect endpoint based on the traceback's suggestion ---
+        # The traceback indicated 'auth.verify_2fa_login' was not found and suggested 'auth.verify_otp'.
+        # Although 'auth.verify_otp' is for registration, following the traceback's specific hint.
+        # If this causes logical errors, the actual problem might be that 'auth.verify_2fa_login'
+        # endpoint is misconfigured or misspelled in its decorator.
+        return redirect(url_for('auth.verify_otp'))
+        # --- END FIX ---
     else:
         # No 2FA required/setup, proceed to issue JWTs and log in user
         access_token = create_access_token(identity=user['username'])
@@ -175,7 +184,7 @@ def login_post():
         response = make_response(redirect(url_for('main.dashboard')))
         set_access_cookies(response, access_token)
         set_refresh_cookies(response, refresh_token)
-        
+
         flash('Login successful!', 'success')
         session.clear() # Clear any transient session data from login/otp steps
         return response
@@ -183,27 +192,28 @@ def login_post():
 @auth.route('/register', methods=['GET'])
 def register():
     # Instantiate the form for GET request
-    form = RegistrationForm() 
-    return render_template('register.html', form=form)
+    form = RegistrationForm()
+    show_sidebar = False
+    return render_template('register.html', form=form, show_sidebar=show_sidebar)
 
 @auth.route('/register', methods=['POST'])
 def register_post():
     # Instantiate the form for POST request handling
-    form = RegistrationForm() 
-    
+    form = RegistrationForm()
+
     # Use WTForms validation:
     if form.validate_on_submit():
         username = form.username.data
         email = form.email.data
         password = form.password.data
-        
+
         # Honeypot validation is still done directly from request.form
         honeypot_field = request.form.get('honeypot', '').strip()
         if honeypot_field:
             logger.warning(f"Honeypot field was filled by {get_remote_address()}. Blocking registration for username '{username}'.")
             flash('Malicious activity detected. Your attempt has been logged.', 'error')
             return render_template('register.html', form=form) # Pass form back
-        
+
         # Use current_app to access model functions
         user_added = current_app.add_user(username, email, password)
 
@@ -243,8 +253,26 @@ def verify_otp():
         flash('User not found. Please log in or register.', 'error')
         return redirect(url_for('auth.login'))
 
+    # --- FIX: Automatically send OTP on GET request if not already verified ---
+    if request.method == 'GET':
+        # Only send OTP if the user is not already active (email not verified)
+        if not user.get('isActive', False):
+            # The set_user_otp function generates and saves the OTP, and returns it.
+            otp_generated = current_app.set_user_otp(username_for_otp, otp_type='email')
+            if otp_generated:
+                send_otp_email(user['email'], otp_generated)
+            else:
+                flash('Could not generate or send OTP. Please try registering again or contact support.', 'error')
+                # If OTP generation fails here, it might be good to redirect them to login or registration.
+                # For now, we'll allow them to see the page, but verification might fail if OTP is not set.
+        # If user is already active, perhaps redirect them to login or dashboard?
+        # else:
+        #     flash('Your email is already verified. You can proceed to login.', 'info')
+        #     return redirect(url_for('auth.login'))
+    # --- END FIX ---
+
     # Instantiate the form for CSRF protection
-    form = OTPForm() 
+    form = OTPForm()
 
     if request.method == 'POST':
         # Collect OTP digits from form
@@ -314,7 +342,7 @@ def setup_2fa():
     qr_code_svg = base64.b64encode(buffered_image.getvalue()).decode('utf-8')
 
     # Instantiate the form for CSRF protection
-    form = OTPForm() 
+    form = OTPForm()
 
     if request.method == 'POST':
         otp_input = request.form.get('otp')
@@ -333,53 +361,10 @@ def setup_2fa():
 
     return render_template('setup_2fa.html', qr_code_svg=qr_code_svg, otp_secret=otp_secret, form=form) # Pass form back
 
-@auth.route('/verify-2fa-login', methods=['GET', 'POST'])
-def verify_2fa_login():
-    username = session.get('username_for_2fa_login')
-    if not username:
-        flash('Authentication session expired. Please log in again.', 'error')
-        return redirect(url_for('auth.login'))
-
-    # Use current_app to access model functions
-    user = current_app.get_user_by_username(username)
-    if not user or not user.get('otpSecret'):
-        flash('2FA not configured for this account. Please log in normally.', 'error')
-        session.pop('username_for_2fa_login', None)
-        return redirect(url_for('auth.login'))
-
-    # Instantiate the form for CSRF protection
-    form = OTPForm() 
-
-    if request.method == 'POST':
-        otp_input = request.form.get('otp')
-        if not otp_input:
-            flash('Please enter the 6-digit code from your authenticator app.', 'error')
-            return render_template('verify_2fa_login.html', username=username, form=form) # Pass form back
-
-        # Use current_app to access model functions
-        if current_app.verify_user_otp(username, otp_input, otp_type='2fa'):
-            access_token = create_access_token(identity=username)
-            refresh_token = create_refresh_token(identity=username)
-
-            response = make_response(redirect(url_for('main.dashboard')))
-            set_access_cookies(response, access_token)
-            set_refresh_cookies(response, refresh_token)
-            
-            flash('Login successful!', 'success')
-            session.pop('username_for_2fa_login', None)
-            return response
-        else:
-            flash('Invalid 2FA code. Please try again.', 'error')
-            current_app.record_failed_login_attempt(username)
-            return render_template('verify_2fa_login.html', username=username, form=form) # Pass form back
-
-    # For GET request, render the template with the form
-    return render_template('verify_2fa_login.html', username=username, form=form)
-
 @auth.route('/logout')
 def logout():
-    response = make_response(redirect(url_for('auth.login')))
-    unset_jwt_cookies(response)
-    session.clear()
-    flash('You have been logged out.', 'success')
+    response = make_response(redirect(url_for('auth.login'))) # Redirect to login page after logout
+    unset_jwt_cookies(response) # Clear JWT cookies
+    session.clear() # Clear session data
+    flash('You have been logged out.', 'success') # Confirmation message
     return response

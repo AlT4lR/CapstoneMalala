@@ -1,3 +1,5 @@
+{# website/templates/base.html #}
+
 <!DOCTYPE html>
 <html lang="{{ babel.locale.language if babel and babel.locale and babel.locale.language else 'en' }}">
 <head>
@@ -55,19 +57,9 @@
         /* Main content area needs to push or resize based on sidebar */
         .main-content {
             flex-grow: 1; /* Allows this div to grow to fill available space */
-            margin-left: 5rem; /* Default margin to match sidebar's w-20 */
+            /* Default margin-left is handled dynamically below based on sidebar state */
             transition: margin-left 0.3s ease-in-out; /* Smooth transition for margin */
             overflow-y: auto; /* Ensure content scrolls if it exceeds viewport height */
-        }
-        .sidebar.expanded + .main-content {
-            margin-left: 16rem; /* Increase left margin when sidebar expands to w-64 */
-        }
-        /* Prevent content from overflowing sidebar when sidebar is expanded */
-        .sidebar + .main-content {
-             width: calc(100% - 5rem); /* Initial width accounting for sidebar */
-        }
-        .sidebar.expanded + .main-content {
-             width: calc(100% - 16rem); /* Width when sidebar is expanded */
         }
     </style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -113,19 +105,36 @@
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-900 font-poppins text-custom-text-dark antialiased" lang="{{ babel.locale.language if babel and babel.locale and babel.locale.language else 'en' }}">
-    <div class="flex h-screen p-2"> {# Main container with 2px padding #}
-        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative"> {# Main app wrapper #}
+    <div class="flex h-screen p-2">
+        <div class="flex w-full h-full bg-custom-bg rounded-2xl overflow-hidden relative">
 
-            {# MODIFICATION HERE: Wrap the include in an element and apply the class to it #}
-            <aside class="sidebar"> {# Apply the 'sidebar' class to the <aside> element #}
-                {% include "_sidebar.html" %}
-            </aside>
+            {# Sidebar and Main Content Logic -- Corrected Structure #}
+            {% set sidebar_expanded = sidebar_expanded if sidebar_expanded is defined else False %}
 
-            {# Main content area - modified to use margin-left and transition #}
-            <div class="main-content flex-1 flex flex-col overflow-y-auto"> {# Removed pl-20, added overflow-y-auto #}
+            {# Render sidebar if show_sidebar is true #}
+            {% if show_sidebar %}
+                <aside class="sidebar {% if sidebar_expanded %}expanded{% endif %}">
+                    {% include "_sidebar.html" %}
+                </aside>
+            {% endif %}
+
+            {# --- The main content container - ALWAYS PRESENT #}
+            {# It will adjust its margin based on whether the sidebar is shown or not. #}
+            <div class="main-content flex-1 flex flex-col overflow-y-auto
+                        {% if show_sidebar %}
+                            ml-20 {% if sidebar_expanded %}ml-64{% endif %}
+                        {% else %}
+                            ml-0 w-full
+                        {% endif %}">
                 {% include "_flash_messages.html" %}
-                {% block content %}{% endblock %}
+
+                {# --- The SINGLE DEFINITION of the content block #}
+                {# Any child template's content will be rendered here. #}
+                {% block content %}
+                    {# Default content or nothing if no child template provides it #}
+                {% endblock %}
             </div>
+            {# --- End of main content container --- #}
 
             {% include "_notifications_panel.html" %}
 
@@ -146,6 +155,32 @@
 
         </div>
     </div>
+
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                colors: {
+                    'custom-bg': '#f5f5f0', /* Light creamy background */
+                    'custom-sidebar': '#d7e0d3', /* Muted green for sidebar */
+                    'custom-green-active': '#8aa188', /* Primary muted green */
+                    'custom-text-dark': '#3a3a3a', /* Dark text color */
+                    'custom-green-darker': '#6f8a6e', /* Darker muted green */
+                    'custom-logo-text': '#f6f6e9', /* Off-white for logo text */
+                    'success-bg': '#d4edda', /* For flash messages */
+                    'success-text': '#155724', /* For flash messages */
+                    'success-border': '#c3e6cb', /* For flash messages */
+                    'google-button-bg': '#E8F0FE', /* Light blue for Google button background */
+                    'google-button-text': '#4285F4', /* Google blue for text */
+                    /* Add any other specific hex codes used */
+                    'primary-dark-green': '#2d4235', /* For the dark background */
+                    'primary-muted-green': '#aab8a8', /* Lighter muted green */
+                }
+            }
+        }
+    }
+</script>
 
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     {% block scripts %}{% endblock %}
