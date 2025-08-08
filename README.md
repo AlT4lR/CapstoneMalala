@@ -132,3 +132,7 @@ Uma Musume Trainer PhD
 
 *   **Author:** Altair
 *   **Figma:** Valenzuela, Herrera
+
+## Collaborators
+* https://github.com/talipapa
+* https://github.com/SSL-ACTX
