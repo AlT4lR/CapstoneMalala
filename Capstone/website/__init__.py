@@ -12,22 +12,17 @@ from logging.config import dictConfig
 import re
 from flask_talisman import Talisman
 from pymongo.errors import OperationFailure
-# REMOVE: from flask_babel import Babel
 from flask_wtf.csrf import CSRFProtect
 
 # Import configuration settings
 from .config import config_by_name
 
-# Import model functions here so they can be attached to the app
+# Import model functions
 from .models import (
-    get_user_by_username, add_user, check_password, update_last_login,
+    get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp,
     add_schedule, get_schedules_by_date_range, get_all_categories, add_category
 )
-# --- FIX 1: Import get_user_by_email ---
-from .models import get_user_by_email
-# --- END FIX 1 ---
-
 
 # --- Logging Configuration ---
 log_config = dict({
@@ -64,56 +59,26 @@ jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address)
 talisman = Talisman()
 csrf = CSRFProtect()
-# REMOVE: babel = Babel() # Remove Babel instance initialization
 
-def create_app(config_name='dev'): # Default to development config
-    """
-    Flask application factory function.
-
-    Creates and configures the Flask application instance based on the provided
-    configuration name.
-
-    Args:
-        config_name (str): The name of the configuration to use (e.g., 'dev', 'prod').
-                           Defaults to 'dev'.
-
-    Returns:
-        Flask: The configured Flask application instance.
-    """
+def create_app(config_name='dev'):
     app = Flask(__name__)
-
-    # Load configuration from config object
     app.config.from_object(config_by_name[config_name])
 
-    # --- Initialize Extensions with App ---
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
     talisman.init_app(
         app,
-        force_https=app.config.get("TALISMAN_FORCE_HTTPS", True), # Use .get for safer access
+        force_https=app.config.get("TALISMAN_FORCE_HTTPS", True),
         frame_options=app.config.get("TALISMAN_FRAME_OPTIONS", "SAMEORIGIN"),
         x_content_type_options=app.config.get("TALISMAN_X_CONTENT_TYPE_OPTIONS", "nosniff"),
         content_security_policy=app.config.get("CSP_RULES")
     )
     csrf.init_app(app)
-    # REMOVE: babel.init_app(app) # Remove Babel initialization
 
-    # --- Babel Locale Selector ---
-    # REMOVE this entire section as Babel is being removed
-    # @babel.localeselector
-    # def get_locale():
-    #     # Try to get locale from user's browser preferences
-    #     # Fallback to a default language if no match is found
-    #     return request.accept_languages.best_match(['en', 'es'])
-    # --- END Babel Locale Selector ---
-
-    # --- Attach model functions and extensions to the app instance ---
+    # Attach model functions and extensions to the app instance
     app.get_user_by_username = get_user_by_username
-    # --- FIX 2: Attach get_user_by_email to the app instance ---
     app.get_user_by_email = get_user_by_email
-    # --- END FIX 2 ---
-
     app.add_user = add_user
     app.check_password = check_password
     app.update_last_login = update_last_login
@@ -124,27 +89,19 @@ def create_app(config_name='dev'): # Default to development config
     app.get_schedules_by_date_range = get_schedules_by_date_range
     app.get_all_categories = get_all_categories
     app.add_category = add_category
+    app.mail = mail
 
-    # --- FIX 3: Make mail instance accessible via app ---
-    # This is necessary because send_otp_email in auth.py accesses app.mail
-    app.mail = mail 
-    # --- END FIX 3 ---
-
-
-    # --- MongoDB Connection & Indexing ---
-    # ... (this part remains the same) ...
+    # MongoDB Connection & Indexing
     try:
-        if not app.config.get('MONGO_URI'): # Use .get for safer access
+        if not app.config.get('MONGO_URI'):
             raise ValueError("MONGO_URI is not configured.")
 
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
 
-        # Test connection by pinging the server
         mongo_client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB database: {app.config['MONGO_DB_NAME']}")
 
-        # Index creation
         users_collection = app.db.users
         try:
             users_collection.create_index(
@@ -183,17 +140,14 @@ def create_app(config_name='dev'): # Default to development config
         logger.error(f"An unexpected error occurred during MongoDB setup: {e}", exc_info=True)
         app.db = None
 
-    # --- Register Blueprints ---
+    # Register Blueprints
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
     from .views import main as main_blueprint
-    # MODIFIED: Register main blueprint without a url_prefix
-    # This allows the @main.route('/') to be the application's root.
-    app.register_blueprint(main_blueprint) 
+    app.register_blueprint(main_blueprint) # Register without prefix
 
-    # --- Register Custom Error Handlers ---
-    # ... (this part remains the same) ...
+    # Register Custom Error Handlers
     @app.errorhandler(404)
     def page_not_found(e):
         logger.warning(f"404 Error encountered for URL: {request.url}")

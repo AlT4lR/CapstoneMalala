@@ -83,33 +83,74 @@
                 {% endwith %}
             </div>
 
-            <form action="{{ url_for('auth.register') }}" method="POST" class="w-full max-w-sm">
+            <!-- Added novalidate attribute to disable browser-side validation -->
+            <form action="{{ url_for('auth.register') }}" method="POST" class="w-full max-w-sm" novalidate>
                 <!-- CSRF token -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Username Input -->
                 <div class="relative mb-5">
                     <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" name="username" placeholder="Username" required
-                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                    <input type="text" id="username" name="username" placeholder="Username" required
+                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark
+                                  {% if form.username.errors %}border-red-500{% endif %}">
+                    {% if form.username.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.username.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
 
                 <!-- Email Input -->
                 <div class="relative mb-5">
                     <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="email" name="email" placeholder="Email" required
-                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                    <input type="email" id="email" name="email" placeholder="Email" required
+                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark
+                                  {% if form.email.errors %}border-red-500{% endif %}">
+                    {% if form.email.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.email.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
 
                 <!-- Password Input -->
                 <div class="relative mb-5">
                     <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" name="password" id="register-password" placeholder="Password" required
-                           class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                    <input type="password" id="register-password" name="password" placeholder="Password" required
+                           class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark
+                                  {% if form.password.errors %}border-red-500{% endif %}">
+                    {% if form.password.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.password.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
                     <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 password-toggle-icon"></i>
                 </div>
 
-                <!-- Password validation rules (keep these for registration) -->
+                <!-- Confirm Password Input -->
+                <div class="relative mb-5">
+                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required
+                           class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark
+                                  {% if form.confirm_password.errors %}border-red-500{% endif %}">
+                    {% if form.confirm_password.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.confirm_password.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 password-toggle-icon"></i>
+                </div>
+
+                <!-- Password validation rules -->
                 <div id="password-rules" class="text-sm px-1 mb-4 hidden">
                     <p id="rule-length" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least 8 characters long</span></p>
                     <p id="rule-uppercase" class="text-gray-500 flex items-center mb-1"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one uppercase letter</span></p>

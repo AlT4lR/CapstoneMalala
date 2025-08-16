@@ -6,12 +6,6 @@ from datetime import datetime, timedelta
 import pytz
 from flask_babel import gettext as _ # Import gettext for i18n
 
-# Correct the import statement:
-# - Use a relative import (from .)
-# - Import 'limiter' and 'get_remote_address' from __init__.py
-# from .auth import get_remote_address # This is fine, but we also need limiter - Not needed as imported from __init__
-# from . import limiter # <-- ADD THIS IMPORT - Not needed as imported from __init__
-
 # Import model functions directly or via current_app (as done in auth.py and __init__.py)
 from .models import (
     add_category, get_user_by_username, add_user, check_password,
@@ -79,11 +73,11 @@ analytics_revenue_data = {
     ]
 }
 
+# Dummy supplier data for analytics page
 analytics_supplier_data = [
-    {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
-    {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
-    {'name': 'Vincent Lee', 'score': 89, 'delivery': 96, 'defects': 1.2, 'variance': 2.1, 'lead_time': 5.2},
-    {'name': 'Anthony Lee', 'score': 72, 'delivery': 82, 'defects': 3.5, 'variance': -1.8, 'lead_time': 7.3},
+    {'name': 'Supplier A', 'amount': 50000, 'color': '#f87171'},
+    {'name': 'Supplier B', 'amount': 30000, 'color': '#34d399'},
+    {'name': 'Supplier C', 'amount': 20000, 'color': '#60a5fa'},
 ]
 
 # --- NEW HELPER FUNCTION ---
@@ -111,19 +105,32 @@ def get_week_start_date_utc(date_obj):
 @main.route('/')
 def root_route():
     """
-    Handles the root URL. Redirects to dashboard if logged in, otherwise to login.
+    Handles the root URL. Redirects to dashboard if logged in and branch is selected,
+    otherwise redirects to branch selection or login.
     """
     try:
         # Attempt to verify the JWT token from cookies.
-        # If the token is valid, the user is considered logged in.
         verify_jwt_in_request()
-        # If JWT is valid, redirect to the dashboard
-        return redirect(url_for('main.dashboard'))
+        current_user_identity = get_jwt_identity() # Get user identity if token is valid
+
+        # Check if a branch has been selected
+        selected_branch = session.get('selected_branch')
+
+        if selected_branch:
+            # If logged in and branch selected, redirect to dashboard
+            logger.debug(f"User '{current_user_identity}' is logged in and branch '{selected_branch}' is selected. Redirecting to dashboard.")
+            return redirect(url_for('main.dashboard'))
+        else:
+            # If logged in but no branch selected, redirect to branch selection page
+            logger.debug(f"User '{current_user_identity}' is logged in but no branch is selected. Redirecting to branches.")
+            return redirect(url_for('main.branches'))
+            
     except Exception as e:
-        # If JWT verification fails (e.g., token missing or invalid),
+        # If JWT verification fails (token missing, invalid, or expired),
         # the user is not logged in, so redirect to the login page.
-        # You might want to log this exception for debugging.
-        # logger.debug(f"JWT verification failed for root route: {e}")
+        logger.debug(f"JWT verification failed for root route: {e}. Redirecting to login.")
+        # Ensure session is cleared if token is invalid to prevent stale data.
+        session.clear()
         return redirect(url_for('auth.login'))
 # --- END NEW ---
 
@@ -131,10 +138,18 @@ def root_route():
 @jwt_required()
 def branches():
     current_user_identity = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    
+    # Assuming BRANCH_CATEGORIES from your mock data or a DB query
+    # In a real app, you'd fetch actual branch names from your database.
+    available_branches = BRANCH_CATEGORIES # Using mock data for now
+    
     return render_template('branches.html',
                            username=current_user_identity,
-                           branches=BRANCH_CATEGORIES,
+                           selected_branch=selected_branch,
+                           available_branches=available_branches,
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=False, # <<< Sidebar is NOT shown on the branches page <<<
                            show_notifications_button=True)
 
 @main.route('/select_branch/<branch_name>')
@@ -142,6 +157,7 @@ def branches():
 def select_branch(branch_name):
     session['selected_branch'] = branch_name
     logger.info(f"User '{get_jwt_identity()}' selected branch: {branch_name}")
+    # Redirect to the dashboard. The dashboard route itself handles showing the sidebar.
     return redirect(url_for('main.dashboard'))
 
 @main.route('/dashboard')
@@ -161,6 +177,7 @@ def dashboard():
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
                            chart_data=current_budget_data,
+                           show_sidebar=True, # <<< Ensures sidebar is shown on dashboard page
                            show_notifications_button=True)
 
 @main.route('/transactions/paid')
@@ -181,6 +198,7 @@ def transactions_paid():
                            transactions=paid_transactions,
                            inbox_notifications=dummy_inbox_notifications,
                            current_filter='paid',
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/transactions/pending')
@@ -201,6 +219,7 @@ def transactions_pending():
                            transactions=pending_transactions,
                            inbox_notifications=dummy_inbox_notifications,
                            current_filter='pending',
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/add-transaction', methods=['GET', 'POST'])
@@ -224,14 +243,15 @@ def add_transaction():
         if not all([name, transaction_id, date_time_str, amount, payment_method, status]):
             flash('All transaction fields are required.', 'error')
             # Re-render with form data to show errors
-            return render_template('add_transaction.html', 
+            return render_template('add_transaction.html',
                                    username=current_user_identity,
                                    selected_branch=selected_branch,
                                    inbox_notifications=dummy_inbox_notifications,
+                                   show_sidebar=True, # <<< Ensure sidebar is shown
                                    show_notifications_button=True,
                                    transaction_data={ # Pass form data back
-                                       'name': name, 'transaction_id': transaction_id, 
-                                       'date_time': date_time_str, 'amount': amount, 
+                                       'name': name, 'transaction_id': transaction_id,
+                                       'date_time': date_time_str, 'amount': amount,
                                        'payment_method': payment_method, 'status': status
                                    })
 
@@ -259,9 +279,9 @@ def add_transaction():
             flash('Successfully Added a Transaction!', 'success')
             
             # Redirect based on status
-            if status == 'Paid': 
+            if status == 'Paid':
                 return redirect(url_for('main.transactions_paid'))
-            elif status == 'Pending': 
+            elif status == 'Pending':
                 return redirect(url_for('main.transactions_pending'))
             else: # Fallback redirect if status is something else
                 return redirect(url_for('main.transactions_paid'))
@@ -269,14 +289,15 @@ def add_transaction():
         except ValueError:
             flash('Invalid date or amount format.', 'error')
             # Re-render with form data and error
-            return render_template('add_transaction.html', 
+            return render_template('add_transaction.html',
                                    username=current_user_identity,
                                    selected_branch=selected_branch,
                                    inbox_notifications=dummy_inbox_notifications,
+                                   show_sidebar=True, # <<< Ensure sidebar is shown
                                    show_notifications_button=True,
                                    transaction_data={ # Pass form data back
-                                       'name': name, 'transaction_id': transaction_id, 
-                                       'date_time': date_time_str, 'amount': amount, 
+                                       'name': name, 'transaction_id': transaction_id,
+                                       'date_time': date_time_str, 'amount': amount,
                                        'payment_method': payment_method, 'status': status
                                    })
 
@@ -285,17 +306,19 @@ def add_transaction():
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/archive')
 @jwt_required()
 def archive():
     current_user_identity = get_jwt_identity()
-    return render_template('_archive.html', 
+    return render_template('_archive.html',
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            archived_items=archived_items_data,
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/billings')
@@ -306,6 +329,7 @@ def wallet(): # Route name 'wallet' for 'billings.html' template
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/analytics')
@@ -327,6 +351,7 @@ def analytics():
                            revenue_data=analytics_revenue_data,
                            suppliers=analytics_supplier_data,
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/notifications')
@@ -337,6 +362,7 @@ def notifications():
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/invoice')
@@ -347,6 +373,7 @@ def invoice():
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)
 
 @main.route('/schedules', methods=['GET'])
@@ -395,6 +422,7 @@ def schedules():
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True,
                            FLASK_INITIAL_DATE_ISO=current_date_utc.isoformat(), # Pass as ISO string
                            categories=categories,
@@ -502,4 +530,5 @@ def settings():
                            username=current_user_identity,
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
+                           show_sidebar=True, # <<< Ensure sidebar is shown
                            show_notifications_button=True)

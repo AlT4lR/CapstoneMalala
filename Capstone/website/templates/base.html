@@ -31,11 +31,68 @@
         /* Flash message animation styles */
         .flash-message-local {
             opacity: 1;
-            transition: opacity 0.5s ease-out; /* Smooth transition for opacity */
+            transition: opacity 0.5s ease-out;
         }
         .flash-message-local.fade-out {
             opacity: 0;
         }
+
+        /* Styles for the flash message overlay - NEW */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        }
+
+        .flash-message-overlay-container { /* Parent container for centering */
+            position: fixed; /* Stay in place */
+            inset: 0; /* Cover the whole viewport */
+            z-index: 50; /* Ensure it's on top */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem; /* Padding around the message */
+            pointer-events: none; /* Allow clicks to pass through initially */
+        }
+
+        .flash-message-overlay-content {
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 6px 6px rgba(0, 0, 0, 0.15);
+            max-width: 30rem; /* Max width for the message box */
+            width: 90%; /* Responsive width */
+            display: flex;
+            flex-direction: column; /* Stack messages vertically */
+            overflow: hidden; /* Clip content */
+            border-width: 1px; /* Add border for better definition */
+            border-style: solid;
+            pointer-events: auto; /* Make the message box itself clickable/interactive */
+            animation: fadeIn 0.3s ease-out forwards; /* Animation for appearing */
+        }
+
+        .flash-message-overlay-content.fade-out {
+            animation: fadeOut 0.3s ease-in forwards; /* Animation for disappearing */
+        }
+
+        .flash-message-overlay-content .border-b {
+            border-bottom-width: 1px !important;
+            border-color: rgba(255, 255, 255, 0.3) !important; /* Lighter border for separation */
+        }
+        
+        .flash-message-overlay-content div { /* For individual messages within the container */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* space-x-2 */
+        }
+        
+        .flash-message-overlay-content .text-green-600 { color: #10b981; } /* Tailwind's green-600 */
+        .flash-message-overlay-content .text-red-500 { color: #ef4444; } /* Tailwind's red-500 */
+        .flash-message-overlay-content .text-blue-500 { color: #3b82f6; } /* Tailwind's blue-500 */
+
         /* Specific styles for the new branches design */
         .branch-bg { background-color: #2d4235; } /* Dark muted green */
         .branch-card-bg { background-color: #aab8a8; } /* Lighter muted green for card */
@@ -70,33 +127,39 @@
                 extend: {
                     fontFamily: { poppins: ['Poppins', 'sans-serif'] },
                     colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-sidebar': '#d7e0d3',
-                        'custom-green-active': '#8aa188',
-                        'custom-text-dark': '#3a3a3a',
-                        'custom-green-darker': '#6f8a6e',
-                        'custom-logo-text': '#f6f6e9',
-                        'success-bg': '#d4edda',
-                        'success-text': '#155724',
-                        'success-border': '#c3e6cb',
-                        'table-header-bg': '#d7e0d3',
-                        'table-row-bg': '#f6f6e9',
-                        'status-paid': '#92b38f',
-                        'status-pending': '#fcd34d',
-                        'calendar-bg-dark': '#3b513c',
-                        'calendar-header-bg': '#4a6842',
-                        'calendar-sidebar-bg': '#4a6842',
-                        'category-office': '#99cc99',
-                        'category-meetings': '#ff9999',
-                        'category-events': '#9999ff',
-                        'category-personal': '#ffff99',
-                        'category-others': '#cccccc',
-                        'supplier-card-bg': '#0f172a',
-                        'branch-bg': '#2d4235',
-                        'branch-card-bg': '#aab8a8',
-                        'branch-text-dark': '#2f4f2f',
-                        'branch-arrow-color': '#4a6842',
-                        'branch-title-color': '#ffffff',
+                        'custom-bg': '#f5f5f0',            /* Light creamy background */
+                        'custom-sidebar': '#d7e0d3',      /* Muted green for sidebar */
+                        'custom-green-active': '#8aa188', /* Primary muted green */
+                        'custom-text-dark': '#3a3a3a',    /* Dark text color */
+                        'custom-green-darker': '#6f8a6e', /* Darker muted green */
+                        'custom-logo-text': '#f6f6e9',    /* Off-white for logo text */
+                        'success-bg': '#d4edda',          /* For flash messages */
+                        'success-text': '#155724',        /* For flash messages */
+                        'success-border': '#c3e6cb',      /* For flash messages */
+                        'table-header-bg': '#d7e0d3',     /* Muted green for table headers */
+                        'table-row-bg': '#f6f6e9',        /* Light creamy for table rows */
+                        'status-paid': '#92b38f',         /* Muted green for paid status */
+                        'status-pending': '#fcd34d',      /* Yellow for pending status */
+                        'calendar-bg-dark': '#3b513c',    /* Dark green for calendar background */
+                        'calendar-header-bg': '#4a6842',  /* Muted green for calendar header */
+                        'calendar-sidebar-bg': '#4a6842', /* Muted green for calendar sidebar */
+                        'category-office': '#99cc99',     /* Light green for office category */
+                        'category-meetings': '#ff9999',   /* Light red for meetings category */
+                        'category-events': '#9999ff',     /* Light blue for events category */
+                        'category-personal': '#ffff99',   /* Light yellow for personal category */
+                        'category-others': '#cccccc',     /* Light gray for others category */
+                        'supplier-card-bg': '#0f172a',    /* Dark blue/black for supplier cards */
+                        
+                        /* --- BRANCH COLORS --- */
+                        'branch-bg': '#2d4235',            /* Dark muted green for the main background */
+                        'branch-card-bg': '#aab8a8',       /* Lighter muted green for the inner card background */
+                        'branch-text-dark': '#2f4f2f',     /* Darker green for text within branch elements */
+                        'branch-arrow-color': '#4a6842',   /* Muted green for icons and arrows */
+                        'branch-title-color': '#ffffff',   /* White for the "BRANCHES" title */
+                        /* --- END BRANCH COLORS --- */
+                        
+                        'primary-dark-green': '#2d4235',  /* Alias for dark green */
+                        'primary-muted-green': '#aab8a8', /* Alias for light green */
                     }
                 }
             }
@@ -126,6 +189,7 @@
                         {% else %}
                             ml-0 w-full
                         {% endif %}">
+                {# Flash messages will be rendered here by _flash_messages.html #}
                 {% include "_flash_messages.html" %}
 
                 {# --- The SINGLE DEFINITION of the content block #}
@@ -156,6 +220,8 @@
         </div>
     </div>
 
+    {# Duplicate Tailwind config here is generally not recommended, but kept for standalone page template needs. #}
+    {# Ideally, this would be in a separate JS file or handled more cleanly. #}
     <script>
     tailwind.config = {
         theme: {
@@ -164,9 +230,9 @@
                 colors: {
                     'custom-bg': '#f5f5f0', /* Light creamy background */
                     'custom-sidebar': '#d7e0d3', /* Muted green for sidebar */
-                    'custom-green-active': '#8aa188', /* Primary muted green */
+                    'custom-green-active': '#8aa188', /* Muted green for active elements */
                     'custom-text-dark': '#3a3a3a', /* Dark text color */
-                    'custom-green-darker': '#6f8a6e', /* Darker muted green */
+                    'custom-green-darker': '#6f8a6e', /* Darker green for buttons/accents */
                     'custom-logo-text': '#f6f6e9', /* Off-white for logo text */
                     'success-bg': '#d4edda', /* For flash messages */
                     'success-text': '#155724', /* For flash messages */
@@ -176,6 +242,14 @@
                     /* Add any other specific hex codes used */
                     'primary-dark-green': '#2d4235', /* For the dark background */
                     'primary-muted-green': '#aab8a8', /* Lighter muted green */
+                    
+                    /* --- BRANCH COLORS (as discussed) --- */
+                    'branch-bg': '#2d4235',            /* Dark muted green for the main background */
+                    'branch-card-bg': '#aab8a8',       /* Lighter muted green for the inner card background */
+                    'branch-text-dark': '#2f4f2f',     /* Darker green for text within branch elements */
+                    'branch-arrow-color': '#4a6842',   /* Muted green for icons and arrows */
+                    'branch-title-color': '#ffffff',   /* White for the "BRANCHES" title */
+                    /* --- END BRANCH COLORS --- */
                 }
             }
         }

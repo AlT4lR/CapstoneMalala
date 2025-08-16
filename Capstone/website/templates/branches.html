@@ -3,46 +3,212 @@
 {% block title %}DecoOffice - Select Branch{% endblock %}
 
 {% block head %}
-    {# No page-specific head content needed here as common styles are in base.html #}
+    <style>
+        /* Transitions for the branch cards */
+        .branch-card {
+            transition: transform 0.4s ease-in-out, box-shadow 0.4s ease-in-out, opacity 0.4s ease-in-out;
+        }
+
+        /* States for the cards */
+        .branch-card.center {
+            transform: scale(1.1); /* Slightly larger when centered */
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3); /* Enhanced shadow */
+            z-index: 20; /* Ensure it's on top */
+            opacity: 1;
+        }
+
+        .branch-card.left,
+        .branch-card.right {
+            transform: scale(0.9); /* Slightly smaller when off-center */
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2); /* Regular shadow */
+            z-index: 10;
+            opacity: 0.7; /* Slightly faded */
+        }
+
+        .branch-card.hidden {
+            opacity: 0;
+            transform: scale(0.8);
+            z-index: 5;
+        }
+
+        /* Style for the arrows */
+        .branch-arrow {
+            color: var(--branch-arrow-color, #4a6842); /* Default to muted green */
+            font-size: 1.5rem; /* Adjust size as needed */
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 30; /* Ensure arrows are above cards */
+            position: absolute; /* Position absolutely within the container */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .branch-arrow:hover {
+            opacity: 1;
+        }
+        .branch-arrow.left {
+            left: -40px; /* Position to the left of the center card */
+        }
+        .branch-arrow.right {
+            right: -40px; /* Position to the right of the center card */
+        }
+
+        /* Make inactive cards clickable to switch focus */
+        .branch-card.left,
+        .branch-card.right {
+            cursor: pointer;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
-    {# Main content area for the branches page #}
-    <main class="flex-1 p-8 flex flex-col branch-bg"> {# Apply the branch background here #}
-        {# REMOVED: Header with top-left BRANCHES title and notification button #}
-        {# The header with "Branches" title inside the card will be the main focus #}
+    <main class="flex-1 p-8 flex flex-col branch-bg">
+        <div class="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
+            <h1 class="text-branch-title-color mb-6 text-4xl font-bold uppercase">BRANCHES</h1>
 
-        {# Container for the branch list - this is where the main visual change happens #}
-        <div class="flex-grow w-full max-w-3xl mx-auto bg-branch-card-bg rounded-xl overflow-hidden shadow-xl p-8 text-center flex flex-col items-center">
-            {# The "BRANCHES" title is now inside this card, styled with white text #}
-            <h1 class="text-branch-title-color mb-8 text-2xl font-bold border-b-2 border-gray-400/50 pb-2 inline-block">BRANCHES</h1> {# Use branch title color #}
+            {# Container for the carousel with relative positioning for arrows #}
+            <div class="w-full flex justify-center items-center gap-8 relative h-[500px]">
 
-            <!-- Flash message container is handled globally by base.html -->
+                {# Left Arrow Button #}
+                <i id="prev-branch-btn" class="fas fa-chevron-left branch-arrow left"></i>
 
-            {# Container for the list of branches with specific styling #}
-            <div class="w-full bg-branch-card-bg rounded-lg overflow-hidden shadow-sm">
-                {% for branch in branches %}
-                    {# Each branch item styled as a clickable card #}
-                    <a href="{{ url_for('main.select_branch', branch_name=branch.name) }}" class="flex items-center p-3.5 text-inherit border-b border-gray-400/50 transition duration-200 hover:bg-gray-400/30"> {# Adjust border and hover colors #}
-                        {# Branch icon container #}
-                        <div class="w-11 h-11 rounded-full bg-[#adcaa2] flex justify-center items-center mr-4 flex-shrink-0 relative overflow-hidden">
-                             {# Using Font Awesome for the building icon #}
-                             <i class="fas fa-building text-branch-arrow-color text-xl"></i> {# Use branch arrow color for icon #}
-                        </div>
-                        {# Branch name - ensuring it doesn't overflow #}
-                        <div class="flex-grow mr-2 overflow-hidden text-left">
-                            {# Apply white text color to the branch name #}
-                            <div class="font-bold text-branch-title-color text-base truncate">{{ branch.name }}</div> {# Use branch title color for white text #}
-                        </div>
-                         {# Arrow indicator #}
-                         <div class="text-branch-arrow-color text-base flex-shrink-0"><i class="fas fa-arrow-right"></i></div> {# Use branch arrow color #}
-                    </a>
-                {% endfor %}
+                {# Montalban Branch Card #}
+                <div id="branch-Montalban" class="branch-card w-64 h-80 bg-[#c8d8c3] rounded-xl shadow-xl flex flex-col items-center justify-center border border-gray-400/50">
+                    <p class="text-branch-text-dark font-semibold">Montalban</p>
+                </div>
+
+                {# Center Active Branch Card #}
+                {# This card will dynamically display the selected branch #}
+                <div id="branch-Laguna-(placeholder)" class="branch-card center w-96 h-96 bg-[#c8d8c3] rounded-xl shadow-xl flex flex-col items-center justify-center border border-gray-400/50 cursor-pointer">
+                    <p class="text-branch-text-dark font-bold text-3xl mb-2">{{ selected_branch if selected_branch else 'Laguna (placeholder)' }}</p>
+                    <i class="fas fa-arrow-right text-2xl branch-arrow-color"></i> {# Arrow will be shown on active card #}
+                    
+                    {# --- Enter Button --- #}
+                    <button id="enter-dashboard-btn" class="mt-6 px-6 py-3 bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold rounded-lg shadow-md transition-colors">
+                        Enter
+                    </button>
+                </div>
+
+                {# Right Branch Card #}
+                <div id="branch-Placeholder-Right" class="branch-card right w-64 h-80 bg-[#c8d8c3] rounded-xl shadow-xl flex flex-col items-center justify-center border border-gray-400/50 cursor-pointer">
+                    <p class="text-branch-text-dark font-semibold">Placeholder Right</p>
+                </div>
+
+                {# Right Arrow Button #}
+                <i id="next-branch-btn" class="fas fa-chevron-right branch-arrow right"></i>
+
             </div>
         </div>
     </main>
 {% endblock %}
 
 {% block scripts %}
-    {# No page-specific scripts needed here #}
+    <script>
+        // Array of branch names (IDs for the divs) in order
+        const branches = ['Montalban', 'Laguna (placeholder)', 'Placeholder Right'];
+        // Initialize currentActiveIndex based on the initially displayed active branch
+        let currentActiveIndex = branches.indexOf('Laguna (placeholder)'); 
+
+        // --- Helper Function to get the card element by name ---
+        function getCardElementByName(branchName) {
+            const branchId = `branch-${branchName.toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, '')}`;
+            return document.getElementById(branchId);
+        }
+
+        // --- Function to update the UI based on the current active branch index ---
+        function updateBranchUI() {
+            const branchCards = document.querySelectorAll('.branch-card');
+            const activeCardElement = getCardElementByName(branches[currentActiveIndex]);
+            const activeBranchName = branches[currentActiveIndex]; // Get the name of the currently active branch
+
+            branchCards.forEach((card, index) => {
+                // Reset all cards to a base state
+                card.classList.remove('center', 'left', 'right', 'hidden');
+                const arrow = card.querySelector('i');
+                if(arrow) arrow.classList.add('inactive-branch-arrow'); 
+                card.style.zIndex = '10'; // Reset z-index
+                card.classList.add('inactive-clickable'); // Make non-active cards non-clickable by default
+                card.onclick = null; // Remove all click handlers initially
+            });
+
+            // Set the active card properties
+            if (activeCardElement) {
+                activeCardElement.classList.add('center');
+                const activeArrow = activeCardElement.querySelector('i');
+                if(activeArrow) activeArrow.classList.remove('inactive-branch-arrow'); // Show arrow for center card
+                activeCardElement.style.zIndex = '20';
+                // Set the onclick handler for the active card to call activateBranch
+                activeCardElement.onclick = () => activateBranch(activeBranchName);
+            }
+
+            // Position the remaining cards and set their click handlers to switch focus
+            for (let i = 0; i < branches.length; i++) {
+                const card = getCardElementByName(branches[i]);
+                if (card) { // Ensure the card element exists
+                    if (i < currentActiveIndex) {
+                        card.classList.add('left');
+                        card.onclick = () => switchBranch('prev'); // Clicking left card moves to previous
+                    } else if (i > currentActiveIndex) {
+                        card.classList.add('right');
+                        card.onclick = () => switchBranch('next'); // Clicking right card moves to next
+                    }
+                }
+            }
+
+            // Update arrow button visibility
+            document.getElementById('prev-branch-btn').style.display = currentActiveIndex > 0 ? 'block' : 'none';
+            document.getElementById('next-branch-btn').style.display = currentActiveIndex < branches.length - 1 ? 'block' : 'none';
+        }
+
+        // --- Function to activate a branch (called when clicking the center card or the Enter button) ---
+        function activateBranch(branchName) {
+            const clickedIndex = branches.indexOf(branchName);
+            if (clickedIndex !== -1 && clickedIndex !== currentActiveIndex) {
+                currentActiveIndex = clickedIndex;
+                updateBranchUI(); // Update UI to reflect the new active branch
+            }
+
+            // Redirect to dashboard regardless of whether it was the card or button click
+            // This part should execute after the transition, so using setTimeout
+            setTimeout(() => {
+                window.location.href = `/select_branch/${branchName}`;
+            }, 400); // Match the transition duration
+        }
+
+        // --- Function to switch branches using the arrows or clicking off-center cards ---
+        function switchBranch(directionOrBranchName) {
+            let nextIndex = currentActiveIndex;
+
+            if (directionOrBranchName === 'prev') {
+                nextIndex = Math.max(0, currentActiveIndex - 1);
+            } else if (directionOrBranchName === 'next') {
+                nextIndex = Math.min(branches.length - 1, currentActiveIndex + 1);
+            } else { // It's a branch name clicked from a left/right card
+                nextIndex = branches.indexOf(directionOrBranchName);
+            }
+
+            if (nextIndex !== -1 && nextIndex !== currentActiveIndex) {
+                currentActiveIndex = nextIndex;
+                updateBranchUI(); // This will correctly reposition all cards and set up new onclicks
+            }
+        }
+
+        // --- Event listeners for arrow buttons ---
+        document.getElementById('prev-branch-btn').addEventListener('click', () => switchBranch('prev'));
+        document.getElementById('next-branch-btn').addEventListener('click', () => switchBranch('next'));
+
+        // --- Event listener for the "Enter" button ---
+        document.getElementById('enter-dashboard-btn').addEventListener('click', () => {
+            const activeBranchName = branches[currentActiveIndex];
+            if (activeBranchName) {
+                activateBranch(activeBranchName);
+            }
+        });
+
+        // --- Initial UI setup on page load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure initial state is correct
+            updateBranchUI();
+        });
+    </script>
 {% endblock %}

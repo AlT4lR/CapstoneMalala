@@ -10,3 +10,4 @@ Pillow>=11.3.0
 pytz>=2024.1              # For timezone handling
 Flask-Talisman>=0.9.0     # For security headers
 bcrypt>=4.1.3
+email_validator>=2.2.0

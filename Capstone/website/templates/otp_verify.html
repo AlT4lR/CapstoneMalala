@@ -1,4 +1,4 @@
-{# templates/otp_verify.html #}
+<!-- templates/otp_verify.html -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -76,9 +76,15 @@
         <!-- OTP Modal -->
         <div class="w-11/12 max-w-lg mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-2xl p-8 text-center">
             
-            <h1 class="text-custom-text-dark mb-4 text-2xl font-bold">Email Verification</h1>
+            <h1 class="text-custom-text-dark mb-4 text-2xl font-bold">
+                {% if is_2fa_login %}
+                    Two-Factor Authentication
+                {% else %}
+                    Email Verification
+                {% endif %}
+            </h1>
 
-            {# Flash messages are handled by the meta tag and common.js for AJAX, but can be rendered here for initial load #}
+            {# Flash messages -- handled by JS fade-out, but can be rendered here too #}
             <div id="flash-messages-container" class="mb-5 flash-message-local">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -92,32 +98,36 @@
             </div>
 
             <p class="text-gray-600 mb-6">
-                Please enter the 6-digit verification code sent to your email to complete your account registration.
-                <br>
-                Do not share this code with anyone. It will expire in 10 minutes.
+                {% if is_2fa_login %}
+                    Enter the 6-digit code from your authenticator app to log in as <span class="font-semibold text-custom-text-dark">{{ username_in_context }}</span>.
+                {% else %}
+                    Please enter the 6-digit verification code sent to your email to complete your account registration.
+                    <br> Do not share this code with anyone. It will expire in 10 minutes.
+                {% endif %}
             </p>
 
             <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST">
-                {# Add CSRF token field here #}
                 {{ form.hidden_tag() }}
 
-                {# This div contains the six individual input boxes #}
+                {# OTP Input Section - Conditionally shown or styled based on context #}
                 <div class="flex justify-center mb-6" id="otp-inputs">
-                    <input type="text" name="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
-                    <input type="text" name="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
-                    <input type="text" name="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
-                    <input type="text" name="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
-                    <input type="text" name="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
-                    <input type="text" name="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    {% if not is_2fa_login %} {# Standard OTP input for email verification #}
+                        <input type="text" name="otp1" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" name="otp2" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" name="otp3" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" name="otp4" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" name="otp5" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                        <input type="text" name="otp6" class="otp-input" maxlength="1" inputmode="numeric" pattern="[0-9]" required>
+                    {% else %} {# Single input for 2FA code #}
+                        <input type="text" name="otp" class="otp-input" placeholder="------" maxlength="6" inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
+                    {% endif %}
                 </div>
 
                 <div class="flex justify-between items-center text-sm text-gray-500 mb-8">
                     <div id="timer">Remaining Time: <span class="font-bold text-gray-700">10:00</span></div>
-                    {# --- MODIFICATION: Adjust "Resend" link behavior --- #}
-                    {# The "Resend" link is still useful if the initial OTP fails or expires. #}
-                    {# The JavaScript should handle disabling it if the timer runs out, or if OTP is already verified. #}
-                    <div>Didn't get the code? <a href="{{ url_for('auth.resend_otp') }}" id="resend-link" class="font-bold text-custom-green-active hover:underline">Resend</a></div>
-                    {# --- END MODIFICATION --- #}
+                    {% if not is_2fa_login %} {# Resend OTP link only for email verification #}
+                        <div>Didn't get the code? <a href="{{ url_for('auth.resend_otp') }}" id="resend-link" class="font-bold text-custom-green-active hover:underline">Resend</a></div>
+                    {% endif %}
                 </div>
 
                 <div class="space-y-4">
@@ -128,7 +138,7 @@
         </div>
     </main>
 
-    {# Include the new otp_verify-specific JavaScript file #}
+    {# Include the otp_verify-specific JavaScript file #}
     <script src="{{ url_for('static', filename='js/otp_verify.js') }}"></script>
 </body>
 </html>

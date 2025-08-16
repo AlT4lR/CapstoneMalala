@@ -1,6 +1,5 @@
 # website/models.py
 
-# Removed: from . import get_db (will use current_app.db)
 import bcrypt
 from pymongo.errors import DuplicateKeyError, OperationFailure
 import logging
@@ -11,6 +10,8 @@ import pyotp
 import pytz # For timezone handling
 from flask import current_app # For accessing app context
 from website.constants import LOGIN_ATTEMPT_LIMIT as LOCKOUT_THRESHOLD, LOCKOUT_DURATION_MINUTES # Import constants
+import re # Import the 're' module for escaping
+
 logger = logging.getLogger(__name__)
 
 # Define default schedule categories if not imported
@@ -24,7 +25,8 @@ def get_user_by_username(username):
         logger.error("Database not available.")
         return None
 
-    return db.users.find_one({'username': {'$regex': f'^{username}$', '$options': 'i'}})
+    # Use regex with case-insensitive option, similar to email.
+    return db.users.find_one({'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}})
 
 # --- NEW FUNCTION ---
 def get_user_by_email(email):
@@ -33,8 +35,10 @@ def get_user_by_email(email):
     if db is None:
         logger.error("Database not available.")
         return None
-
-    return db.users.find_one({'email': email.strip().lower()})
+    
+    # Use regex with case-insensitive option and escape potential regex chars in email
+    # This ensures the query correctly uses the case-insensitive index.
+    return db.users.find_one({'email': {'$regex': f'^{re.escape(email.strip().lower())}$', '$options': 'i'}})
 # --- END NEW FUNCTION ---
 
 def add_user(username, email, password):
@@ -52,8 +56,8 @@ def add_user(username, email, password):
     otp_secret = pyotp.random_base32()
 
     user_data = {
-        'username': username.strip(),
-        'email': email.strip().lower(),
+        'username': username.strip().lower(), # Store username in lowercase for consistency
+        'email': email.strip().lower(),       # Store email in lowercase
         'passwordHash': hashed_password,
         'role': 'user',
         'isActive': False,
@@ -98,7 +102,7 @@ def update_last_login(username):
 
     try:
         result = db.users.update_one(
-            {'username': {'$regex': f'^{username}$', '$options': 'i'}},
+            {'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}}, # Use case-insensitive username lookup
             {'$set': {
                 'lastLogin': datetime.now(pytz.utc), # Store UTC aware
                 'failedLoginAttempts': 0,
@@ -118,10 +122,6 @@ def record_failed_login_attempt(username):
         logger.error("Database not available.")
         return
 
-    # Using imported constants
-    # LOCKOUT_THRESHOLD = 5
-    # LOCKOUT_DURATION_MINUTES = 10
-
     user = get_user_by_username(username)
     if not user:
         logger.warning(f"record_failed_login_attempt: User '{username}' not found.")
@@ -137,7 +137,7 @@ def record_failed_login_attempt(username):
 
     try:
         db.users.update_one(
-            {'username': user['username']},
+            {'username': user['username']}, # Use the stored username (already lowercase)
             {'$set': update_fields}
         )
     except Exception as e:
@@ -164,7 +164,7 @@ def set_user_otp(username, otp_type='email'):
 
         try:
             result = db.users.update_one(
-                {'username': user['username']},
+                {'username': user['username']}, # Use the stored username (already lowercase)
                 {'$set': {
                     'otp': otp,
                     'otpExpiresAt': otp_expiration,
@@ -186,7 +186,7 @@ def set_user_otp(username, otp_type='email'):
             new_secret = pyotp.random_base32()
             try:
                 result = db.users.update_one(
-                    {'username': user['username']},
+                    {'username': user['username']}, # Use the stored username (already lowercase)
                     {'$set': {'otpSecret': new_secret, 'updatedAt': datetime.now(pytz.utc)}}
                 )
                 if result.modified_count > 0:
@@ -219,22 +219,15 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         return False
 
     if otp_type == 'email':
-        # --- FIX: Make the datetime from the DB timezone-aware before comparing ---
         otp_expires_at = user.get('otpExpiresAt')
         if otp_expires_at:
-            # Ensure it's UTC aware if it's not already (e.g., if DB stored naive)
-            # If the DB consistently stores UTC aware datetimes, this .replace might be redundant
-            # but it's safer to ensure awareness before comparison.
             if otp_expires_at.tzinfo is None:
                 otp_expires_at = pytz.utc.localize(otp_expires_at)
-        # --- END FIX ---
-
-        # Check OTP match and expiration (UTC comparison)
-        # Note: user.get('otpExpiresAt') is now guaranteed to be timezone-aware if it exists.
+        
         if user.get('otp') == submitted_otp and otp_expires_at and otp_expires_at > datetime.now(pytz.utc):
             try:
                 result = db.users.update_one(
-                    {'username': user['username']},
+                    {'username': user['username']}, # Use the stored username
                     {'$set': {'isActive': True, 'updatedAt': datetime.now(pytz.utc)},
                      '$unset': {'otp': "", 'otpExpiresAt': ""}} # Clear OTP fields
                 )
@@ -243,7 +236,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
                     return True
                 else:
                     logger.warning(f"verify_user_otp: User '{username}' email OTP verified, but no user document was modified.")
-                    return True
+                    return True # Still consider it verified if no modification happened but OTP was valid
             except Exception as e:
                 logger.error(f"Error activating user '{username}' after email OTP verification: {e}")
                 return False
@@ -268,6 +261,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     return False
 
 # --- Schedule Operations ---
+# Make sure this function definition is present and correctly spelled in your models.py
 def add_schedule(username, title, start_time, end_time, category, notes=None):
     """
     Adds a new schedule entry for a user.
@@ -321,7 +315,6 @@ def get_schedules_by_date_range(username, start_date, end_date):
         logger.error("start_date and end_date must be datetime objects.")
         return []
 
-    # Ensure query dates are UTC aware
     if start_date.tzinfo is None: start_date = start_date.replace(tzinfo=pytz.utc)
     if end_date.tzinfo is None: end_date = end_date.replace(tzinfo=pytz.utc)
 
@@ -337,7 +330,6 @@ def get_schedules_by_date_range(username, start_date, end_date):
     try:
         for doc in db.schedules.find(query).sort('start_time', 1):
             doc['_id'] = str(doc['_id'])
-            # Ensure dates are serialized to ISO format for JSON response
             doc['start_time'] = doc['start_time'].isoformat() if isinstance(doc['start_time'], datetime) else doc['start_time']
             doc['end_time'] = doc['end_time'].isoformat() if isinstance(doc['end_time'], datetime) else doc['end_time']
             schedules.append(doc)
@@ -357,19 +349,17 @@ def get_all_categories(username):
     db = current_app.db
     if db is None:
         logger.error("Database not available.")
-        return ['Office', 'Meetings', 'Events', 'Personal', 'Others'] # Using imported constants
-
-    # DEFAULT_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
+        return DEFAULT_SCHEDULE_CATEGORIES 
 
     try:
         categories = db.schedules.distinct('category', {'username': username})
         if not categories:
             logger.info(f"No categories found in schedules for user '{username}'. Returning defaults.")
-            return DEFAULT_SCHEDULE_CATEGORIES # Using imported constants
+            return DEFAULT_SCHEDULE_CATEGORIES
         return categories
     except Exception as e:
         logger.error(f"Error fetching categories for user '{username}': {e}")
-        return DEFAULT_SCHEDULE_CATEGORIES # Using imported constants
+        return DEFAULT_SCHEDULE_CATEGORIES
 
 def add_category(username, category_name):
     """
