@@ -63,11 +63,6 @@ class Config:
         'connect-src': "'self'", # Allow self for API calls
     }
 
-    # REMOVE Babel Configuration
-    # BABEL_DEFAULT_LOCALE = 'en' # Or your default language
-    # BABEL_TRANSLATION_DIR = 'translations' # Default directory for .mo files
-
-
 class DevelopmentConfig(Config):
     """Development configuration - overrides defaults with development settings."""
     DEBUG = True

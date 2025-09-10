@@ -1,52 +1,37 @@
 # website/models.py
 
 import bcrypt
-from pymongo.errors import DuplicateKeyError, OperationFailure
+from pymongo.errors import DuplicateKeyError
 import logging
 from datetime import datetime, timedelta
 import random
 import string
 import pyotp
-import pytz # For timezone handling
-from flask import current_app # For accessing app context
-from website.constants import LOGIN_ATTEMPT_LIMIT as LOCKOUT_THRESHOLD, LOCKOUT_DURATION_MINUTES # Import constants
-import re # Import the 're' module for escaping
+import pytz
+from flask import current_app
+from website.constants import LOGIN_ATTEMPT_LIMIT as LOCKOUT_THRESHOLD, LOCKOUT_DURATION_MINUTES
+import re
 
 logger = logging.getLogger(__name__)
 
-# Define default schedule categories if not imported
 DEFAULT_SCHEDULE_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
 
 # --- User Operations ---
 def get_user_by_username(username):
-    """Retrieves a user document from MongoDB by username (case-insensitive)."""
     db = current_app.db
     if db is None:
         logger.error("Database not available.")
         return None
-
-    # Use regex with case-insensitive option, similar to email.
     return db.users.find_one({'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}})
 
-# --- NEW FUNCTION ---
 def get_user_by_email(email):
-    """Retrieves a user document from MongoDB by email (case-insensitive)."""
     db = current_app.db
     if db is None:
         logger.error("Database not available.")
         return None
-    
-    # Use regex with case-insensitive option and escape potential regex chars in email
-    # This ensures the query correctly uses the case-insensitive index.
     return db.users.find_one({'email': {'$regex': f'^{re.escape(email.strip().lower())}$', '$options': 'i'}})
-# --- END NEW FUNCTION ---
 
 def add_user(username, email, password):
-    """
-    Adds a new user to MongoDB with isActive set to False.
-    Handles case-insensitivity for username and email during insertion attempt.
-    Returns True on success, False on failure.
-    """
     db = current_app.db
     if db is None:
         logger.error("Database not available.")
@@ -56,8 +41,8 @@ def add_user(username, email, password):
     otp_secret = pyotp.random_base32()
 
     user_data = {
-        'username': username.strip().lower(), # Store username in lowercase for consistency
-        'email': email.strip().lower(),       # Store email in lowercase
+        'username': username.strip().lower(),
+        'email': email.strip().lower(),
         'passwordHash': hashed_password,
         'role': 'user',
         'isActive': False,
@@ -67,26 +52,22 @@ def add_user(username, email, password):
         'failedLoginAttempts': 0,
         'lockoutUntil': None,
         'lastLogin': None,
-        'createdAt': datetime.now(pytz.utc), # Store UTC aware
-        'updatedAt': datetime.now(pytz.utc)  # Store UTC aware
+        'createdAt': datetime.now(pytz.utc),
+        'updatedAt': datetime.now(pytz.utc)
     }
 
     try:
-        result = db.users.insert_one(user_data)
-        logger.info(f"Successfully registered user: {user_data['username']} (ID: {result.inserted_id}). Awaiting verification.")
+        db.users.insert_one(user_data)
+        logger.info(f"Successfully registered user: {user_data['username']}.")
         return True
     except DuplicateKeyError:
         logger.warning(f"Registration failed: Username '{username}' or Email '{email}' already exists.")
         return False
-    except OperationFailure as e:
-        logger.error(f"MongoDB operation failed during user registration for {username}: {e}")
-        return False
     except Exception as e:
-        logger.error(f"An unexpected error occurred during user registration for {username}: {e}")
+        logger.error(f"Unexpected error during registration: {e}")
         return False
 
 def check_password(stored_hash, provided_password):
-    """Checks a provided password against a stored bcrypt hash."""
     try:
         return bcrypt.checkpw(provided_password.encode('utf-8'), stored_hash)
     except (TypeError, ValueError):
@@ -94,194 +75,99 @@ def check_password(stored_hash, provided_password):
         return False
 
 def update_last_login(username):
-    """Updates the lastLogin timestamp and resets login attempts/lockout."""
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return
-
+    if db is None: return
     try:
-        result = db.users.update_one(
-            {'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}}, # Use case-insensitive username lookup
+        db.users.update_one(
+            {'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}},
             {'$set': {
-                'lastLogin': datetime.now(pytz.utc), # Store UTC aware
+                'lastLogin': datetime.now(pytz.utc),
                 'failedLoginAttempts': 0,
                 'lockoutUntil': None,
-                'updatedAt': datetime.now(pytz.utc) # Store UTC aware
+                'updatedAt': datetime.now(pytz.utc)
             }}
         )
-        if result.modified_count == 0:
-            logger.warning(f"update_last_login: No user found or updated for username: {username}")
     except Exception as e:
         logger.error(f"Error updating last login for {username}: {e}")
 
 def record_failed_login_attempt(username):
-    """Increments failed login attempts and applies lockout if threshold is met."""
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return
+    if db is None: return
 
     user = get_user_by_username(username)
-    if not user:
-        logger.warning(f"record_failed_login_attempt: User '{username}' not found.")
-        return
+    if not user: return
 
     new_attempts = user.get('failedLoginAttempts', 0) + 1
-    update_fields = {'failedLoginAttempts': new_attempts, 'updatedAt': datetime.now(pytz.utc)} # UTC aware
+    update_fields = {'failedLoginAttempts': new_attempts, 'updatedAt': datetime.now(pytz.utc)}
 
-    if new_attempts >= LOCKOUT_THRESHOLD and not user.get('lockoutUntil'): # Apply lockout only if not already locked
+    if new_attempts >= LOCKOUT_THRESHOLD:
         lockout_time = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         update_fields['lockoutUntil'] = lockout_time
-        logger.warning(f"User '{username}' locked out until {lockout_time} due to {new_attempts} failed attempts.")
+        logger.warning(f"User '{username}' locked out until {lockout_time}.")
 
     try:
-        db.users.update_one(
-            {'username': user['username']}, # Use the stored username (already lowercase)
-            {'$set': update_fields}
-        )
+        db.users.update_one({'_id': user['_id']}, {'$set': update_fields})
     except Exception as e:
         logger.error(f"Error recording failed login attempt for {username}: {e}")
 
 def set_user_otp(username, otp_type='email'):
-    """
-    Generates and sets an OTP for a user.
-    Returns the generated OTP or secret if applicable, None on failure.
-    """
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return None
-
+    if db is None: return None
     user = get_user_by_username(username)
-    if not user:
-        logger.warning(f"set_user_otp: User '{username}' not found.")
-        return None
+    if not user: return None
 
     if otp_type == 'email':
         otp = "".join(random.choices(string.digits, k=6))
-        otp_expiration = datetime.now(pytz.utc) + timedelta(minutes=10) # OTP expires in 10 minutes (UTC aware)
-
+        otp_expiration = datetime.now(pytz.utc) + timedelta(minutes=10)
         try:
-            result = db.users.update_one(
-                {'username': user['username']}, # Use the stored username (already lowercase)
-                {'$set': {
-                    'otp': otp,
-                    'otpExpiresAt': otp_expiration,
-                    'updatedAt': datetime.now(pytz.utc)
-                }}
+            db.users.update_one(
+                {'_id': user['_id']},
+                {'$set': {'otp': otp, 'otpExpiresAt': otp_expiration, 'updatedAt': datetime.now(pytz.utc)}}
             )
-            if result.modified_count > 0:
-                logger.info(f"Generated email OTP for user '{username}'.")
-                return otp
-            else:
-                logger.warning(f"set_user_otp: No user updated for email OTP generation for '{username}'.")
-                return None
+            logger.info(f"Generated email OTP for user '{username}'.")
+            return otp
         except Exception as e:
-            logger.error(f"Error setting email OTP for user {username}: {e}")
+            logger.error(f"Error setting email OTP for {username}: {e}")
             return None
-
-    elif otp_type == '2fa':
-        if not user.get('otpSecret'):
-            new_secret = pyotp.random_base32()
-            try:
-                result = db.users.update_one(
-                    {'username': user['username']}, # Use the stored username (already lowercase)
-                    {'$set': {'otpSecret': new_secret, 'updatedAt': datetime.now(pytz.utc)}}
-                )
-                if result.modified_count > 0:
-                    logger.info(f"Generated new 2FA secret for user '{username}'.")
-                    return new_secret
-                else:
-                    logger.warning(f"set_user_otp: No user updated for 2FA secret generation for '{username}'.")
-                    return None
-            except Exception as e:
-                logger.error(f"Error generating 2FA secret for {username}: {e}")
-                return None
-        else:
-            return user.get('otpSecret')
-
     return None
 
 def verify_user_otp(username, submitted_otp, otp_type='email'):
-    """
-    Verifies the user's OTP.
-    Returns True if verification is successful, False otherwise.
-    """
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return False
-
+    if db is None: return False
     user = get_user_by_username(username)
-    if not user:
-        logger.warning(f"verify_user_otp: User '{username}' not found.")
-        return False
+    if not user: return False
 
     if otp_type == 'email':
         otp_expires_at = user.get('otpExpiresAt')
-        if otp_expires_at:
-            if otp_expires_at.tzinfo is None:
-                otp_expires_at = pytz.utc.localize(otp_expires_at)
+        if otp_expires_at and otp_expires_at.tzinfo is None:
+            otp_expires_at = pytz.utc.localize(otp_expires_at)
         
-        if user.get('otp') == submitted_otp and otp_expires_at and otp_expires_at > datetime.now(pytz.utc):
+        if user.get('otp') == submitted_otp and otp_expires_at > datetime.now(pytz.utc):
             try:
-                result = db.users.update_one(
-                    {'username': user['username']}, # Use the stored username
+                db.users.update_one(
+                    {'_id': user['_id']},
                     {'$set': {'isActive': True, 'updatedAt': datetime.now(pytz.utc)},
-                     '$unset': {'otp': "", 'otpExpiresAt': ""}} # Clear OTP fields
+                     '$unset': {'otp': "", 'otpExpiresAt': ""}}
                 )
-                if result.modified_count > 0:
-                    logger.info(f"User '{username}' successfully verified via email OTP and activated.")
-                    return True
-                else:
-                    logger.warning(f"verify_user_otp: User '{username}' email OTP verified, but no user document was modified.")
-                    return True # Still consider it verified if no modification happened but OTP was valid
+                logger.info(f"User '{username}' verified via email OTP and activated.")
+                return True
             except Exception as e:
-                logger.error(f"Error activating user '{username}' after email OTP verification: {e}")
+                logger.error(f"Error activating user '{username}': {e}")
                 return False
         else:
-            logger.info(f"Email OTP verification failed for user '{username}': Invalid or expired OTP.")
             return False
 
     elif otp_type == '2fa':
         otp_secret = user.get('otpSecret')
-        if not otp_secret:
-            logger.warning(f"verify_user_otp: No 2FA secret found for user '{username}' during verification.")
-            return False
-
+        if not otp_secret: return False
         totp = pyotp.TOTP(otp_secret)
-        if totp.verify(submitted_otp, valid_window=1): # Allow +/- 1 interval for clock drift
-            logger.info(f"User '{username}' successfully verified via 2FA TOTP.")
-            return True
-        else:
-            logger.info(f"2FA TOTP verification failed for user '{username}'.")
-            return False
-
+        return totp.verify(submitted_otp, valid_window=1)
     return False
 
 # --- Schedule Operations ---
-# Make sure this function definition is present and correctly spelled in your models.py
 def add_schedule(username, title, start_time, end_time, category, notes=None):
-    """
-    Adds a new schedule entry for a user.
-    Requires timezone-aware datetime objects for start_time and end_time (UTC recommended).
-    """
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return False
-
-    if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
-        logger.error("start_time and end_time must be datetime objects.")
-        return False
-
-    # Ensure datetime objects are timezone-aware (default to UTC if naive)
-    if start_time.tzinfo is None:
-        start_time = start_time.replace(tzinfo=pytz.utc)
-    if end_time.tzinfo is None:
-        end_time = end_time.replace(tzinfo=pytz.utc)
-
+    if db is None: return False
     schedule_data = {
         'username': username,
         'title': title.strip(),
@@ -292,80 +178,89 @@ def add_schedule(username, title, start_time, end_time, category, notes=None):
         'createdAt': datetime.now(pytz.utc),
         'updatedAt': datetime.now(pytz.utc)
     }
-
     try:
-        result = db.schedules.insert_one(schedule_data)
-        logger.info(f"Schedule added: {result.inserted_id} for user '{username}' ({title}).")
+        db.schedules.insert_one(schedule_data)
         return True
     except Exception as e:
-        logger.error(f"Error adding schedule for user {username}: {e}")
+        logger.error(f"Error adding schedule for {username}: {e}")
         return False
 
 def get_schedules_by_date_range(username, start_date, end_date):
-    """
-    Retrieves schedules for a user within a date range (inclusive).
-    start_date and end_date must be timezone-aware datetime objects (UTC).
-    """
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return []
-
-    if not isinstance(start_date, datetime) or not isinstance(end_date, datetime):
-        logger.error("start_date and end_date must be datetime objects.")
-        return []
-
-    if start_date.tzinfo is None: start_date = start_date.replace(tzinfo=pytz.utc)
-    if end_date.tzinfo is None: end_date = end_date.replace(tzinfo=pytz.utc)
-
-    query = {
-        'username': username,
-        'start_time': {
-            '$gte': start_date,
-            '$lte': end_date
-        }
-    }
-
+    if db is None: return []
+    query = {'username': username, 'start_time': {'$gte': start_date, '$lt': end_date}}
     schedules = []
     try:
         for doc in db.schedules.find(query).sort('start_time', 1):
             doc['_id'] = str(doc['_id'])
-            doc['start_time'] = doc['start_time'].isoformat() if isinstance(doc['start_time'], datetime) else doc['start_time']
-            doc['end_time'] = doc['end_time'].isoformat() if isinstance(doc['end_time'], datetime) else doc['end_time']
+            doc['start_time'] = doc['start_time'].isoformat()
+            doc['end_time'] = doc['end_time'].isoformat()
             schedules.append(doc)
-        logger.info(f"Retrieved {len(schedules)} schedules for '{username}' between {start_date} and {end_date}.")
-    except OperationFailure as e:
-        logger.error(f"MongoDB operation error fetching schedules for {username}: {e}")
     except Exception as e:
-        logger.error(f"An unexpected error occurred fetching schedules for {username}: {e}")
+        logger.error(f"Error fetching schedules for {username}: {e}")
     return schedules
 
 # --- Category Operations ---
 def get_all_categories(username):
-    """
-    Retrieves all unique categories for a user from their schedules.
-    Returns a default list if no categories are found or DB is unavailable.
-    """
     db = current_app.db
-    if db is None:
-        logger.error("Database not available.")
-        return DEFAULT_SCHEDULE_CATEGORIES 
-
+    if db is None: return DEFAULT_SCHEDULE_CATEGORIES
     try:
         categories = db.schedules.distinct('category', {'username': username})
-        if not categories:
-            logger.info(f"No categories found in schedules for user '{username}'. Returning defaults.")
-            return DEFAULT_SCHEDULE_CATEGORIES
-        return categories
+        return categories if categories else DEFAULT_SCHEDULE_CATEGORIES
     except Exception as e:
-        logger.error(f"Error fetching categories for user '{username}': {e}")
+        logger.error(f"Error fetching categories for {username}: {e}")
         return DEFAULT_SCHEDULE_CATEGORIES
 
 def add_category(username, category_name):
-    """
-    Adds a new category. This is a conceptual function for now.
-    Implementation for persistent storage would be needed.
-    """
     logger.info(f"Conceptual: Category '{category_name}' added for user '{username}'.")
-    # TODO: Implement persistent storage for user-defined categories.
     return True
+
+# --- Transaction Operations ---
+def add_transaction(username, branch, transaction_data):
+    db = current_app.db
+    if db is None:
+        logger.error("Database not available. Cannot add transaction.")
+        return False
+    try:
+        doc = {
+            'username': username,
+            'branch': branch,
+            'transaction_id': transaction_data.get('transaction_id'),
+            'name': transaction_data.get('name'),
+            'datetime_utc': transaction_data.get('datetime_utc'),
+            'amount': float(transaction_data.get('amount')),
+            'method': transaction_data.get('payment_method'),
+            'status': transaction_data.get('status'),
+            'notes': transaction_data.get('notes', 'Added via form.'),
+            'createdAt': datetime.now(pytz.utc),
+            'updatedAt': datetime.now(pytz.utc)
+        }
+        db.transactions.insert_one(doc)
+        logger.info(f"Transaction added successfully for user '{username}'.")
+        return True
+    except Exception as e:
+        logger.error(f"Error adding transaction for user {username}: {e}", exc_info=True)
+        return False
+
+def get_transactions_by_status(username, branch, status):
+    db = current_app.db
+    if db is None: return []
+    query = {'username': username, 'branch': branch, 'status': status}
+    transactions = []
+    try:
+        for doc in db.transactions.find(query).sort('datetime_utc', -1):
+            dt = doc.get('datetime_utc')
+            transactions.append({
+                'id': doc.get('transaction_id'),
+                'name': doc.get('name'),
+                'date': dt.strftime('%Y-%m-%d') if dt else '',
+                'time': dt.strftime('%I:%M %p') if dt else '',
+                'amount': doc.get('amount'),
+                'method': doc.get('method'),
+                'status': doc.get('status'),
+                'notes': doc.get('notes'),
+                'branch': doc.get('branch')
+            })
+    except Exception as e:
+        logger.error(f"Error fetching transactions for {username}: {e}", exc_info=True)
+    return transactions

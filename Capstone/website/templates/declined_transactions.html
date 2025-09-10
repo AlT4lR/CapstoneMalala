@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}DecoOffice - Declined Transactions{% endblock %}
+
+{% block content %}
+<main class="flex-1 p-8 flex flex-col">
+    <header class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Declined Transactions</h2>
+        <!-- Search, etc. can go here -->
+    </header>
+
+    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+        <!-- Table Headers -->
+        <div class="grid grid-cols-6 gap-4 p-4 text-sm font-semibold text-custom-text-dark uppercase bg-table-header-bg">
+            <div class="col-span-1">Name</div>
+            <div>Transaction ID</div>
+            <div>Date & Time</div>
+            <div>Amount</div>
+            <div>Payment Method</div>
+            <div>Status</div>
+        </div>
+
+        <!-- Table Body -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            {% if transactions %}
+                {% for transaction in transactions %}
+                <div class="grid grid-cols-6 gap-4 p-4 text-sm border-b border-gray-200 hover:bg-gray-50">
+                    <div class="col-span-1 font-medium">{{ transaction.name }}</div>
+                    <div class="text-gray-600">{{ transaction.id }}</div>
+                    <div class="text-gray-600">{{ transaction.date }} {{ transaction.time }}</div>
+                    <div class="text-gray-600">₱ {{ "%.2f"|format(transaction.amount) }}</div>
+                    <div class="text-gray-600">{{ transaction.method }}</div>
+                    <div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white bg-red-500">
+                            Declined
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="flex items-center justify-center h-full">
+                <p class="text-gray-500">No declined transactions found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+{% endblock %}

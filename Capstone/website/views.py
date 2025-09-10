@@ -4,38 +4,28 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime, timedelta
 import pytz
-from flask_babel import gettext as _ # Import gettext for i18n
+from flask_babel import gettext as _
 
-# Import model functions directly or via current_app (as done in auth.py and __init__.py)
+# Import model functions
 from .models import (
     add_category, get_user_by_username, add_user, check_password,
     update_last_login, set_user_otp, verify_user_otp, record_failed_login_attempt,
     add_schedule, get_schedules_by_date_range, get_all_categories
 )
+from .forms import TransactionForm
 import logging
 from flask_limiter.util import get_remote_address
-from . import limiter  # Import limiter instance from __init__.py
+from . import limiter
 
 logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
 
-# --- Mock Data (Replace with actual DB queries in a real app) ---
+# --- Mock Data ---
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'}, {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
     {'name': 'KASIGLAHAN', 'icon': 'building_icon.png'}, {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
-]
-
-transactions_data = [
-    {'id': '#123456', 'name': 'Jody Sta. Maria', 'date': '2025-05-30', 'time': '10:30 AM', 'amount': 999.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Initial deposit.', 'branch': 'DOUBLE L'},
-    {'id': '#246810', 'name': 'Nenia Ann Valenzuela', 'date': '2025-05-30', 'time': '11:49 AM', 'amount': 10000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Payment for design services.', 'branch': 'DOUBLE L'},
-    {'id': '#368912', 'name': 'Jessilyn Telma', 'date': '2025-06-12', 'time': '02:15 PM', 'amount': 20000.00, 'method': 'Bank-to-Bank', 'status': 'Paid', 'notes': 'Invoice #INV-2025-06-01', 'branch': 'SUB-URBAN'},
-    {'id': '#481216', 'name': 'Shuvee Entrata', 'date': '2025-06-17', 'time': '09:00 AM', 'amount': 2000.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Service fee.', 'branch': 'SUB-URBAN'},
-    {'id': '#5101520', 'name': 'Will Ashley', 'date': '2025-07-01', 'time': '03:45 PM', 'amount': 80000.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Project completion payment.', 'branch': 'KASIGLAHAN'},
-    {'id': '#6121824', 'name': 'Brent Manalo', 'date': '2025-07-01', 'time': '04:00 PM', 'amount': 80000.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'New Project Payment.', 'branch': 'SOUTHVILLE 8B'},
-    {'id': '#6121825', 'name': 'Charlie Fleming', 'date': '2025-07-01', 'time': '04:30 PM', 'amount': 80000.00, 'method': 'Bank-to-Bank', 'status': 'Pending', 'notes': 'Consultation Fee.', 'branch': 'SITIO TANAG'},
-    {'id': '#7000000', 'name': 'Alice Smith', 'date': '2025-07-02', 'time': '10:00 AM', 'amount': 5000.00, 'method': 'Cash', 'status': 'Paid', 'notes': 'Consultation.', 'branch': 'DOUBLE L'},
 ]
 
 dummy_inbox_notifications = [
@@ -46,11 +36,6 @@ dummy_inbox_notifications = [
 
 ALL_BRANCH_BUDGET_DATA = {
     'DOUBLE L': [{'label': 'Income', 'value': 40, 'color': '#facc15'}, {'label': 'Spent', 'value': 20, 'color': '#a855f7'}, {'label': 'Savings', 'value': 30, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 10, 'color': '#3b82f6'}],
-    'SUB-URBAN': [{'label': 'Income', 'value': 30, 'color': '#facc15'}, {'label': 'Spent', 'value': 25, 'color': '#a855f7'}, {'label': 'Savings', 'value': 35, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 10, 'color': '#3b82f6'}],
-    'KASIGLAHAN': [{'label': 'Income', 'value': 50, 'color': '#facc15'}, {'label': 'Spent', 'value': 15, 'color': '#a855f7'}, {'label': 'Savings', 'value': 20, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 15, 'color': '#3b82f6'}],
-    'SOUTHVILLE 8B': [{'label': 'Income', 'value': 25, 'color': '#facc15'}, {'label': 'Spent', 'value': 40, 'color': '#a855f7'}, {'label': 'Savings', 'value': 20, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 15, 'color': '#3b82f6'}],
-    'SITIO TANAG': [{'label': 'Income', 'value': 35, 'color': '#facc15'}, {'label': 'Spent', 'value': 30, 'color': '#a855f7'}, {'label': 'Savings', 'value': 20, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 15, 'color': '#3b82f6'}],
-    'DEFAULT': [{'label': 'Income', 'value': 10, 'color': '#facc15'}, {'label': 'Spent', 'value': 20, 'color': '#a855f7'}, {'label': 'Savings', 'value': 30, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 40, 'color': '#3b82f6'}]
 }
 
 archived_items_data = [
@@ -58,322 +43,233 @@ archived_items_data = [
     {'name': 'Jessilyn Telma', 'id': '#368912', 'datetime': '2025-07-01T10:30:00', 'relative_time': '45 minutes ago'}
 ]
 
-analytics_revenue_data = {
-    'month': 'MAY 2025', 'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
-    'legend': [
-        {'label': 'P 100,000', 'color': '#ff0000'}, {'label': 'P 200,000', 'color': '#ffff00'},
-        {'label': 'P 250,000', 'color': '#00ff00'}, {'label': 'P 500,000', 'color': '#00ffff'},
-        {'label': 'P 700,000', 'color': '#0000ff'}, {'label': 'P 1,000,000', 'color': '#ff00ff'},
-    ],
-    'data': [
-        {'value': 'P 200,000', 'percentage': 25, 'color': '#ffff00'},
-        {'value': 'P 500,000', 'percentage': 50, 'color': '#00ffff'},
-        {'value': 'P 700,000', 'percentage': 70, 'color': '#0000ff'},
-        {'value': 'P 1,100,000 (Proj.)', 'percentage': 100, 'color': '#d1d5db'}
-    ]
-}
+analytics_revenue_data = {'month': 'MAY 2025', 'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], 'data': []}
+analytics_supplier_data = []
 
-# Dummy supplier data for analytics page
-analytics_supplier_data = [
-    {'name': 'Supplier A', 'amount': 50000, 'color': '#f87171'},
-    {'name': 'Supplier B', 'amount': 30000, 'color': '#34d399'},
-    {'name': 'Supplier C', 'amount': 20000, 'color': '#60a5fa'},
-]
 
-# --- NEW HELPER FUNCTION ---
+# --- Helper Function ---
 def get_week_start_date_utc(date_obj):
-    """
-    Calculates the start of the week (Sunday) for a given UTC-aware datetime object.
-    """
     if date_obj.tzinfo is None:
-        date_obj = date_obj.replace(tzinfo=pytz.utc) # Ensure it's UTC aware
+        date_obj = date_obj.replace(tzinfo=pytz.utc)
+    days_to_subtract = (date_obj.weekday() + 1) % 7
+    return (date_obj - timedelta(days=days_to_subtract)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    day_of_week = date_obj.weekday() # Monday is 0, Sunday is 6
-    # Calculate days to subtract to get to the previous Sunday.
-    # (day_of_week + 1) % 7 gives days to add to Monday to reach Sunday.
-    # Subtracting this from the current date gets us to the previous Sunday.
-    days_to_subtract = (day_of_week + 1) % 7
-    start_of_week = date_obj - timedelta(days=days_to_subtract)
-    
-    # Set time to the beginning of the day (00:00:00)
-    return start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-# --- END NEW HELPER FUNCTION ---
-
-# --- Route Definitions ---
-
-# --- NEW: Root route handler ---
+# --- Routes ---
 @main.route('/')
 def root_route():
-    """
-    Handles the root URL. Redirects to dashboard if logged in and branch is selected,
-    otherwise redirects to branch selection or login.
-    """
     try:
-        # Attempt to verify the JWT token from cookies.
         verify_jwt_in_request()
-        current_user_identity = get_jwt_identity() # Get user identity if token is valid
-
-        # Check if a branch has been selected
-        selected_branch = session.get('selected_branch')
-
-        if selected_branch:
-            # If logged in and branch selected, redirect to dashboard
-            logger.debug(f"User '{current_user_identity}' is logged in and branch '{selected_branch}' is selected. Redirecting to dashboard.")
+        if session.get('selected_branch'):
             return redirect(url_for('main.dashboard'))
         else:
-            # If logged in but no branch selected, redirect to branch selection page
-            logger.debug(f"User '{current_user_identity}' is logged in but no branch is selected. Redirecting to branches.")
             return redirect(url_for('main.branches'))
-            
-    except Exception as e:
-        # If JWT verification fails (token missing, invalid, or expired),
-        # the user is not logged in, so redirect to the login page.
-        logger.debug(f"JWT verification failed for root route: {e}. Redirecting to login.")
-        # Ensure session is cleared if token is invalid to prevent stale data.
-        session.clear()
+    except Exception:
         return redirect(url_for('auth.login'))
-# --- END NEW ---
 
 @main.route('/branches')
 @jwt_required()
 def branches():
-    current_user_identity = get_jwt_identity()
-    selected_branch = session.get('selected_branch')
-    
-    # Assuming BRANCH_CATEGORIES from your mock data or a DB query
-    # In a real app, you'd fetch actual branch names from your database.
-    available_branches = BRANCH_CATEGORIES # Using mock data for now
-    
     return render_template('branches.html',
-                           username=current_user_identity,
-                           selected_branch=selected_branch,
-                           available_branches=available_branches,
-                           inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=False, # <<< Sidebar is NOT shown on the branches page <<<
-                           show_notifications_button=True)
+                           username=get_jwt_identity(),
+                           available_branches=BRANCH_CATEGORIES,
+                           show_sidebar=False,
+                           show_notifications_button=True,
+                           inbox_notifications=dummy_inbox_notifications)
 
 @main.route('/select_branch/<branch_name>')
 @jwt_required()
 def select_branch(branch_name):
     session['selected_branch'] = branch_name
-    logger.info(f"User '{get_jwt_identity()}' selected branch: {branch_name}")
-    # Redirect to the dashboard. The dashboard route itself handles showing the sidebar.
     return redirect(url_for('main.dashboard'))
 
 @main.route('/dashboard')
 @jwt_required()
 def dashboard():
-    current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-    
     if not selected_branch:
         flash("Please select a branch first.", "info")
         return redirect(url_for('main.branches'))
-
-    current_budget_data = ALL_BRANCH_BUDGET_DATA.get(selected_branch, ALL_BRANCH_BUDGET_DATA['DEFAULT'])
-    
     return render_template('dashboard.html',
-                           username=current_user_identity, 
+                           username=get_jwt_identity(),
                            selected_branch=selected_branch,
-                           inbox_notifications=dummy_inbox_notifications,
-                           chart_data=current_budget_data,
-                           show_sidebar=True, # <<< Ensures sidebar is shown on dashboard page
-                           show_notifications_button=True)
+                           chart_data=ALL_BRANCH_BUDGET_DATA.get(selected_branch, {}),
+                           show_sidebar=True,
+                           show_notifications_button=True,
+                           inbox_notifications=dummy_inbox_notifications)
 
 @main.route('/transactions/paid')
 @jwt_required()
 def transactions_paid():
-    current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-
     if not selected_branch:
         flash("Please select a branch to view transactions.", "info")
         return redirect(url_for('main.branches'))
-    
-    paid_transactions = [t for t in transactions_data if t['status'] == 'Paid' and t['branch'] == selected_branch]
-    
+    paid_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Paid')
     return render_template('paid_transactions.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=selected_branch,
                            transactions=paid_transactions,
-                           inbox_notifications=dummy_inbox_notifications,
                            current_filter='paid',
-                           show_sidebar=True, # <<< Ensure sidebar is shown
-                           show_notifications_button=True)
+                           show_sidebar=True,
+                           show_notifications_button=True,
+                           inbox_notifications=dummy_inbox_notifications)
 
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
-    current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-
     if not selected_branch:
         flash("Please select a branch to view transactions.", "info")
         return redirect(url_for('main.branches'))
-    
-    pending_transactions = [t for t in transactions_data if t['status'] == 'Pending' and t['branch'] == selected_branch]
-    
+    pending_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Pending')
     return render_template('pending_transactions.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=selected_branch,
                            transactions=pending_transactions,
-                           inbox_notifications=dummy_inbox_notifications,
                            current_filter='pending',
-                           show_sidebar=True, # <<< Ensure sidebar is shown
-                           show_notifications_button=True)
+                           show_sidebar=True,
+                           show_notifications_button=True,
+                           inbox_notifications=dummy_inbox_notifications)
+
+@main.route('/transactions/declined')
+@jwt_required()
+def transactions_declined():
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        flash("Please select a branch to view transactions.", "info")
+        return redirect(url_for('main.branches'))
+    declined_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Declined')
+    return render_template('declined_transactions.html',
+                           username=get_jwt_identity(),
+                           selected_branch=selected_branch,
+                           transactions=declined_transactions,
+                           current_filter='declined',
+                           show_sidebar=True,
+                           show_notifications_button=True,
+                           inbox_notifications=dummy_inbox_notifications)
 
 @main.route('/add-transaction', methods=['GET', 'POST'])
 @jwt_required()
 def add_transaction():
     current_user_identity = get_jwt_identity()
-    selected_branch = session.get('selected_branch') 
+    selected_branch = session.get('selected_branch')
+    form = TransactionForm()
 
     if not selected_branch:
         flash("Please select a branch before adding a transaction.", "error")
         return redirect(url_for('main.branches'))
 
-    if request.method == 'POST':
-        name = request.form.get('name')
-        transaction_id = request.form.get('transaction_id')
-        date_time_str = request.form.get('date_time')
-        amount = request.form.get('amount')
-        payment_method = request.form.get('payment_method')
-        status = request.form.get('status')
+    if form.validate_on_submit():
+        form_data = {
+            'name': request.form.get('name'),
+            'transaction_id': request.form.get('transaction_id'),
+            'date_time': request.form.get('date_time'),
+            'amount': request.form.get('amount'),
+            'payment_method': request.form.get('payment_method'),
+            'status': request.form.get('status')
+        }
 
-        if not all([name, transaction_id, date_time_str, amount, payment_method, status]):
+        if not all(form_data.values()):
             flash('All transaction fields are required.', 'error')
-            # Re-render with form data to show errors
-            return render_template('add_transaction.html',
-                                   username=current_user_identity,
-                                   selected_branch=selected_branch,
-                                   inbox_notifications=dummy_inbox_notifications,
-                                   show_sidebar=True, # <<< Ensure sidebar is shown
-                                   show_notifications_button=True,
-                                   transaction_data={ # Pass form data back
-                                       'name': name, 'transaction_id': transaction_id,
-                                       'date_time': date_time_str, 'amount': amount,
-                                       'payment_method': payment_method, 'status': status
-                                   })
+        else:
+            try:
+                datetime_naive = datetime.fromisoformat(form_data['date_time'])
+                datetime_utc = pytz.utc.localize(datetime_naive)
 
-        try:
-            # Parse the datetime string from the input. It's typically in the user's local time.
-            transaction_datetime_local_naive = datetime.fromisoformat(date_time_str)
-            
-            # Assume this naive datetime represents the user's local time.
-            # Convert it to UTC for consistent storage.
-            # This assumes the system's local timezone is correctly set for conversion.
-            # A more robust solution might involve JavaScript to detect the user's TZ.
-            transaction_datetime_utc = pytz.timezone('UTC').localize(transaction_datetime_local_naive)
+                new_transaction_data = {
+                    'name': form_data['name'],
+                    'transaction_id': form_data['transaction_id'],
+                    'datetime_utc': datetime_utc,
+                    'amount': float(form_data['amount']),  # FIXED: cast to float
+                    'payment_method': form_data['payment_method'],
+                    'status': form_data['status']
+                }
 
-            # For display, format the UTC time in a user-friendly way.
-            transaction_date_display = transaction_datetime_utc.strftime('%m/%d/%Y')
-            transaction_time_display = transaction_datetime_utc.strftime('%I:%M %p') # AM/PM format
+                if current_app.add_transaction(current_user_identity, selected_branch, new_transaction_data):
+                    flash('Successfully Added a Transaction!', 'success')
+                    if form_data['status'] == 'Paid':
+                        return redirect(url_for('main.transactions_paid'))
+                    elif form_data['status'] == 'Pending':
+                        return redirect(url_for('main.transactions_pending'))
+                    else:
+                        return redirect(url_for('main.transactions_declined'))
+                else:
+                    flash('An error occurred while adding the transaction.', 'error')
+            except ValueError:
+                flash('Invalid date or amount format.', 'error')
 
-            transactions_data.append({
-                'id': transaction_id, 'name': name, 'date': transaction_date_display,
-                'time': transaction_time_display, 'amount': float(amount),
-                'method': payment_method, 'status': status, 'notes': 'Added via form.',
-                'branch': selected_branch
-            })
+        return render_template('add_transaction.html',
+                               username=current_user_identity,
+                               selected_branch=selected_branch,
+                               inbox_notifications=dummy_inbox_notifications,
+                               show_sidebar=True,
+                               show_notifications_button=True,
+                               form=form,
+                               transaction_data=form_data)
 
-            flash('Successfully Added a Transaction!', 'success')
-            
-            # Redirect based on status
-            if status == 'Paid':
-                return redirect(url_for('main.transactions_paid'))
-            elif status == 'Pending':
-                return redirect(url_for('main.transactions_pending'))
-            else: # Fallback redirect if status is something else
-                return redirect(url_for('main.transactions_paid'))
-
-        except ValueError:
-            flash('Invalid date or amount format.', 'error')
-            # Re-render with form data and error
-            return render_template('add_transaction.html',
-                                   username=current_user_identity,
-                                   selected_branch=selected_branch,
-                                   inbox_notifications=dummy_inbox_notifications,
-                                   show_sidebar=True, # <<< Ensure sidebar is shown
-                                   show_notifications_button=True,
-                                   transaction_data={ # Pass form data back
-                                       'name': name, 'transaction_id': transaction_id,
-                                       'date_time': date_time_str, 'amount': amount,
-                                       'payment_method': payment_method, 'status': status
-                                   })
-
-    # For GET requests, render the form template
     return render_template('add_transaction.html',
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
-                           show_notifications_button=True)
+                           show_sidebar=True,
+                           show_notifications_button=True,
+                           form=form)
 
 @main.route('/archive')
 @jwt_required()
 def archive():
-    current_user_identity = get_jwt_identity()
     return render_template('_archive.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=session.get('selected_branch'),
                            archived_items=archived_items_data,
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)
 
 @main.route('/billings')
 @jwt_required()
-def wallet(): # Route name 'wallet' for 'billings.html' template
-    current_user_identity = get_jwt_identity()
+def wallet():
     return render_template('billings.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)
 
 @main.route('/analytics')
 @jwt_required()
 def analytics():
-    current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-    
     if not selected_branch:
         flash("Please select a branch to view analytics.", "info")
         return redirect(url_for('main.branches'))
-
-    # Use current_app to access model functions if needed for dynamic data
-    current_revenue_data = ALL_BRANCH_BUDGET_DATA.get(selected_branch, ALL_BRANCH_BUDGET_DATA['DEFAULT'])
-    
     return render_template('analytics.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=selected_branch,
                            revenue_data=analytics_revenue_data,
                            suppliers=analytics_supplier_data,
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)
 
 @main.route('/notifications')
 @jwt_required()
 def notifications():
-    current_user_identity = get_jwt_identity()
     return render_template('notifications.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)
 
 @main.route('/invoice')
 @jwt_required()
 def invoice():
-    current_user_identity = get_jwt_identity()
     return render_template('invoice.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)
 
 @main.route('/schedules', methods=['GET'])
@@ -381,154 +277,38 @@ def invoice():
 def schedules():
     current_user_identity = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-
     if not selected_branch:
         flash("Please select a branch to view schedules.", "info")
         return redirect(url_for('main.branches'))
-
-    # Use current_app to access model functions
     categories = current_app.get_all_categories(current_user_identity)
-
-    # Determine current date for calendar view, ensuring UTC awareness
-    # If year, month, day are provided, use them; otherwise, default to today in UTC.
     today_utc = datetime.now(pytz.utc)
-    year = request.args.get('year', type=int)
-    month = request.args.get('month', type=int)
-    day = request.args.get('day', type=int)
-
-    current_date_utc = today_utc # Default to today in UTC
-
-    if year and month and day:
-        try:
-            current_date_utc = datetime(year, month, day, tzinfo=pytz.utc)
-        except ValueError:
-            flash("Invalid date parameters.", "error")
-            # Keep current_date_utc as today_utc
-    elif year and month:
-        try:
-            # For month/year views, default to the first day of the month in UTC
-            current_date_utc = datetime(year, month, 1, tzinfo=pytz.utc)
-        except ValueError:
-            flash("Invalid year or month.", "error")
-            # Keep current_date_utc as today_utc
-    # If only year is provided, or no date params, it defaults to today_utc.
-
-    # Calculate start date for mini-calendar (ensure it starts on a Sunday and is UTC aware)
-    # Use the helper function to get the start of the week for the current date
+    try:
+        current_date_utc = datetime(
+            request.args.get('year', today_utc.year, type=int),
+            request.args.get('month', today_utc.month, type=int),
+            request.args.get('day', today_utc.day, type=int),
+            tzinfo=pytz.utc
+        )
+    except ValueError:
+        flash("Invalid date parameters.", "error")
+        current_date_utc = today_utc
     mini_cal_start_date = get_week_start_date_utc(current_date_utc)
-
-    # Pass current_date_utc to the template in ISO format for JS to parse
     return render_template('schedules.html',
                            username=current_user_identity,
                            selected_branch=selected_branch,
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True,
-                           FLASK_INITIAL_DATE_ISO=current_date_utc.isoformat(), # Pass as ISO string
+                           FLASK_INITIAL_DATE_ISO=current_date_utc.isoformat(),
                            categories=categories,
-                           mini_cal_start_date=mini_cal_start_date) # Pass mini calendar start date
-
-# --- API Routes for Schedules ---
-@main.route('/api/schedules', methods=['GET'])
-@jwt_required()
-# Use the globally imported limiter instance
-@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
-                           error_message="Too many requests. Please try again later.")
-def api_get_schedules():
-    current_user_identity = get_jwt_identity()
-    start_date_str = request.args.get('start')
-    end_date_str = request.args.get('end')
-
-    if not start_date_str or not end_date_str:
-        return jsonify({'error': 'Missing start or end date parameters.'}), 400
-
-    try:
-        # Parse ISO format strings, ensuring they are timezone-aware (UTC)
-        # .replace('Z', '+00:00') correctly handles ISO strings ending in Z
-        start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).astimezone(pytz.utc)
-        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')).astimezone(pytz.utc)
-    except ValueError:
-        return jsonify({'error': 'Invalid date format. Use ISO 8601.'}), 400
-
-    # Use current_app to access model functions
-    schedules = current_app.get_schedules_by_date_range(current_user_identity, start_date, end_date)
-    return jsonify(schedules)
-
-@main.route('/api/schedules', methods=['POST'])
-@jwt_required()
-@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
-                           error_message="Too many requests. Please try again later.")
-def api_create_schedule():
-    current_user_identity = get_jwt_identity()
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No JSON data provided.'}), 400
-
-    title = data.get('title')
-    start_time_str = data.get('start_time')
-    end_time_str = data.get('end_time')
-    category = data.get('category')
-    notes = data.get('notes')
-
-    if not all([title, start_time_str, end_time_str, category]):
-        return jsonify({'error': 'Missing required fields (title, start_time, end_time, category).'}), 400
-
-    try:
-        # Parse ISO format strings, ensuring they are timezone-aware (UTC)
-        start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00')).astimezone(pytz.utc)
-        end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00')).astimezone(pytz.utc)
-        
-        if start_time >= end_time:
-            return jsonify({'error': 'Start time must be before end time.'}), 400
-            
-    except ValueError:
-        return jsonify({'error': 'Invalid date/time format. Use ISO 8601.'}), 400
-
-    # Use current_app to access model functions
-    if current_app.add_schedule(current_user_identity, title, start_time, end_time, category, notes):
-        # Flash message is typically for HTML responses, not JSON APIs
-        # If you need to return success messages for API calls, JSON is better.
-        return jsonify({'message': 'Schedule created successfully!'}), 201
-    else:
-        return jsonify({'error': 'Failed to create schedule.'}), 500
-
-@main.route('/api/categories', methods=['GET'])
-@jwt_required()
-@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
-                           error_message="Too many requests. Please try again later.")
-def api_get_categories():
-    current_user_identity = get_jwt_identity()
-    # Use current_app to access model functions
-    categories = current_app.get_all_categories(current_user_identity)
-    return jsonify(categories)
-
-@main.route('/api/categories', methods=['POST'])
-@jwt_required()
-@limiter.limit("100 per hour; 10 per minute", key_func=get_remote_address, 
-                           error_message="Too many requests. Please try again later.")
-def api_add_category():
-    current_user_identity = get_jwt_identity()
-    data = request.get_json()
-    category_name = data.get('category_name')
-
-    if not category_name:
-        return jsonify({'error': 'Category name is required.'}), 400
-
-    # Use current_app to access model functions
-    if current_app.add_category(current_user_identity, category_name):
-        # Flash message might not be visible on API responses
-        return jsonify({'message': f"Category '{category_name}' added successfully."}), 201
-    else:
-        return jsonify({'error': 'Failed to add category.'}), 500
+                           mini_cal_start_date=mini_cal_start_date)
 
 @main.route('/settings')
 @jwt_required()
 def settings():
-    current_user_identity = get_jwt_identity()
     return render_template('settings.html',
-                           username=current_user_identity,
+                           username=get_jwt_identity(),
                            selected_branch=session.get('selected_branch'),
                            inbox_notifications=dummy_inbox_notifications,
-                           show_sidebar=True, # <<< Ensure sidebar is shown
+                           show_sidebar=True,
                            show_notifications_button=True)

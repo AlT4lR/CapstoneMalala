@@ -2,69 +2,59 @@
 
 {% block title %}DecoOffice - Add Transactions{% endblock %}
 
-{% block head %}
-    {# Custom CSS for input-with-arrow is now globally handled or in a dedicated file. #}
-    {# If still needed specifically for this page's styling, it can be placed here again. #}
-{% endblock %}
-
 {% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Add Transactions</h2>
-            <!-- Notification button -->
-            {% include "_notification_button.html" %}
-        </header>
+<main class="flex-1 p-8 flex flex-col">
+    <header class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Add Transactions</h2>
+        {% include "_notification_button.html" %}
+    </header>
 
-        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-            {# Flash messages are handled globally by base.html #}
+    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            
+            {{ form.hidden_tag() }}  <!-- CSRF TOKEN FIX -->
 
-            {# Form for adding a new transaction #}
-            <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                <div>
-                    <label for="name" class="block text-gray-600 text-sm font-semibold mb-2">Name</label>
-                    <input type="text" id="name" name="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="Enter transaction name" required>
-                </div>
-                <div>
-                    <label for="transaction_id" class="block text-gray-600 text-sm font-semibold mb-2">Transaction ID</label>
-                    <input type="text" id="transaction_id" name="transaction_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="#" required>
-                </div>
-                <div>
-                    <label for="date_time" class="block text-gray-600 text-sm font-semibold mb-2">Date & Time</label>
-                    <input type="datetime-local" id="date_time" name="date_time" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
-                </div>
-                <div>
-                    <label for="amount" class="block text-gray-600 text-sm font-semibold mb-2">Amount</label>
-                    <input type="number" id="amount" name="amount" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="Enter amount" required>
-                </div>
-                <div>
-                    <label for="payment_method" class="block text-gray-600 text-sm font-semibold mb-2">Payment Method</label>
-                    <select id="payment_method" name="payment_method" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
-                        <option value="" disabled selected>Select method</option>
-                        <option value="Bank-to-Bank">Bank-to-Bank</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="E-Wallet">E-Wallet</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="status" class="block text-gray-600 text-sm font-semibold mb-2">Status</label>
-                    <select id="status" name="status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active input-with-arrow" required>
-                        <option value="" disabled selected>Select status</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Declined">Declined</option>
-                    </select>
-                </div>
+            <div>
+                <label for="name" class="block text-gray-600 text-sm font-semibold mb-2">Name</label>
+                <input type="text" id="name" name="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-custom-green-active" placeholder="Enter name" required>
+            </div>
+            <div>
+                <label for="transaction_id" class="block text-gray-600 text-sm font-semibold mb-2">Transaction ID</label>
+                <input type="text" id="transaction_id" name="transaction_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="#" required>
+            </div>
+            <div>
+                <label for="date_time" class="block text-gray-600 text-sm font-semibold mb-2">Date & Time</label>
+                <input type="datetime-local" id="date_time" name="date_time" class="w-full px-4 py-3 border border-gray-300 rounded-lg" required>
+            </div>
+            <div>
+                <label for="amount" class="block text-gray-600 text-sm font-semibold mb-2">Amount</label>
+                <input type="number" id="amount" name="amount" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Enter amount" required>
+            </div>
+            <div>
+                <label for="payment_method" class="block text-gray-600 text-sm font-semibold mb-2">Payment Method</label>
+                <select id="payment_method" name="payment_method" class="w-full px-4 py-3 border border-gray-300 rounded-lg" required>
+                    <option value="" disabled selected>Select method</option>
+                    <option value="Bank-to-Bank">Bank-to-Bank</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="E-Wallet">E-Wallet</option>
+                </select>
+            </div>
+            <div>
+                <label for="status" class="block text-gray-600 text-sm font-semibold mb-2">Status</label>
+                <select id="status" name="status" class="w-full px-4 py-3 border border-gray-300 rounded-lg" required>
+                    <option value="" disabled selected>Select status</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Declined">Declined</option>
+                </select>
+            </div>
 
-                <div class="md:col-span-2 flex justify-center mt-8 space-x-6">
-                    <button type="reset" class="px-8 py-3 bg-custom-green-darker hover:bg-custom-green-active text-white font-semibold rounded-lg shadow-md transition-colors">Reset</button>
-                    <button type="submit" class="px-8 py-3 bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold rounded-lg shadow-md transition-colors">Add</button>
-                </div>
-            </form>
-        </div>
-    </main>
-{% endblock %}
-
-{% block scripts %}
-    {# No page-specific scripts needed here #}
+            <div class="md:col-span-2 flex justify-center mt-8 space-x-6">
+                <button type="reset" class="px-8 py-3 bg-custom-green-darker hover:bg-custom-green-active text-white font-semibold rounded-lg shadow-md">Reset</button>
+                <button type="submit" class="px-8 py-3 bg-custom-green-active hover:bg-custom-green-darker text-white font-semibold rounded-lg shadow-md">Add</button>
+            </div>
+        </form>
+    </div>
+</main>
 {% endblock %}

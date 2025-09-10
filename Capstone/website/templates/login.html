@@ -1,9 +1,8 @@
-<!-- templates/login.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - DecoOffice</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,144 +10,122 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome CDN -->
+    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #aab8a8; border-radius: 10px; } /* Muted green scrollbar thumb */
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8aa188; } /* Darker muted green on hover */
-
-        /* Flash message animation */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
+        /* Custom styles for input icons */
+        .input-icon-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
         }
-        .flash-message-local.fade-out {
-            opacity: 0;
+        .input-icon-wrapper i {
+            position: absolute;
+            right: 1rem; /* 16px */
+            color: #aab8a8; /* Muted green color for icons */
         }
-        /* Input field focus styles */
-        .focus\:ring-custom-green-active:focus {
-            --tw-ring-color: #8aa188; /* Muted green for focus ring */
-            --tw-ring-offset-color: #8aa188; /* Muted green for focus ring offset */
+        .input-icon-wrapper input {
+            padding-right: 2.5rem; /* 40px to make space for the icon */
         }
-        /* Password toggle icon styles */
-        .password-toggle-icon {
-            cursor: pointer;
-            color: #9ca3af; /* Gray-400 */
-            transition: color 0.2s ease-in-out;
-        }
-        .password-toggle-icon:hover {
-            color: #374151; /* Gray-700 */
-        }
-        /* Custom styles for the rounded corners of the panels */
-        .panel-rounded-l { border-top-left-radius: 2rem; border-bottom-left-radius: 2rem; }
-        .panel-rounded-r { border-top-right-radius: 2rem; border-bottom-right-radius: 2rem; }
     </style>
-    <!-- CSRF token meta tag -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script>
-        // Tailwind configuration
+        // Use the same Tailwind config from your base.html for consistency
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { poppins: ['Poppins', 'sans-serif'] },
                     colors: {
-                        'custom-bg': '#f5f5f0', /* Light creamy background */
-                        'custom-green-active': '#8aa188', /* Muted green for active elements */
-                        'custom-green-darker': '#6f8a6e', /* Darker green for buttons/accents */
-                        'google-button-bg': '#E8F0FE', /* Light blue for Google button background */
-                        'google-button-text': '#4285F4', /* Google blue for text */
-                        'success-bg': '#d4edda', /* For flash messages */
-                        'success-text': '#155724', /* For flash messages */
-                        'success-border': '#c3e6cb', /* For flash messages */
+                        'custom-bg': '#f5f5f0',            /* Light creamy background */
+                        'custom-sidebar': '#d7e0d3',      /* Muted green for sidebar */
+                        'custom-green-active': '#8aa188', /* Primary muted green */
+                        'custom-text-dark': '#3a3a3a',    /* Dark text color */
+                        'custom-green-darker': '#6f8a6e', /* Darker muted green */
+                        'custom-logo-text': '#f6f6e9',    /* Off-white for logo text */
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-900 font-poppins antialiased"> <!-- Dark background for the whole viewport -->
+<body class="bg-gray-900 font-poppins antialiased">
 
-    <div class="flex h-screen">
-
-        <!-- Left Panel: Login Form -->
-        <div class="flex-1 bg-custom-bg flex flex-col justify-center items-center p-10 panel-rounded-l">
-            <h2 class="text-2xl font-bold text-custom-green-darker mb-8">Login</h2>
-
-            <!-- Flash messages -->
-            <div id="flash-messages-container" class="mb-5 flash-message-local w-full max-w-sm">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="p-3 mb-4 rounded-md text-center text-sm font-medium
-                                {% if category == 'success' %}
-                                    bg-success-bg text-success-text border border-success-border
-                                {% elif category == 'error' %}
-                                    bg-[#d9534f] text-white
-                                {% else %}
-                                    bg-gray-200 text-gray-800
-                                {% endif %}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+<div class="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="relative w-full max-w-4xl mx-auto bg-custom-bg rounded-2xl shadow-2xl overflow-hidden grid md:grid-cols-2">
+        
+        <!-- Left Panel (Welcome Message) -->
+        <div class="hidden md:flex flex-col items-center justify-center p-12 text-center bg-custom-green-darker text-white rounded-tr-[100px] rounded-br-[100px]">
+            <div class="max-w-xs">
+                <h1 class="text-4xl font-bold mb-4">Hello, Welcome!</h1>
+                <p class="text-custom-logo-text mb-8">Need an account? Click below.</p>
+                <a href="{{ url_for('auth.register') }}" class="inline-block w-full py-3 px-6 border-2 border-white rounded-full font-semibold hover:bg-white hover:text-custom-green-darker transition-colors duration-300">
+                    Sign Up
+                </a>
             </div>
+        </div>
 
-            <form action="{{ url_for('auth.login_post') }}" method="POST" class="w-full max-w-sm">
-                <!-- CSRF token -->
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- Right Panel (Login Form) -->
+        <div class="flex flex-col items-center justify-center p-8 sm:p-12">
+            <h2 class="text-3xl font-bold text-custom-green-darker mb-8">Login</h2>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="w-full mb-4">
+                    {% for category, message in messages %}
+                        <div class="p-3 rounded-md text-white text-sm {{ 'bg-red-500' if category == 'error' else 'bg-blue-500' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('auth.login') }}" method="POST" class="w-full space-y-5">
+                {{ form.hidden_tag() }} <!-- CSRF Token -->
 
                 <!-- Username Input -->
-                <div class="relative mb-5">
-                    <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" name="username" placeholder="Username" required
-                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
+                <div class="input-icon-wrapper">
+                    {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active", placeholder="Username") }}
+                    <i class="fas fa-user"></i>
                 </div>
 
                 <!-- Password Input -->
-                <div class="relative mb-5">
-                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" name="password" id="login-password" placeholder="Password" required
-                           class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white text-custom-text-dark">
-                    <!-- The eye icon for password visibility toggle -->
-                    <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 password-toggle-icon"></i>
+                <div class="input-icon-wrapper">
+                    {{ form.password(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active", placeholder="Password") }}
+                    <i class="fas fa-lock"></i>
                 </div>
 
-                <div class="flex justify-between items-center mb-5">
-                    <a href="#" class="text-custom-green-active text-sm hover:underline">Forgot your password?</a>
-                    <!-- Login Button -->
-                    <button type="submit" class="bg-custom-green-darker text-white py-2 px-6 rounded-full font-bold shadow-md hover:bg-custom-green-active transition-colors">Login</button>
+                <div class="text-right text-sm">
+                    <a href="#" class="font-semibold text-custom-green-darker hover:underline">Forgot your password?</a>
                 </div>
 
-                <!-- Divider -->
-                <div class="flex items-center my-6">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="flex-shrink mx-4 text-gray-500">or login with</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
+                <!-- Login Button -->
+                <button type="submit" class="w-full bg-custom-green-darker text-white p-3 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
+                    Login
+                </button>
+
+                <!-- Separator -->
+                <div class="flex items-center my-4">
+                    <hr class="flex-grow border-t border-gray-300">
+                    <span class="px-3 text-gray-500 text-sm">or login with</span>
+                    <hr class="flex-grow border-t border-gray-300">
                 </div>
 
                 <!-- Google Login Button -->
-                <button type="button" class="w-full bg-google-button-bg text-google-button-text py-3 rounded-full font-bold shadow-md hover:bg-gray-200 transition-colors flex items-center justify-center google-button-shadow">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" class="w-6 h-6 mr-3">
+                <button type="button" class="w-full bg-custom-green-active text-white p-3 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
                     Continue with Google
                 </button>
             </form>
-        </div>
-
-        <!-- Right Panel: Welcome/Prompt Section -->
-        <div class="w-1/2 bg-custom-green-darker flex flex-col justify-center items-center p-10 panel-rounded-r text-white">
-            <h2 class="text-2xl font-bold mb-4">Hello, Welcome!</h2>
-            <p class="text-center mb-8">Already have an account? Click below.</p>
-            <a href="{{ url_for('auth.register') }}" class="border border-white text-white bg-transparent hover:bg-white hover:text-custom-green-darker py-3 px-8 rounded-full font-bold transition-all duration-300">
-                Sign Up
-            </a>
+            
+            <!-- Mobile Sign Up Link -->
+            <div class="md:hidden mt-8 text-sm">
+                 <p class="text-gray-600">
+                    Need an account? <a href="{{ url_for('auth.register') }}" class="font-semibold text-custom-green-darker hover:underline">Sign Up</a>
+                </p>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Include login.js for password toggle functionality -->
-    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>
