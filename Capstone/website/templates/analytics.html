@@ -2,90 +2,73 @@
 
 {% block title %}DecoOffice - Analytics{% endblock %}
 
-{% block head %}
-    {# No page-specific head content needed here as common styles are in base.html #}
-{% endblock %}
-
 {% block content %}
-    <main class="flex-1 p-6 flex gap-6 overflow-hidden">
-        <!-- Left Column: Revenue Chart -->
-        <div class="flex-1 bg-white/50 border border-gray-200 rounded-xl p-6 flex flex-col">
-            <!-- Centered Header Section -->
-            <div class="text-center">
-                <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Total Revenue Per Branch</h2>
-                <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
-                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
-                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
-                    <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
-                </div>
-                <div class="flex justify-center items-center flex-wrap gap-x-4 gap-y-1 my-2 text-xs text-gray-500">
-                    {% for item in revenue_data.legend %}
-                    {# Added fallback color and ensured item.color is correctly referenced #}
-                    <div class="flex items-center gap-1.5">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color|default('#cccccc') }};"></span>
-                        {{ item.label }}
-                    </div>
-                    {% endfor %}
-                </div>
-                <div class="text-lg font-semibold text-gray-600 uppercase mt-2">{{ selected_branch or 'All Branches' }}</div>
+<main class="flex-1 p-6 flex gap-6 overflow-hidden">
+    <!-- Left Column: Revenue Chart -->
+    <div class="flex-1 bg-white/50 border border-gray-200 rounded-xl p-6 flex flex-col">
+        <!-- Centered Header Section -->
+        <div class="text-center">
+            <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Total Revenue Per Branch</h2>
+            <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
+                <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
+                <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
+                <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
             </div>
-
-            <!-- Bar Chart Area -->
-            <div class="flex-grow flex flex-col justify-end mt-4 min-h-0">
-                <div class="flex-grow flex items-stretch">
-                     <!-- Y-Axis Labels -->
-                    <div class="flex flex-col justify-between text-right text-sm text-gray-500 py-1 pr-2">
-                         {% for week in revenue_data.labels | reverse %}
-                         <span>{{ week }}</span>
-                         {% endfor %}
-                    </div>
-                     <!-- Bars and X-Axis Container -->
-                    <div class="flex-1 h-full border-l border-b border-gray-300 flex justify-around items-end px-2 pt-2">
-                        {% for item in revenue_data.data %}
-                        <div class="w-full h-full flex justify-center items-end" title="{{ item.value }}">
-                            {# Corrected potential issue with inline style - ensuring it's valid #}
-                            <div class="w-10 md:w-12 rounded-t-md transition-all duration-500 ease-out"
-                                 {% if item.percentage is defined and item.color is defined %}
-                                 style="height: {{ item.percentage|default(0) }}%; background-color: {{ item.color|default('#cccccc') }};"
-                                 {% else %}
-                                 style="height: 0%; background-color: #cccccc;"
-                                 {% endif %}>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <!-- Centered Footer -->
-                <div class="text-center mt-4">
-                    <p class="text-sm font-semibold text-gray-600">{{ revenue_data.month }}</p>
-                    <button class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100">change month <i class="fa-solid fa-rotate text-xxs ml-1"></i></button>
-                </div>
+            <div class="flex justify-center items-center flex-wrap gap-x-4 gap-y-1 my-2 text-xs text-gray-500">
+                {% for item in revenue_data.legend %}
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color|default('#cccccc') }};"></span>{{ item.label }}</div>
+                {% endfor %}
             </div>
+            <div class="text-lg font-semibold text-gray-600 uppercase mt-2">{{ selected_branch or 'All Branches' }}</div>
         </div>
 
-        <!-- Right Column: Supplier Performance -->
-        <div class="flex-shrink-0 flex-basis-1/3 max-w-sm flex flex-col">
-            <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider mb-4 px-2">Supplier Performance</h2>
-            <div class="flex-grow bg-supplier-card-bg rounded-xl p-3 overflow-y-auto custom-scrollbar">
-                <div class="space-y-3">
-                    {% for supplier in suppliers %}
-                    <div class="bg-slate-800 p-4 rounded-lg text-white/90">
-                        <p class="font-bold text-base mb-2">{{ supplier.name }}</p>
-                        <div class="space-y-1 text-sm text-gray-300">
-                            <div class="flex justify-between"><span>Score [0-100]:</span> <span class="font-medium text-white">{{ supplier.score }}</span></div>
-                            <div class="flex justify-between"><span>On-Time Delivery:</span> <span class="font-medium text-white">{{ supplier.delivery }}%</span></div>
-                            <div class="flex justify-between"><span>Defect Rate:</span> <span class="font-medium text-white">{{ supplier.defects }}%</span></div>
-                            <div class="flex justify-between"><span>Cost Variance:</span> <span class="font-medium text-white">{{ '%+.1f'|format(supplier.variance) }}%</span></div>
-                            <div class="flex justify-between"><span>Average Lead Time (Days):</span> <span class="font-medium text-white">{{ supplier.lead_time }}</span></div>
-                        </div>
+        <!-- Bar Chart Area -->
+        <div class="flex-grow flex flex-col justify-end mt-4 min-h-0">
+            <div class="flex-grow flex items-stretch">
+                 <!-- Y-Axis Labels -->
+                <div class="flex flex-col justify-between text-right text-sm text-gray-500 py-1 pr-2">
+                     {% for week in revenue_data.labels | reverse %}
+                     <span>{{ week }}</span>
+                     {% endfor %}
+                </div>
+                 <!-- Bars and X-Axis Container -->
+                <div class="flex-1 h-full border-l border-b border-gray-300 flex justify-around items-end px-2 pt-2">
+                    {% for item in revenue_data.data %}
+                    <div class="w-full h-full flex justify-center items-end" title="{{ item.value }}">
+                        <div class="w-10 md:w-12 rounded-t-md transition-all duration-500 ease-out" style="height: {{ item.percentage|default(0) }}%; background-color: {{ item.color|default('#cccccc') }};"></div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
+            <!-- Centered Footer -->
+            <div class="text-center mt-4">
+                <p class="text-sm font-semibold text-gray-600">{{ revenue_data.month }}</p>
+                <button class="text-xs text-gray-500 border border-gray-300 px-3 py-1 rounded-full hover:bg-gray-100">change month <i class="fa-solid fa-rotate text-xxs ml-1"></i></button>
+            </div>
         </div>
-    </main>
-{% endblock %}
+    </div>
 
-{% block scripts %}
-    {# No page-specific scripts needed here #}
+    <!-- Right Column: Supplier Performance -->
+    {# --- THIS IS THE FIX --- #}
+    <div class="flex-shrink-0 basis-1/3 max-w-sm flex flex-col"> {# Changed flex-basis-1/3 to basis-1/3 #}
+    {# --- END FIX --- #}
+        <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider mb-4 px-2">Supplier Performance</h2>
+        <div class="flex-grow bg-supplier-card-bg rounded-xl p-3 overflow-y-auto custom-scrollbar">
+            <div class="space-y-3">
+                {% for supplier in suppliers %}
+                <div class="bg-slate-800 p-4 rounded-lg text-white/90">
+                    <p class="font-bold text-base mb-2">{{ supplier.name }}</p>
+                    <div class="space-y-1 text-sm text-gray-300">
+                        <div class="flex justify-between"><span>Score [0-100]:</span> <span class="font-medium text-white">{{ supplier.score }}</span></div>
+                        <div class="flex justify-between"><span>On-Time Delivery:</span> <span class="font-medium text-white">{{ supplier.delivery }}%</span></div>
+                        <div class="flex justify-between"><span>Defect Rate:</span> <span class="font-medium text-white">{{ supplier.defects }}%</span></div>
+                        <div class="flex justify-between"><span>Cost Variance:</span> <span class="font-medium text-white">{{ '%+.1f'|format(supplier.variance) }}%</span></div>
+                        <div class="flex justify-between"><span>Average Lead Time (Days):</span> <span class="font-medium text-white">{{ supplier.lead_time }}</span></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</main>
 {% endblock %}

@@ -1,46 +1,19 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        {# Use a consistent ID for common JS targeting #}
-        {# This container will be positioned absolutely to overlay the center #}
-        <div id="flash-messages-overlay-container" class="fixed inset-0 z-50 flex items-center justify-center 
-                                                            p-4 flash-message-local 
-                                                            {% if messages|length > 1 %}fade-in-animation{% else %}hidden{% endif %}">
-            <div class="flash-message-overlay-content
-                        {% for category, message in messages %}
-                            {% if loop.first %}
-                                {% if category == 'success' %}
-                                    bg-success-bg text-success-text border border-success-border
-                                {% elif category == 'error' %}
-                                    bg-[#d9534f] text-white border-[#d9534f]
-                                {% else %}
-                                    bg-gray-200 text-gray-800 border-gray-300
-                                {% endif %}
-                            {% elif category == 'success' %}
-                                bg-success-bg text-success-text border border-success-border
-                            {% elif category == 'error' %}
-                                bg-[#d9534f] text-white border-[#d9534f]
-                            {% else %}
-                                bg-gray-200 text-gray-800 border-gray-300
-                            {% endif %}
-                            {% endfor %}
-                        ">
-                {% for category, message in messages %}
-                    <div class="flex items-center gap-2 p-3 
-                                {% if not loop.last %}border-b border-gray-300/50{% endif %}">
-                        {# Icon based on category - you can expand this #}
-                        {% if category == 'success' %}
-                            <i class="fas fa-check-circle text-green-600"></i>
-                        {% elif category == 'error' %}
-                            <i class="fas fa-times-circle text-red-500"></i>
-                        {% elif category == 'info' %}
-                            <i class="fas fa-info-circle text-blue-500"></i>
-                        {% endif %}
-                        <span class="text-sm font-medium">
-                            {{ message }}
-                        </span>
-                    </div>
-                {% endfor %}
-            </div>
+        <div id="flash-messages-overlay-container" class="absolute top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+            {% for category, message in messages %}
+                <div class="flex items-center justify-center p-3 rounded-xl shadow-lg text-sm font-semibold
+                    {% if category == 'success' %}
+                        bg-yellow-200 text-yellow-800 border border-yellow-300
+                    {% elif category == 'error' %}
+                        bg-red-200 text-red-800 border border-red-300
+                    {% else %}
+                        bg-blue-200 text-blue-800 border border-blue-300
+                    {% endif %}
+                    flash-message-local">
+                    {{ message }}
+                </div>
+            {% endfor %}
         </div>
     {% endif %}
 {% endwith %}

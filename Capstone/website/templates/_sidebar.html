@@ -1,59 +1,94 @@
-<!-- Example: website/templates/_sidebar.html -->
-<aside class="w-64 bg-custom-sidebar p-4 flex flex-col text-white h-full" x-data="{ isExpanded: true }">
-    <!-- Logo and Expander -->
-    <div class="flex items-center justify-between mb-8">
-        <span class="text-2xl font-bold text-primary-dark-green" x-show="isExpanded">DecoOffice</span>
-        <button @click="isExpanded = !isExpanded" class="text-primary-dark-green">
-            <i class="fas fa-bars"></i>
-        </button>
+<!-- website/templates/_sidebar.html -->
+<aside class="w-24 hover:w-72 bg-[#eaf0e5] p-4 flex flex-col flex-shrink-0 shadow-lg text-[#3a4d39] transition-all duration-300 ease-in-out group overflow-hidden">
+    <!-- Logo -->
+    <div class="flex items-center gap-4 h-16 shrink-0 px-2 mb-8">
+        <div class="w-16 flex justify-center">
+            <i class="fas fa-th-large text-3xl shrink-0"></i>
+        </div>
+        <span class="text-2xl font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap" style="text-shadow: 1px 1px 2px rgba(255,255,255,0.7);">DecoOffice</span>
     </div>
 
     <!-- Navigation Links -->
-    <nav class="flex flex-col space-y-2">
-        <a href="{{ url_for('main.dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active">
-            <i class="fas fa-home w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Dashboard</span>
+    <nav class="flex flex-col items-center space-y-3 w-full">
+        {% set nav_items = [
+            ('main.dashboard', 'fa-house', 'Home'),
+            ('main.invoice', 'fa-file-lines', 'Invoice'),
+            ('main.wallet', 'fa-dollar-sign', 'Billings'),
+            ('main.analytics', 'fa-chart-line', 'Analytics'),
+            ('main.schedules', 'fa-calendar-days', 'Schedules'),
+            ('main.settings', 'fa-cog', 'Settings')
+        ] %}
+
+        <!-- Home Link -->
+        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-4 w-full h-16 rounded-2xl transition-colors duration-200 {% if request.path == url_for('main.dashboard') %}bg-gradient-to-r from-[#6f8a6e] to-[#8aa188] text-white shadow-lg{% else %}hover:bg-[#d7e0d3]{% endif %}">
+            <div class="w-16 h-16 flex items-center justify-center shrink-0"><i class="fa-regular fa-house text-2xl"></i></div>
+            <span class="font-semibold text-base whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Home</span>
         </a>
 
-        <!-- Transactions Dropdown -->
-        <div x-data="{ open: request.path.startswith('/transactions') }">
-            <a href="#" @click.prevent="open = !open" class="flex items-center justify-between p-3 rounded-lg hover:bg-custom-green-active">
-                <div class="flex items-center">
-                    <i class="fas fa-truck w-6 text-center"></i>
-                    <span x-show="isExpanded" class="ml-4">Transactions</span>
+        <!-- Transaction Item with Integrated Sub-menu -->
+        {% set is_transactions_active = request.path.startswith('/transactions') or request.path.startswith('/add_transaction') %}
+        <a href="{{ url_for('main.transactions_paid') }}" 
+           class="w-full block rounded-2xl transition-colors duration-200 
+                  {% if is_transactions_active %}
+                      bg-gradient-to-r from-[#6f8a6e] to-[#8aa188] text-white shadow-lg
+                  {% else %}
+                      hover:bg-[#d7e0d3]
+                  {% endif %}">
+            
+            <!-- Top part of the link -->
+            <div class="flex items-center gap-4 w-full h-16">
+                <div class="w-16 h-16 flex items-center justify-center shrink-0 relative">
+                    <i class="fa-regular fa-truck text-2xl"></i>
+                    {% if not is_transactions_active %}
+                        <span class="absolute top-4 right-4 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#eaf0e5]"></span>
+                    {% endif %}
                 </div>
-                <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'" x-show="isExpanded"></i>
-            </a>
-            <div x-show="open" x-transition class="pl-8 mt-2 space-y-2 text-sm">
-                <a href="{{ url_for('main.transactions_paid') }}" class="block p-2 rounded-lg hover:bg-custom-green-darker">Paid</a>
-                <a href="{{ url_for('main.transactions_pending') }}" class="block p-2 rounded-lg hover:bg-custom-green-darker">Pending</a>
-                <a href="{{ url_for('main.transactions_declined') }}" class="block p-2 rounded-lg hover:bg-custom-green-darker">Declined</a>
+                <span class="font-semibold text-base whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Transaction</span>
             </div>
-        </div>
-
-        <a href="{{ url_for('main.invoice') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active">
-            <i class="fas fa-file-invoice w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Invoice</span>
+            
+            <!-- Sub-menu (part of the parent link container) -->
+            {% if is_transactions_active %}
+            <div class="hidden group-hover:flex items-start justify-between pl-8 pr-4 pb-4">
+                <!-- Sub-links -->
+                <div class="relative pl-6 space-y-2 text-sm border-l border-white/50">
+                    <a href="{{ url_for('main.transactions_paid') }}" class="block font-semibold opacity-90 hover:opacity-100" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.3);">Paid</a>
+                    <a href="{{ url_for('main.transactions_pending') }}" class="block font-semibold opacity-90 hover:opacity-100" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.3);">Pending</a>
+                    <a href="{{ url_for('main.add_transaction') }}" class="block font-semibold opacity-90 hover:opacity-100" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.3);">Add</a>
+                </div>
+                <!-- Notification Bell -->
+                <div class="relative">
+                    <i class="fa-regular fa-bell text-2xl"></i>
+                    <span class="absolute -top-1 -right-1.5 block h-4 w-4 text-xs text-center rounded-full bg-red-500 text-white ring-2 ring-[#8aa188]">6</span>
+                </div>
+            </div>
+            {% endif %}
         </a>
 
-        <a href="{{ url_for('main.wallet') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active">
-            <i class="fas fa-dollar-sign w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Billings</span>
-        </a>
-
-        <a href="{{ url_for('main.analytics') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active">
-            <i class="fas fa-chart-line w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Analytics</span>
-        </a>
-
-        <a href="{{ url_for('main.schedules') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active">
-            <i class="fas fa-calendar-alt w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Schedules</span>
-        </a>
-        
-        <a href="{{ url_for('main.settings') }}" class="flex items-center p-3 rounded-lg hover:bg-custom-green-active mt-auto">
-            <i class="fas fa-cog w-6 text-center"></i>
-            <span x-show="isExpanded" class="ml-4">Settings</span>
-        </a>
+        <!-- Other Nav Items -->
+        {% for route, icon, name in nav_items %}
+            {% if name not in ['Home', 'Transaction'] %}
+            {% set is_active = request.path == url_for(route) %}
+            <a href="{{ url_for(route) }}" class="flex items-center gap-4 w-full h-16 rounded-2xl transition-colors duration-200 {% if is_active %}bg-gradient-to-r from-[#6f8a6e] to-[#8aa188] text-white shadow-lg{% else %}hover:bg-[#d7e0d3]{% endif %}">
+                <div class="w-16 h-16 flex items-center justify-center shrink-0"><i class="fa-regular {{ icon }} text-2xl"></i></div>
+                <span class="font-semibold text-base whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">{{ name }}</span>
+            </a>
+            {% endif %}
+        {% endfor %}
     </nav>
+
+    <!-- Footer Profile -->
+    <div class="mt-auto shrink-0 flex flex-col items-center w-full space-y-4">
+         <a href="#" class="flex items-center gap-4 w-full h-16 rounded-2xl transition-colors hover:bg-[#d7e0d3]">
+             <div class="w-16 h-16 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-arrow-right-arrow-left text-2xl"></i>
+             </div>
+             <span class="font-semibold text-base whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Branches</span>
+        </a>
+        <div class="flex items-center gap-4 w-full h-16">
+            <div class="w-16 h-16 flex justify-center items-center shrink-0">
+                <div class="w-12 h-12 bg-yellow-300 rounded-full border-2 border-white shadow-md"></div>
+            </div>
+            <span class="font-semibold text-base whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200">Admin</span>
+        </div>
+    </div>
 </aside>

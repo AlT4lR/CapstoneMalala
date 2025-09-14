@@ -13,10 +13,10 @@
     <style>
         /* Basic styling for the error page */
         body { font-family: 'Poppins', sans-serif; }
-        .error-container { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f5f5f0; color: #3a3a3a; }
+        .error-container { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f5f5f0; color: #3a3a3a; text-align: center; padding: 1rem;}
         .error-code { font-size: 6rem; font-weight: 700; color: #e53e3e; /* Red for error */ }
         .error-message { font-size: 1.5rem; font-weight: 600; margin-top: 1rem; }
-        .back-to-home-link { margin-top: 2rem; padding: 0.75rem 1.5rem; background-color: #6f8a6e; /* custom-green-darker */ color: white; border-radius: 0.5rem; font-weight: 500; transition: background-color 0.2s ease-in-out; }
+        .back-to-home-link { margin-top: 2rem; padding: 0.75rem 1.5rem; background-color: #6f8a6e; /* custom-green-darker */ color: white; border-radius: 0.5rem; font-weight: 500; transition: background-color 0.2s ease-in-out; text-decoration: none; }
         .back-to-home-link:hover { background-color: #8aa188; /* custom-green-active */ }
     </style>
 </head>
@@ -24,8 +24,10 @@
     <div class="error-container">
         <div class="error-code">500</div>
         <div class="error-message">Internal Server Error</div>
-        <p class="text-lg text-center px-4">Something went wrong on our end. We're working to fix it!</p>
-        <a href="{{ url_for('main.dashboard') }}" class="back-to-home-link">Go Back to Dashboard</a>
+        <p class="text-lg mt-4">Something went wrong on our end. We're working to fix it!</p>
+
+        <!-- FIX: Changed the url_for endpoint to the login route, which is always available -->
+        <a href="{{ url_for('auth.login') }}" class="back-to-home-link">Go to Login Page</a>
     </div>
 </body>
 </html>

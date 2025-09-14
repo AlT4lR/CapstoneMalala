@@ -1,67 +1,53 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice - Select Branch</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body class="bg-[#3f5f45] font-poppins text-white antialiased">
 
-{% block title %}DecoOffice - Select Branch{% endblock %}
+    <div class="relative min-h-screen flex flex-col items-center justify-center px-6">
 
-{% block head %}
-<style>
-    body {
-        background-color: #4a634e; /* background from screenshot */
-    }
-    .branch-card {
-        width: 16rem;   /* w-64 */
-        height: 24rem;  /* h-96 */
-        border-radius: 0.5rem;
-        transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .card-light {
-        background-color: #a8c3a1; /* light green */
-    }
-    .card-dark {
-        background-color: #6f856f; /* muted dark green */
-        box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.25);
-    }
-    /* Hover swap effect */
-    .card-light:hover {
-        background-color: #6f856f;
-        box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.25);
-    }
-    .card-dark:hover {
-        background-color: #a8c3a1;
-        box-shadow: none;
-    }
-</style>
-{% endblock %}
+        <!-- Header -->
+        <header class="absolute top-0 left-0 w-full p-6 md:p-8">
+            <div class="w-full mx-auto flex justify-between items-center">
+                <h1 class="text-lg md:text-xl font-bold uppercase text-white tracking-wide">
+                    Branches
+                </h1>
+                <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Log out</span>
+                </a>
+            </div>
+        </header>
 
-{% block content %}
-<main class="flex-1 flex flex-col items-center justify-center text-white relative">
+        <!-- Branch Selection Cards -->
+        <main class="flex flex-col md:flex-row justify-center items-center gap-20 md:gap-32 mt-20">
 
-    <!-- Header Section -->
-    <div class="w-full max-w-6xl mx-auto flex justify-between items-center absolute top-8 px-12">
-        <div></div>
-        <h1 class="text-2xl font-bold uppercase tracking-widest">BRANCHES</h1>
-        <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 text-white/80 hover:text-white transition-colors ml-auto">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            <span>Log out</span>
-        </a>
+            <!-- Montalban Card -->
+            <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" class="flex flex-col items-center gap-4 group">
+                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all duration-300 group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
+                <p class="font-semibold uppercase text-sm tracking-wide text-white">Montalban</p>
+            </a>
+
+            <!-- Laguna Card -->
+            <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" class="flex flex-col items-center gap-4 group">
+                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all duration-300 group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
+                <p class="font-semibold uppercase text-sm tracking-wide text-white">Laguna</p>
+            </a>
+
+        </main>
+        
     </div>
 
-    <!-- Branch Selection Cards -->
-    <div class="flex flex-col md:flex-row justify-center items-center gap-20 mt-24">
-
-        <!-- Montalban Card -->
-        <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" class="flex flex-col items-center gap-5">
-            <div class="branch-card card-light"></div>
-            <p class="font-semibold uppercase tracking-wider">MONTALBAN</p>
-        </a>
-
-        <!-- Laguna Card -->
-        <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" class="flex flex-col items-center gap-5">
-            <div class="branch-card card-dark"></div>
-            <p class="font-semibold uppercase tracking-wider">LAGUNA</p>
-        </a>
-
-    </div>
-</main>
-{% endblock %}
-
-{% block scripts %}{% endblock %}
+</body>
+</html>

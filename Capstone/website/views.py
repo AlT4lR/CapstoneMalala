@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import pytz
 from flask_babel import gettext as _
 
-# Import model functions
 from .models import (
     add_category, get_user_by_username, add_user, check_password,
     update_last_login, set_user_otp, verify_user_otp, record_failed_login_attempt,
@@ -18,36 +17,31 @@ from flask_limiter.util import get_remote_address
 from . import limiter
 
 logger = logging.getLogger(__name__)
-
 main = Blueprint('main', __name__)
 
-# --- Mock Data ---
+# ... (all mock data remains the same) ...
 BRANCH_CATEGORIES = [
     {'name': 'DOUBLE L', 'icon': 'building_icon.png'}, {'name': 'SUB-URBAN', 'icon': 'building_icon.png'},
     {'name': 'KASIGLAHAN', 'icon': 'building_icon.png'}, {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
 ]
-
 dummy_inbox_notifications = [
     {'id': 1, 'name': 'Security Bank', 'preview': 'Bill for the week Dear valued customerh', 'date': '30 May 2025, 2:00 PM', 'icon': 'security_bank_icon.png'},
     {'id': 2, 'name': 'New Message', 'preview': 'You have a new message from support.', 'date': 'July 1, 2025, 1:00 PM', 'icon': 'message_icon.png'},
     {'id': 3, 'name': 'Reminder', 'preview': 'Review pending payments.', 'date': 'July 2, 2025, 9:00 AM', 'icon': 'reminder_icon.png'},
 ]
-
 ALL_BRANCH_BUDGET_DATA = {
     'DOUBLE L': [{'label': 'Income', 'value': 40, 'color': '#facc15'}, {'label': 'Spent', 'value': 20, 'color': '#a855f7'}, {'label': 'Savings', 'value': 30, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 10, 'color': '#3b82f6'}],
 }
-
 archived_items_data = [
     {'name': 'Nenia Ann Valenzuela', 'id': '#246810', 'datetime': '2025-07-01T10:30:00', 'relative_time': '45 minutes ago'},
     {'name': 'Jessilyn Telma', 'id': '#368912', 'datetime': '2025-07-01T10:30:00', 'relative_time': '45 minutes ago'}
 ]
-
 analytics_revenue_data = {'month': 'MAY 2025', 'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], 'data': []}
 analytics_supplier_data = []
 
-
 # --- Helper Function ---
+# ... (get_week_start_date_utc remains the same) ...
 def get_week_start_date_utc(date_obj):
     if date_obj.tzinfo is None:
         date_obj = date_obj.replace(tzinfo=pytz.utc)
@@ -55,6 +49,7 @@ def get_week_start_date_utc(date_obj):
     return (date_obj - timedelta(days=days_to_subtract)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 # --- Routes ---
+# ... (all routes from '/' up to settings remain unchanged) ...
 @main.route('/')
 def root_route():
     try:
@@ -175,16 +170,14 @@ def add_transaction():
             try:
                 datetime_naive = datetime.fromisoformat(form_data['date_time'])
                 datetime_utc = pytz.utc.localize(datetime_naive)
-
                 new_transaction_data = {
                     'name': form_data['name'],
                     'transaction_id': form_data['transaction_id'],
                     'datetime_utc': datetime_utc,
-                    'amount': float(form_data['amount']),  # FIXED: cast to float
+                    'amount': float(form_data['amount']),
                     'payment_method': form_data['payment_method'],
                     'status': form_data['status']
                 }
-
                 if current_app.add_transaction(current_user_identity, selected_branch, new_transaction_data):
                     flash('Successfully Added a Transaction!', 'success')
                     if form_data['status'] == 'Paid':
@@ -312,3 +305,27 @@ def settings():
                            inbox_notifications=dummy_inbox_notifications,
                            show_sidebar=True,
                            show_notifications_button=True)
+
+# --- API and PWA Routes ---
+@main.route('/api/transaction/<transaction_id>', methods=['GET'])
+@jwt_required()
+def get_transaction_details(transaction_id):
+    username = get_jwt_identity()
+    transaction = current_app.get_transaction_by_id(username, transaction_id)
+    if transaction:
+        return jsonify(transaction), 200
+    else:
+        return jsonify({'error': 'Transaction not found or permission denied.'}), 404
+
+@main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
+@jwt_required()
+def delete_transaction_route(transaction_id):
+    username = get_jwt_identity()
+    if current_app.delete_transaction(username, transaction_id):
+        return jsonify({'success': True, 'message': 'Transaction deleted successfully.'}), 200
+    else:
+        return jsonify({'error': 'Failed to delete transaction or permission denied.'}), 404
+
+@main.route('/offline')
+def offline():
+    return render_template('offline.html')

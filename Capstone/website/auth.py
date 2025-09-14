@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
 
 # --- JWT Error Handlers ---
+# ... (error handlers remain unchanged) ...
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
     flash('Please log in to access this page.', 'error')
@@ -34,7 +35,9 @@ def expired_token_response(jwt_header, jwt_payload):
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
+
 # --- Helper Functions ---
+# ... (send_otp_email remains unchanged) ...
 def send_otp_email(recipient_email, otp):
     """Sends the OTP code to the user's email."""
     try:
@@ -46,6 +49,7 @@ def send_otp_email(recipient_email, otp):
     except Exception as e:
         logger.error(f"Failed to send email to {recipient_email}: {e}")
         flash('Failed to send OTP email. Please try again later.', 'error')
+
 
 # --- Routes ---
 @auth.route('/login', methods=['GET', 'POST'])
@@ -71,23 +75,26 @@ def login():
             if user.get('otpSecret'):
                 session['username_for_2fa_login'] = user['username']
                 return redirect(url_for('auth.verify_otp'))
-            # --- FIX: Added the missing 'else' block ---
             else:
                 access_token = create_access_token(identity=user['username'])
                 refresh_token = create_refresh_token(identity=user['username'])
-                response = make_response(redirect(url_for('main.dashboard')))
+                
+                # --- FIX: Redirect to the root route, not the dashboard directly ---
+                response = make_response(redirect(url_for('main.root_route')))
+                
                 set_access_cookies(response, access_token)
                 set_refresh_cookies(response, refresh_token)
                 session.clear()
                 return response
-            # --- END FIX ---
         else:
             if user: current_app.record_failed_login_attempt(user['username'])
             flash('Invalid username or password.', 'error')
 
     return render_template('login.html', form=form, show_sidebar=False)
 
+
 @auth.route('/register', methods=['GET', 'POST'])
+# ... (register function remains unchanged) ...
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -101,6 +108,7 @@ def register():
             else:
                 flash('Could not generate verification code. Please contact support.', 'error')
     return render_template('register.html', form=form, show_sidebar=False)
+
 
 @auth.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -116,7 +124,10 @@ def verify_otp():
             otp_input = request.form.get('otp')
             if current_app.verify_user_otp(username, otp_input, otp_type='2fa'):
                 access_token = create_access_token(identity=username)
-                response = make_response(redirect(url_for('main.dashboard')))
+                
+                # --- FIX: Redirect to the root route, not the dashboard directly ---
+                response = make_response(redirect(url_for('main.root_route')))
+                
                 set_access_cookies(response, access_token)
                 session.clear()
                 return response
@@ -134,7 +145,9 @@ def verify_otp():
                 
     return render_template('otp_verify.html', form=form, is_2fa_login=is_2fa_login, username_in_context=username)
 
+
 @auth.route('/setup-2fa', methods=['GET', 'POST'])
+# ... (setup_2fa function remains unchanged) ...
 def setup_2fa():
     username = session.get('username_for_2fa_setup')
     if not username:
@@ -162,7 +175,9 @@ def setup_2fa():
     
     return render_template('setup_2fa.html', form=form, otp_secret=user['otpSecret'], qr_code_svg=qr_code_svg)
 
+
 @auth.route('/logout')
+# ... (logout function remains unchanged) ...
 def logout():
     response = make_response(redirect(url_for('auth.login')))
     unset_jwt_cookies(response)

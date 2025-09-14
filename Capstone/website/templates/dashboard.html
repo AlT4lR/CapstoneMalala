@@ -1,43 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}DecoOffice Dashboard{% endblock %}
-
-{% block head %}
-    {# No page-specific head content needed here as common styles are in base.html #}
-{% endblock %}
+{% block title %}DecoOffice - Dashboard{% endblock %}
 
 {% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-6">
-            {# Modified line to display the selected branch #}
-            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">
-                Dashboard - {{ selected_branch or 'No Branch Selected' }}
-            </h2>
-            <!-- Notification button is included globally via base.html -->
-            {% include "_notification_button.html" %}
-        </header>
+<div class="flex flex-col flex-1 p-8">
+    <!-- Page Title -->
+    <h1 class="text-2xl font-bold text-gray-800 uppercase tracking-wider mb-8">
+        Dashboard - {{ selected_branch | upper or 'NO BRANCH' }}
+    </h1>
 
-        {# Flash messages are handled globally by base.html #}
-
-        {# Dashboard specific content #}
-        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
-            <div class="text-center">
-                <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider">Budget Overview</h2>
-                <div class="inline-flex items-center space-x-1 bg-gray-200 p-1 rounded-full text-sm my-3">
-                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">TODAY</button>
-                    <button class="px-4 py-1 font-semibold text-gray-500 rounded-full">WEEK</button>
-                    <button class="px-4 py-1 font-semibold bg-custom-green-active text-white rounded-full shadow-sm">MONTH</button>
-                </div>
+    <!-- Main Content Area -->
+    <div class="flex-1 w-full h-full">
+        <div class="text-center">
+            <h2 class="text-lg font-bold text-gray-700 uppercase tracking-wider">Budget Overview</h2>
+            
+            <div class="inline-flex items-center space-x-1 bg-gray-100 p-1 rounded-full text-sm my-4">
+                <button class="px-6 py-1.5 font-semibold text-gray-500 rounded-full hover:bg-white hover:shadow-sm transition-all">TODAY</button>
+                <button class="px-6 py-1.5 font-semibold text-gray-500 rounded-full hover:bg-white hover:shadow-sm transition-all">WEEK</button>
+                <button class="px-6 py-1.5 font-semibold bg-white text-gray-800 rounded-full shadow-sm">MONTH</button>
             </div>
-
-            <div class="flex-grow flex items-center justify-center mt-8">
-                 {# This is where your budget visualization content (charts, etc.) would go #}
+            
+            <div class="flex items-center justify-center h-64 mt-8">
                  <p class="text-gray-500 text-lg">Budget visualization content goes here.</p>
             </div>
         </div>
-    </main>
-{% endblock %}
-
-{% block scripts %}
-    {# No page-specific scripts needed here #}
+    </div>
+</div>
 {% endblock %}
