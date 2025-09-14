@@ -7,7 +7,7 @@
     <title>{% block title %}DecoOffice{% endblock %}</title>
     
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#f5f5f0"/> <!-- Light Creamy Background -->
+    <meta name="theme-color" content="#fafaf5"/> <!-- New light background -->
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,14 +17,14 @@
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
         .flash-message-local { opacity: 1; transition: all 0.5s ease-out; transform: translateY(0); }
         .flash-message-local.fade-out { opacity: 0; transform: translateY(-20px); }
     </style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {% block head %}{% endblock %}
 </head>
-<body class="bg-[#f5f5f0] font-poppins text-gray-800 antialiased">
+<body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased">
     <!-- Main container -->
     <div class="flex h-screen w-screen">
 
@@ -34,11 +34,6 @@
 
         <!-- Main Content Panel -->
         <main class="flex-1 flex flex-col relative overflow-hidden">
-            <!-- Global Notification Button -->
-            <div class="absolute top-6 right-8 z-10">
-                 {% include "_notification_button.html" %}
-            </div>
-
             {% include "_flash_messages.html" %}
             {% block content %}{% endblock %}
         </main>
