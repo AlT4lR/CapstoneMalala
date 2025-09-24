@@ -31,13 +31,11 @@ class Config:
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
     JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
-    JWT_COOKIE_CSRF_PROTECT = True
-    
-    # --- THIS IS THE FIX ---
-    # Setting this to False prevents a conflict between Flask-JWT-Extended's CSRF protection
-    # and Flask-WTF's protection on standard HTML forms. We will let Flask-WTF (via CSRFProtect)
-    # handle form validation exclusively. JWT's CSRF will still protect AJAX/API calls.
-    JWT_CSRF_CHECK_FORM = False
+
+    JWT_CSRF_CHECK_FORM = True  
+    JWT_CSRF_IN_COOKIES = True
+
+    JWT_COOKIE_CSRF_PROTECT = False # Dont enable
 
     # Flask-Limiter Configuration
     LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter" # Use same DB for limiter data
