@@ -11,8 +11,8 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     """Base configuration class."""
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'default-insecure-secret-key-for-dev')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-insecure-jwt-secret-key-for-dev')
+    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'prettymuchputanginaniasadon')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', '3langkamigumagawangcapstoneproject')
     
     # MongoDB Configuration
     MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
@@ -32,7 +32,12 @@ class Config:
     JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
     JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
     JWT_COOKIE_CSRF_PROTECT = True
-    JWT_CSRF_CHECK_FORM = True
+    
+    # --- THIS IS THE FIX ---
+    # Setting this to False prevents a conflict between Flask-JWT-Extended's CSRF protection
+    # and Flask-WTF's protection on standard HTML forms. We will let Flask-WTF (via CSRFProtect)
+    # handle form validation exclusively. JWT's CSRF will still protect AJAX/API calls.
+    JWT_CSRF_CHECK_FORM = False
 
     # Flask-Limiter Configuration
     LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter" # Use same DB for limiter data

@@ -49,7 +49,7 @@ def get_week_start_date_utc(date_obj):
     return (date_obj - timedelta(days=days_to_subtract)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 # --- Routes ---
-# ... (all routes from '/' up to settings remain unchanged) ...
+# ... (all routes from '/' up to transactions/declined remain unchanged) ...
 @main.route('/')
 def root_route():
     try:
@@ -154,51 +154,38 @@ def add_transaction():
         flash("Please select a branch before adding a transaction.", "error")
         return redirect(url_for('main.branches'))
 
+    # --- THIS IS THE FIX ---
+    # The view now uses form.validate_on_submit() to handle POST requests
     if form.validate_on_submit():
-        form_data = {
-            'name': request.form.get('name'),
-            'transaction_id': request.form.get('transaction_id'),
-            'date_time': request.form.get('date_time'),
-            'amount': request.form.get('amount'),
-            'payment_method': request.form.get('payment_method'),
-            'status': request.form.get('status')
-        }
+        try:
+            # The form data is already validated and converted to the correct types
+            datetime_utc = pytz.utc.localize(form.date_time.data)
+            
+            new_transaction_data = {
+                'name': form.name.data,
+                'transaction_id': form.transaction_id.data,
+                'datetime_utc': datetime_utc,
+                'amount': float(form.amount.data),
+                'payment_method': form.payment_method.data,
+                'status': form.status.data
+            }
 
-        if not all(form_data.values()):
-            flash('All transaction fields are required.', 'error')
-        else:
-            try:
-                datetime_naive = datetime.fromisoformat(form_data['date_time'])
-                datetime_utc = pytz.utc.localize(datetime_naive)
-                new_transaction_data = {
-                    'name': form_data['name'],
-                    'transaction_id': form_data['transaction_id'],
-                    'datetime_utc': datetime_utc,
-                    'amount': float(form_data['amount']),
-                    'payment_method': form_data['payment_method'],
-                    'status': form_data['status']
+            if current_app.add_transaction(current_user_identity, selected_branch, new_transaction_data):
+                flash('Successfully Added a Transaction!', 'success')
+                status_map = {
+                    'Paid': 'main.transactions_paid',
+                    'Pending': 'main.transactions_pending',
+                    'Declined': 'main.transactions_declined'
                 }
-                if current_app.add_transaction(current_user_identity, selected_branch, new_transaction_data):
-                    flash('Successfully Added a Transaction!', 'success')
-                    if form_data['status'] == 'Paid':
-                        return redirect(url_for('main.transactions_paid'))
-                    elif form_data['status'] == 'Pending':
-                        return redirect(url_for('main.transactions_pending'))
-                    else:
-                        return redirect(url_for('main.transactions_declined'))
-                else:
-                    flash('An error occurred while adding the transaction.', 'error')
-            except ValueError:
-                flash('Invalid date or amount format.', 'error')
-
-        return render_template('add_transaction.html',
-                               username=current_user_identity,
-                               selected_branch=selected_branch,
-                               inbox_notifications=dummy_inbox_notifications,
-                               show_sidebar=True,
-                               show_notifications_button=True,
-                               form=form,
-                               transaction_data=form_data)
+                return redirect(url_for(status_map.get(form.status.data, 'main.dashboard')))
+            else:
+                flash('An error occurred while adding the transaction.', 'error')
+        except Exception as e:
+            logger.error(f"Error processing transaction form: {e}", exc_info=True)
+            flash('An error occurred. Please check the data and try again.', 'error')
+    
+    # If the form has validation errors, they will be automatically passed to the template
+    # and displayed next to the respective fields.
 
     return render_template('add_transaction.html',
                            username=current_user_identity,
@@ -206,8 +193,9 @@ def add_transaction():
                            inbox_notifications=dummy_inbox_notifications,
                            show_sidebar=True,
                            show_notifications_button=True,
-                           form=form)
+                           form=form) # The form object is passed to the template
 
+# ... (rest of the file remains unchanged) ...
 @main.route('/archive')
 @jwt_required()
 def archive():

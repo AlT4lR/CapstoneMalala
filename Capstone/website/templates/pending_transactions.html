@@ -1,51 +1,66 @@
 {% extends "base.html" %}
 
-{% block title %}DecoOffice - Pending Transactions{% endblock %}
+{% block title %}DecoOffice - Paid Transactions{% endblock %}
 
 {% block content %}
-<div class="flex flex-col flex-1">
-    <header class="flex-shrink-0 bg-white border-b border-gray-200">
-        <div class="h-20 px-8 flex items-center justify-between">
-            <h1 class="text-2xl font-bold text-gray-800 uppercase tracking-wider">Transactions</h1>
-            <div class="flex items-center gap-4">
-                <div class="relative w-72"><input type="text" placeholder="Search" class="w-full pl-5 pr-12 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"><i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-gray-400"></i></div><button class="text-gray-600 hover:text-gray-900" title="Delete Selected"><i class="fas fa-trash-alt fa-lg"></i></button>{% include "_notification_button.html" %}
+<div class="flex flex-col flex-1 p-8 text-[#3a4d39]">
+    <!-- Page Header -->
+    <header class="flex-shrink-0 flex items-center justify-between mb-8">
+        <h1 class="text-2xl font-bold uppercase tracking-wider" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Transactions</h1>
+        <div class="flex items-center gap-5 text-xl">
+            <div class="relative w-72">
+                <input type="text" placeholder="Search" class="w-full pl-12 pr-4 py-3 bg-[#fafaf5] border-2 border-[#dde5d6] rounded-full focus:outline-none focus:ring-2 focus:ring-green-300 text-sm shadow-inner">
+                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
+            <button class="text-gray-500 hover:text-gray-800" title="Delete Selected">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+             <button class="text-gray-500 hover:text-gray-800" title="Archive">
+                 <i class="fas fa-archive"></i>
+            </button>
+            {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <div class="flex-1 p-6 flex flex-col">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex-1 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <span class="text-sm font-semibold text-gray-500">({{ current_filter|capitalize }})</span>
-                <div class="relative"><select class="pl-4 pr-10 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none appearance-none bg-white"><option>Recent</option><option>Oldest</option></select><i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i></div>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col">
+        <div class="flex justify-between items-center mb-4 px-2">
+            <span class="text-sm font-medium text-gray-500">({{ current_filter|capitalize }})</span>
+            <div class="relative">
+                <select class="pl-4 pr-10 py-2 border border-gray-200 rounded-full text-sm focus:outline-none appearance-none bg-white shadow-sm">
+                    <option>Recent</option>
+                    <option>Oldest</option>
+                </select>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
             </div>
-
-            <div class="flex-1 flex flex-col space-y-2 py-2 transaction-table">
-                <div class="grid grid-cols-12 gap-4 px-6 py-4 text-sm font-semibold text-gray-700 bg-[#e6f0e3] rounded-2xl shadow-sm">
-                    <div class="col-span-2">Names of Issued Check</div><div class="col-span-2">Check No.</div><div class="col-span-1">Check Date</div><div class="col-span-2 text-right">Countered Check</div><div class="col-span-1 text-right">Check Amount</div><div class="col-span-1 text-right">EWT</div><div class="col-span-2 text-center">Status</div><div class="col-span-1 text-center">Actions</div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                    {% if not transactions %}
-                    <div class="flex items-center justify-center h-full pt-16"><p class="text-gray-500">No pending transactions found.</p></div>
-                    {% else %}
-                    <div class="space-y-2">
-                        {% for transaction in transactions %}
-                        <div class="grid grid-cols-12 gap-4 px-6 py-4 items-center text-sm text-gray-700 bg-white rounded-2xl shadow-sm transaction-row">
-                            <div class="col-span-2 font-semibold"><span class="view-details-link cursor-pointer hover:underline" data-id="{{ transaction._id }}">{{ transaction.name }}</span></div><div class="col-span-2 text-gray-500">#{{ transaction.id }}</div><div class="col-span-1 text-gray-500">{{ transaction.date }}</div><div class="col-span-2 text-right">₱ 10,000.00</div><div class="col-span-1 text-right">₱ {{ "%.2f"|format(transaction.amount) }}</div><div class="col-span-1 text-right">₱ 360.69</div><div class="col-span-2 text-center font-semibold text-red-500">Pending</div><div class="col-span-1 text-center"><button class="text-gray-400 hover:text-red-600 delete-btn" data-id="{{ transaction._id }}" title="Delete Transaction"><i class="fas fa-trash-alt"></i></button></div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <footer class="mt-4">
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="bg-gradient-to-r from-[#f0f5c4] to-[#e6ecd0] p-4 rounded-2xl shadow-md text-center"><p class="text-sm font-semibold text-gray-600">Check Amount</p></div><div class="bg-gradient-to-r from-[#d9e8d4] to-[#c9dcc2] p-4 rounded-2xl shadow-md text-center"><p class="text-sm font-semibold text-gray-600">Countered Check</p></div><div class="bg-gradient-to-r from-[#b3c9ac] to-[#a7bda1] p-4 rounded-2xl shadow-md text-center"><p class="text-sm font-semibold text-gray-600">Status</p></div>
-                </div>
-            </footer>
         </div>
+
+        <div class="flex-1 flex flex-col space-y-2 py-2">
+            <!-- Table Header -->
+            <div class="grid grid-cols-12 gap-4 px-6 py-4 text-sm font-semibold bg-gradient-to-r from-[#f0f5c4] to-[#d9e8d4] rounded-full shadow-sm">
+                <div class="col-span-3">Names of Issued Check</div>
+                <div class="col-span-2">Check No.</div>
+                <div class="col-span-1">Check Date</div>
+                <div class="col-span-2 text-right">Countered Check</div>
+                <div class="col-span-1 text-right">Check Amount</div>
+                <div class="col-span-1 text-right">EWT</div>
+                <div class="col-span-2 text-center">Status</div>
+            </div>
+
+            <!-- Table Body -->
+            <div class="flex-1 flex items-center justify-center">
+                 <p class="text-gray-500">No paid transactions found.</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-auto pt-4">
+            <div class="grid grid-cols-3 gap-4 px-6 py-4 text-sm font-semibold bg-gradient-to-r from-[#f0f5c4] to-[#b3c9ac] rounded-full shadow-sm">
+                <div class="text-center">Check Amount</div>
+                <div class="text-center">Countered</div>
+                <div class="text-center">Status</div>
+            </div>
+        </footer>
     </div>
 </div>
 {% include "_transaction_details_modal.html" %}

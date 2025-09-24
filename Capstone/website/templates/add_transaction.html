@@ -10,42 +10,68 @@
 
     <div class="flex-1">
         <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="w-full max-w-4xl mx-auto">
+            
+            {# This renders the CSRF token and other hidden fields #}
             {{ form.hidden_tag() }}
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                
+                {# --- THIS IS THE FIX --- #}
+                {# Replaced manual inputs with Flask-WTF macros #}
+                
                 <div>
-                    <label for="name" class="block text-gray-600 text-sm font-semibold mb-2">Name</label>
-                    <input type="text" id="name" name="name" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" required>
+                    {{ form.name.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.name(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="Enter name") }}
+                    {% if form.name.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
                 <div>
-                    <label for="date_time" class="block text-gray-600 text-sm font-semibold mb-2">Delivery Date</label>
-                    <input type="datetime-local" id="date_time" name="date_time" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" required>
+                    {{ form.date_time.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.date_time(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400") }}
+                    {% if form.date_time.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.date_time.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
                 <div>
-                    <label for="transaction_id" class="block text-gray-600 text-sm font-semibold mb-2">Check Date</label>
-                    <input type="text" id="transaction_id" name="transaction_id" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="#" required>
+                    {{ form.transaction_id.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.transaction_id(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="#") }}
+                     {% if form.transaction_id.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.transaction_id.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
                 <div>
-                    <label for="amount" class="block text-gray-600 text-sm font-semibold mb-2">Amount</label>
-                    <input type="number" id="amount" name="amount" step="0.01" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" required>
+                    {{ form.amount.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.amount(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01") }}
+                    {% if form.amount.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.amount.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
                 <div>
-                    <label for="payment_method" class="block text-gray-600 text-sm font-semibold mb-2">Payment Method</label>
-                    <select id="payment_method" name="payment_method" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none" required>
-                        <option value="" disabled selected>Select method</option>
-                        <option value="Bank-to-Bank">Bank-to-Bank</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Check">Check</option>
-                        <option value="E-Wallet">E-Wallet</option>
-                    </select>
+                    {{ form.payment_method.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.payment_method(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none") }}
+                    {% if form.payment_method.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.payment_method.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
                 <div>
-                    <label for="status" class="block text-gray-600 text-sm font-semibold mb-2">Status</label>
-                    <select id="status" name="status" class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none" required>
-                        <option value="" disabled selected>Select status</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Declined">Declined</option>
-                    </select>
+                    {{ form.status.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.status(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none") }}
+                    {% if form.status.errors %}
+                        <ul class="text-red-500 text-xs italic mt-2">
+                            {% for error in form.status.errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    {% endif %}
                 </div>
             </div>
 
