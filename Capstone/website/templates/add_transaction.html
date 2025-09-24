@@ -10,11 +10,14 @@
 
     <div class="flex-1">
         <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="w-full max-w-4xl mx-auto">
-            <!-- CSRF MUST ALWAYS INCLUDE -->
-            {{ form.hidden_tag() }} 
-            <!--  -->
+            
+            {# This renders the CSRF token and other hidden fields #}
+            {{ form.hidden_tag() }}
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                
+                {# --- THIS IS THE FIX --- #}
+                {# Replaced manual inputs with Flask-WTF macros #}
                 
                 <div>
                     {{ form.name.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
