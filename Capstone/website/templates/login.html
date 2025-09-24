@@ -81,7 +81,9 @@
             {% endwith %}
 
             <form action="{{ url_for('auth.login') }}" method="POST" class="w-full space-y-5">
-                {{ form.hidden_tag() }} <!-- CSRF Token -->
+                
+                {# --- THIS IS THE FIX --- #}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <!-- Username Input -->
                 <div class="input-icon-wrapper">

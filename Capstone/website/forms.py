@@ -1,7 +1,7 @@
 # website/forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import StringField, PasswordField, SubmitField, DecimalField, SelectField, DateTimeLocalField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from flask import current_app
 
@@ -30,6 +30,23 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('That email is already registered. Please use a different one.')
 
 class TransactionForm(FlaskForm):
-    # This form is for CSRF protection on the add_transaction page.
-    # The actual fields are rendered manually in the HTML.
+    # --- THIS IS THE FIX ---
+    # Expanded the form to include all fields from the template
+    name = StringField('Name', validators=[DataRequired(), Length(max=100)])
+    date_time = DateTimeLocalField('Delivery Date', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
+    transaction_id = StringField('Check Date', validators=[DataRequired(), Length(max=50)]) # Renamed from Check No. to match label
+    amount = DecimalField('Amount', validators=[DataRequired()])
+    payment_method = SelectField('Payment Method',
+                                 choices=[
+                                     ('Bank-to-Bank', 'Bank-to-Bank'),
+                                     ('Cash', 'Cash'),
+                                     ('Check', 'Check'),
+                                     ('E-Wallet', 'E-Wallet')
+                                 ], validators=[DataRequired()])
+    status = SelectField('Status',
+                         choices=[
+                             ('Paid', 'Paid'),
+                             ('Pending', 'Pending'),
+                             ('Declined', 'Declined')
+                         ], validators=[DataRequired()])
     submit = SubmitField('Add')
