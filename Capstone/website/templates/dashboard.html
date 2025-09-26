@@ -3,25 +3,104 @@
 {% block title %}DecoOffice - Dashboard{% endblock %}
 
 {% block content %}
-<div class="flex flex-col flex-1 p-8">
-    <!-- Page Title -->
-    <h1 class="text-2xl font-bold text-gray-800 uppercase tracking-wider mb-8">
-        Dashboard - {{ selected_branch | upper or 'NO BRANCH' }}
-    </h1>
+<div class="flex flex-col flex-1 p-8 text-[#3a4d39]">
+    <!-- Page Header -->
+    <header class="flex-shrink-0 flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Welcome Back, <span class="text-custom-green-darker">{{ username }}</span>!</h1>
+            <p class="text-gray-500">Here's a summary of the {{ selected_branch | upper }} branch.</p>
+        </div>
+        <div class="flex items-center gap-4">
+             <a href="{{ url_for('main.add_transaction') }}" class="flex items-center gap-2 bg-custom-green-darker text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-md">
+                <img src="{{ url_for('static', filename='imgs/icons/dashboard/add transaction.png') }}" alt="Add" class="w-5 h-5">
+                <span>Add Transaction</span>
+            </a>
+            {% include "_notification_button.html" %}
+        </div>
+    </header>
 
     <!-- Main Content Area -->
     <div class="flex-1 w-full h-full">
-        <div class="text-center">
-            <h2 class="text-lg font-bold text-gray-700 uppercase tracking-wider">Budget Overview</h2>
-            
-            <div class="inline-flex items-center space-x-1 bg-gray-100 p-1 rounded-full text-sm my-4">
-                <button class="px-6 py-1.5 font-semibold text-gray-500 rounded-full hover:bg-white hover:shadow-sm transition-all">TODAY</button>
-                <button class="px-6 py-1.5 font-semibold text-gray-500 rounded-full hover:bg-white hover:shadow-sm transition-all">WEEK</button>
-                <button class="px-6 py-1.5 font-semibold bg-white text-gray-800 rounded-full shadow-sm">MONTH</button>
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <img src="{{ url_for('static', filename='imgs/icons/dashboard/paid.png') }}" alt="Total Paid" class="w-12 h-12">
+                <div>
+                    <p class="text-sm text-gray-500">Total Paid</p>
+                    <p class="text-2xl font-bold">₱ 559,559</p>
+                </div>
             </div>
-            
-            <div class="flex items-center justify-center h-64 mt-8">
-                 <p class="text-gray-500 text-lg">Budget visualization content goes here.</p>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <img src="{{ url_for('static', filename='imgs/icons/dashboard/clock.png') }}" alt="Pending" class="w-12 h-12">
+                <div>
+                    <p class="text-sm text-gray-500">Pending Amount</p>
+                    <p class="text-2xl font-bold">₱ 120,500</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <img src="{{ url_for('static', filename='imgs/icons/dashboard/transaction.png') }}" alt="Transactions" class="w-12 h-12">
+                <div>
+                    <p class="text-sm text-gray-500">Transactions Today</p>
+                    <p class="text-2xl font-bold">12</p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <img src="{{ url_for('static', filename='imgs/icons/dashboard/cancel.png') }}" alt="Declined" class="w-12 h-12">
+                <div>
+                    <p class="text-sm text-gray-500">Declined This Week</p>
+                    <p class="text-2xl font-bold">3</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Recent Activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Quick Actions -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+                <div class="space-y-3">
+                    <a href="{{ url_for('main.transactions_paid') }}" class="flex items-center gap-4 p-3 hover:bg-gray-100 rounded-lg transition-colors">
+                        <img src="{{ url_for('static', filename='imgs/icons/dashboard/transaction.png') }}" alt="" class="w-8 h-8">
+                        <span class="font-semibold">View All Transactions</span>
+                    </a>
+                    <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-4 p-3 hover:bg-gray-100 rounded-lg transition-colors">
+                        <img src="{{ url_for('static', filename='imgs/icons/dashboard/analytics.png') }}" alt="" class="w-8 h-8">
+                        <span class="font-semibold">View Analytics</span>
+                    </a>
+                    <a href="{{ url_for('main.archive') }}" class="flex items-center gap-4 p-3 hover:bg-gray-100 rounded-lg transition-colors">
+                        <img src="{{ url_for('static', filename='imgs/icons/dashboard/archive.png') }}" alt="" class="w-8 h-8">
+                        <span class="font-semibold">Go to Archive</span>
+                    </a>
+                     <a href="#" class="flex items-center gap-4 p-3 hover:bg-gray-100 rounded-lg transition-colors">
+                        <img src="{{ url_for('static', filename='imgs/icons/dashboard/share.png') }}" alt="" class="w-8 h-8">
+                        <span class="font-semibold">Share Report</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Recent Activity</h2>
+                    <button class="flex items-center gap-2 text-sm text-gray-500 hover:text-custom-green-darker">
+                        <img src="{{ url_for('static', filename='imgs/icons/dashboard/refresh.png') }}" alt="Refresh" class="w-4 h-4">
+                        <span>Refresh</span>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    {% for item in archived_items %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <img src="{{ url_for('static', filename='imgs/icons/dashboard/paid.png') }}" alt="paid" class="w-8 h-8 p-1 bg-green-100 rounded-full">
+                            <div>
+                                <p class="font-semibold">{{ item.name }}</p>
+                                <p class="text-xs text-gray-500">ID: {{ item.id }}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500">{{ item.relative_time }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>

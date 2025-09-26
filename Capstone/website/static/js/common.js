@@ -82,8 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (transactionTableForModal && modal) {
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const statusBox = document.getElementById('modal-status-box');
-        const statusIcon = document.getElementById('modal-status-icon');
         const statusText = document.getElementById('modal-status-text');
         const amountHeader = document.getElementById('modal-amount-header');
         const recipient = document.getElementById('modal-recipient');
@@ -101,29 +99,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 const formattedAmount = `₱ ${parseFloat(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-                // Populate modal
-                recipient.textContent = data.name;
-                deliveryDate.textContent = data.id; 
-                checkDate.textContent = data.delivery_date; 
-                paymentMethod.textContent = data.method;
+                statusText.textContent = `A payment was sent to ${data.name}`;
                 amountHeader.textContent = formattedAmount;
+                recipient.textContent = data.name;
+                deliveryDate.textContent = `#${data.id}`;
+                checkDate.textContent = data.delivery_date_full;
+                paymentMethod.textContent = data.method;
                 amountSent.textContent = formattedAmount;
-                notes.textContent = data.notes;
-
-                // Update status display
-                statusText.textContent = data.status;
-                statusBox.className = 'flex justify-between items-center border rounded-lg px-4 py-3 mb-4';
-                statusIcon.className = 'fas';
-                if (data.status === 'Paid') {
-                    statusBox.classList.add('border-green-400', 'text-green-700');
-                    statusIcon.classList.add('fa-check-circle');
-                } else if (data.status === 'Pending') {
-                    statusBox.classList.add('border-yellow-400', 'text-yellow-700');
-                    statusIcon.classList.add('fa-clock');
-                } else { // Declined
-                    statusBox.classList.add('border-red-400', 'text-red-700');
-                    statusIcon.classList.add('fa-times-circle');
-                }
+                notes.textContent = data.notes || 'No notes provided.';
                 
                 modal.classList.remove('hidden');
 
@@ -137,6 +120,8 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.add('hidden');
         };
 
+        // --- THIS IS THE FIX ---
+        // A more robust event listener that specifically targets the .view-details-link class.
         transactionTableForModal.addEventListener('click', (event) => {
             const link = event.target.closest('.view-details-link');
             if (link) {

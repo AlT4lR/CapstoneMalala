@@ -179,22 +179,34 @@ def add_category(username, category_name):
     return True
 
 # --- Transaction Operations ---
+# --- THIS IS THE FIX ---
+# Added 'payment_method' to the document being saved.
 def add_transaction(username, branch, transaction_data):
     db = current_app.db
     if db is None:
         logger.error("Database not available. Cannot add transaction.")
         return False
     try:
+        check_date_obj = transaction_data.get('check_date')
+        datetime_utc = pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time())) if check_date_obj else datetime.now(pytz.utc)
+
         doc = {
-            'username': username, 'branch': branch,
-            'transaction_id': transaction_data.get('transaction_id'),
-            'name': transaction_data.get('name'), 'datetime_utc': transaction_data.get('datetime_utc'),
-            'amount': float(transaction_data.get('amount')), 'method': transaction_data.get('payment_method'),
-            'status': transaction_data.get('status'), 'notes': transaction_data.get('notes', 'Added via form.'),
-            'createdAt': datetime.now(pytz.utc), 'updatedAt': datetime.now(pytz.utc)
+            'username': username,
+            'branch': branch,
+            'name': transaction_data.get('name_of_issued_check'),
+            'check_no': transaction_data.get('check_no'),
+            'check_date': datetime_utc,
+            'countered_check': float(transaction_data.get('countered_check', 0.0)),
+            'amount': float(transaction_data.get('check_amount')),
+            'ewt': float(transaction_data.get('ewt', 0.0)),
+            'method': transaction_data.get('payment_method'),
+            'status': transaction_data.get('status'),
+            'notes': transaction_data.get('notes', ''), # Default to empty string
+            'createdAt': datetime.now(pytz.utc),
+            'updatedAt': datetime.now(pytz.utc)
         }
         db.transactions.insert_one(doc)
-        logger.info(f"Transaction added successfully for user '{username}'.")
+        logger.info(f"Transaction {doc['check_no']} added successfully for user '{username}'.")
         return True
     except Exception as e:
         logger.error(f"Error adding transaction for user {username}: {e}", exc_info=True)
@@ -206,17 +218,22 @@ def get_transactions_by_status(username, branch, status):
     query = {'username': username, 'branch': branch, 'status': status}
     transactions = []
     try:
-        for doc in db.transactions.find(query).sort('datetime_utc', -1):
-            dt = doc.get('datetime_utc')
+        for doc in db.transactions.find(query).sort('check_date', -1):
+            check_date = doc.get('check_date')
             transactions.append({
-                '_id': str(doc.get('_id')), 'id': doc.get('transaction_id'), 'name': doc.get('name'),
-                'date': dt.strftime('%m/%d/%Y') if dt else '', 'time': dt.strftime('%I:%M %p') if dt else '',
-                'amount': doc.get('amount'), 'method': doc.get('method'), 'status': doc.get('status'),
-                'notes': doc.get('notes'), 'branch': doc.get('branch')
+                '_id': str(doc.get('_id')),
+                'name': doc.get('name'),
+                'check_no': doc.get('check_no'),
+                'check_date': check_date.strftime('%m/%d/%Y') if check_date else 'N/A',
+                'countered': f"₱ {doc.get('countered_check', 0.0):,.2f}",
+                'amount': doc.get('amount', 0.0),
+                'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
+                'status': doc.get('status')
             })
     except Exception as e:
         logger.error(f"Error fetching transactions for {username}: {e}", exc_info=True)
     return transactions
+
 
 def delete_transaction(username, transaction_id):
     db = current_app.db
@@ -238,7 +255,8 @@ def delete_transaction(username, transaction_id):
         logger.error(f"Error deleting transaction {transaction_id} for user {username}: {e}", exc_info=True)
         return False
 
-# --- FIX: ADD THIS MISSING FUNCTION ---
+# --- THIS IS THE FIX ---
+# The API function now retrieves and returns the 'method' field for the modal.
 def get_transaction_by_id(username, transaction_id):
     db = current_app.db
     if db is None: return None
@@ -248,15 +266,15 @@ def get_transaction_by_id(username, transaction_id):
             'username': username
         })
         if doc:
-            dt = doc.get('datetime_utc')
+            dt = doc.get('check_date')
             return {
                 '_id': str(doc.get('_id')),
-                'id': doc.get('transaction_id'),
+                'id': doc.get('check_no'),
                 'name': doc.get('name'),
-                'delivery_date': dt.strftime('%m/%d/%Y, %I:%M %p') if dt else '',
-                'check_date': dt.strftime('%m/%d/%Y') if dt else '',
+                'delivery_date_full': dt.strftime('%m/%d/%Y %I:%M %p') if dt else 'N/A',
+                'check_date_only': dt.strftime('%m/%d/%Y') if dt else 'N/A',
                 'amount': doc.get('amount'),
-                'method': doc.get('method'),
+                'method': doc.get('method', 'N/A'),
                 'status': doc.get('status'),
                 'notes': doc.get('notes', 'No notes provided.')
             }

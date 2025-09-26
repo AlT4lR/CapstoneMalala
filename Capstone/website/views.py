@@ -154,18 +154,17 @@ def add_transaction():
         flash("Please select a branch before adding a transaction.", "error")
         return redirect(url_for('main.branches'))
 
-    # --- THIS IS THE FIX ---
-    # The view now uses form.validate_on_submit() to handle POST requests
     if form.validate_on_submit():
         try:
-            # The form data is already validated and converted to the correct types
-            datetime_utc = pytz.utc.localize(form.date_time.data)
-            
+            # --- THIS IS THE FIX ---
+            # Now includes 'payment_method' when creating the data dictionary.
             new_transaction_data = {
-                'name': form.name.data,
-                'transaction_id': form.transaction_id.data,
-                'datetime_utc': datetime_utc,
-                'amount': float(form.amount.data),
+                'name_of_issued_check': form.name_of_issued_check.data,
+                'check_no': form.check_no.data,
+                'check_date': form.check_date.data,
+                'countered_check': form.countered_check.data,
+                'check_amount': form.check_amount.data,
+                'ewt': form.ewt.data,
                 'payment_method': form.payment_method.data,
                 'status': form.status.data
             }
@@ -179,13 +178,11 @@ def add_transaction():
                 }
                 return redirect(url_for(status_map.get(form.status.data, 'main.dashboard')))
             else:
-                flash('An error occurred while adding the transaction.', 'error')
+                logger.error(f"Model function 'add_transaction' returned False for user {current_user_identity}. Data: {new_transaction_data}")
+                flash('An error occurred while adding the transaction. (Model Failure: Check Server Logs)', 'error')
         except Exception as e:
-            logger.error(f"Error processing transaction form: {e}", exc_info=True)
-            flash('An error occurred. Please check the data and try again.', 'error')
-    
-    # If the form has validation errors, they will be automatically passed to the template
-    # and displayed next to the respective fields.
+            logger.error(f"Exception in add_transaction route for user {current_user_identity}: {e}", exc_info=True)
+            flash('An unexpected application error occurred. Please try again.', 'error')
 
     return render_template('add_transaction.html',
                            username=current_user_identity,
@@ -193,7 +190,7 @@ def add_transaction():
                            inbox_notifications=dummy_inbox_notifications,
                            show_sidebar=True,
                            show_notifications_button=True,
-                           form=form) # The form object is passed to the template
+                           form=form)
 
 # ... (rest of the file remains unchanged) ...
 @main.route('/archive')
