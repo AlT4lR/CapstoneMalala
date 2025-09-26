@@ -1,8 +1,8 @@
 # website/forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, DecimalField, SelectField, DateTimeLocalField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, SubmitField, DecimalField, SelectField, DateField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
 from flask import current_app
 
 class LoginForm(FlaskForm):
@@ -31,11 +31,13 @@ class RegistrationForm(FlaskForm):
 
 class TransactionForm(FlaskForm):
     # --- THIS IS THE FIX ---
-    # Expanded the form to include all fields from the template
-    name = StringField('Name', validators=[DataRequired(), Length(max=100)])
-    date_time = DateTimeLocalField('Delivery Date', format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
-    transaction_id = StringField('Check Date', validators=[DataRequired(), Length(max=50)]) # Renamed from Check No. to match label
-    amount = DecimalField('Amount', validators=[DataRequired()])
+    # Added Payment Method back to the form to support the new modal design.
+    name_of_issued_check = StringField('Names of Issued Check', validators=[DataRequired(), Length(max=100)])
+    check_no = StringField('Check No.', validators=[DataRequired(), Length(max=50)])
+    check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
+    countered_check = DecimalField('Countered Check', validators=[Optional()])
+    check_amount = DecimalField('Check Amount', validators=[DataRequired()])
+    ewt = DecimalField('EWT', validators=[Optional()])
     payment_method = SelectField('Payment Method',
                                  choices=[
                                      ('Bank-to-Bank', 'Bank-to-Bank'),
@@ -49,4 +51,4 @@ class TransactionForm(FlaskForm):
                              ('Pending', 'Pending'),
                              ('Declined', 'Declined')
                          ], validators=[DataRequired()])
-    submit = SubmitField('Add')
+    submit = SubmitField('Add Transaction')

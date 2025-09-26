@@ -3,65 +3,66 @@
 {% block title %}DecoOffice - Paid Transactions{% endblock %}
 
 {% block content %}
-<div class="flex flex-col flex-1 p-8 text-[#3a4d39]">
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
     <!-- Page Header -->
-    <header class="flex-shrink-0 flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-bold uppercase tracking-wider" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Transactions</h1>
-        <div class="flex items-center gap-5 text-xl">
-            <div class="relative w-72">
-                <input type="text" placeholder="Search" class="w-full pl-12 pr-4 py-3 bg-[#fafaf5] border-2 border-[#dde5d6] rounded-full focus:outline-none focus:ring-2 focus:ring-green-300 text-sm shadow-inner">
-                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+    <header class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Transactions</h2>
+            <span class="text-sm font-semibold text-gray-500">(Paid)</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Search Bar -->
+            <div class="relative">
+                <input type="text" placeholder="Search..." 
+                       class="w-72 pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <button class="text-gray-500 hover:text-gray-800" title="Delete Selected">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-             <button class="text-gray-500 hover:text-gray-800" title="Archive">
-                 <i class="fas fa-archive"></i>
-            </button>
+            <!-- Action Buttons -->
+            <button class="text-gray-500 hover:text-red-600" title="Delete Selected"><i class="fas fa-trash-alt fa-lg"></i></button>
+            <button class="text-gray-500 hover:text-gray-800" title="Archive Selected"><i class="fas fa-archive fa-lg"></i></button>
             {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col">
-        <div class="flex justify-between items-center mb-4 px-2">
-            <span class="text-sm font-medium text-gray-500">({{ current_filter|capitalize }})</span>
-            <div class="relative">
-                <select class="pl-4 pr-10 py-2 border border-gray-200 rounded-full text-sm focus:outline-none appearance-none bg-white shadow-sm">
-                    <option>Recent</option>
-                    <option>Oldest</option>
-                </select>
-                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-            </div>
-        </div>
-
-        <div class="flex-1 flex flex-col space-y-2 py-2">
+    <!-- Main Content Area -->
+    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
+        <!-- Table -->
+        <div class="flex-1 flex flex-col transaction-table">
             <!-- Table Header -->
-            <div class="grid grid-cols-12 gap-4 px-6 py-4 text-sm font-semibold bg-gradient-to-r from-[#f0f5c4] to-[#d9e8d4] rounded-full shadow-sm">
-                <div class="col-span-3">Names of Issued Check</div>
-                <div class="col-span-2">Check No.</div>
-                <div class="col-span-1">Check Date</div>
-                <div class="col-span-2 text-right">Countered Check</div>
-                <div class="col-span-1 text-right">Check Amount</div>
-                <div class="col-span-1 text-right">EWT</div>
-                <div class="col-span-2 text-center">Status</div>
+            <div class="grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm font-semibold text-white bg-[#3a4d39] rounded-lg shadow-sm">
+                <span>Names of Issued Check</span>
+                <span>Check No.</span>
+                <span>Check Date</span>
+                <span>Countered Check</span>
+                <span>Check Amount</span>
+                <span>EWT</span>
+                <span class="text-center">Status</span>
             </div>
 
             <!-- Table Body -->
-            <div class="flex-1 flex items-center justify-center">
-                 <p class="text-gray-500">No paid transactions found.</p>
+            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
+                {% if not transactions %}
+                <div class="flex items-center justify-center h-full pt-16"><p class="text-gray-500">No paid transactions found.</p></div>
+                {% else %}
+                <div class="space-y-2">
+                    {% for transaction in transactions %}
+                    <div class="grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row">
+                        {# --- THIS IS THE FIX --- #}
+                        <span class="font-semibold view-details-link cursor-pointer hover:underline" data-id="{{ transaction._id }}">{{ transaction.name }}</span>
+                        <span class="text-gray-600">#{{ transaction.check_no }}</span>
+                        <span class="text-gray-600">{{ transaction.check_date }}</span>
+                        <span class="text-gray-600">{{ transaction.countered }}</span>
+                        <span class="font-semibold">₱ {{ "%.2f"|format(transaction.amount) }}</span>
+                        <span class="text-gray-600">{{ transaction.ewt }}</span>
+                        <div class="text-center">
+                            <span class="px-4 py-1 bg-[#3a4d39] text-white rounded-full text-xs font-semibold">Paid</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
         </div>
-        
-        <!-- Footer -->
-        <footer class="mt-auto pt-4">
-            <div class="grid grid-cols-3 gap-4 px-6 py-4 text-sm font-semibold bg-gradient-to-r from-[#f0f5c4] to-[#b3c9ac] rounded-full shadow-sm">
-                <div class="text-center">Check Amount</div>
-                <div class="text-center">Countered</div>
-                <div class="text-center">Status</div>
-            </div>
-        </footer>
     </div>
-</div>
-{% include "_transaction_details_modal.html" %}
+</main>
 {% endblock %}

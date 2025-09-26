@@ -8,70 +8,55 @@
         <h2 class="text-2xl font-bold text-gray-700 uppercase tracking-wider">Add Transactions</h2>
     </header>
 
-    <div class="flex-1">
+    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        
         <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="w-full max-w-4xl mx-auto">
             
-            {# This renders the CSRF token and other hidden fields #}
             {{ form.hidden_tag() }}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
                 
+                <div class="lg:col-span-2">
+                    {{ form.name_of_issued_check.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.name_of_issued_check(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="Enter name") }}
+                    {% for error in form.name_of_issued_check.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ form.check_no.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.check_no(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="#12345") }}
+                    {% for error in form.check_no.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ form.check_date.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.check_date(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400") }}
+                    {% for error in form.check_date.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ form.countered_check.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.countered_check(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01", placeholder="0.00") }}
+                    {% for error in form.countered_check.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ form.check_amount.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.check_amount(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01", placeholder="0.00") }}
+                    {% for error in form.check_amount.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
+                <div>
+                    {{ form.ewt.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
+                    {{ form.ewt(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01", placeholder="0.00") }}
+                    {% for error in form.ewt.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
+                </div>
                 {# --- THIS IS THE FIX --- #}
-                {# Replaced manual inputs with Flask-WTF macros #}
-                
-                <div>
-                    {{ form.name.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
-                    {{ form.name(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="Enter name") }}
-                    {% if form.name.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-                <div>
-                    {{ form.date_time.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
-                    {{ form.date_time(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400") }}
-                    {% if form.date_time.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.date_time.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-                <div>
-                    {{ form.transaction_id.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
-                    {{ form.transaction_id(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", placeholder="#") }}
-                     {% if form.transaction_id.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.transaction_id.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-                <div>
-                    {{ form.amount.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
-                    {{ form.amount(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01") }}
-                    {% if form.amount.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.amount.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
+                {# The Payment Method field has been added back to the form layout. #}
                 <div>
                     {{ form.payment_method.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
                     {{ form.payment_method(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none") }}
-                    {% if form.payment_method.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.payment_method.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
+                    {% for error in form.payment_method.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
                 </div>
                 <div>
                     {{ form.status.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
                     {{ form.status(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none") }}
-                    {% if form.status.errors %}
-                        <ul class="text-red-500 text-xs italic mt-2">
-                            {% for error in form.status.errors %}<li>{{ error }}</li>{% endfor %}
-                        </ul>
-                    {% endif %}
+                    {% for error in form.status.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
                 </div>
             </div>
 
