@@ -1,7 +1,7 @@
+<!-- website/templates/_notification_button.html -->
 <button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
     <i class="fa-regular fa-bell fa-lg"></i>
-    {# Dynamically show red dot if there are unread notifications #}
-    {% if inbox_notifications and inbox_notifications|length > 0 %}
-        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg"></span>
-    {% endif %}
+    {# --- THIS IS THE FIX --- #}
+    {# The 'hidden' class will be managed by JS based on API response #}
+    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg hidden"></span>
 </button>

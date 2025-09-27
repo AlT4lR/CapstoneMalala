@@ -3,18 +3,73 @@
 {% block title %}DecoOffice - Invoice{% endblock %}
 
 {% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Invoice Management</h2>
-            <!-- Notification button -->
-            {% include "_notification_button.html" %}
-        </header>
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
+    <!-- Page Header -->
+    <header class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Invoice</h2>
+        {% include "_notification_button.html" %}
+    </header>
 
-        {# Flash messages are handled globally by base.html #}
+    <!-- Main Invoice Upload Area -->
+    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+        <!-- We use a form tag for semantics, but JS will handle submission -->
+        <form id="invoice-form" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Left: File Upload -->
+            <div>
+                <h3 class="text-lg font-semibold text-[#3a4d39] mb-2">Create Invoice</h3>
+                <p class="text-sm text-gray-500 mb-4">Drop files to create a new invoice</p>
 
-        {# Invoice specific content #}
-        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex items-center justify-center">
-            <p class="text-gray-500 text-lg">Detailed Invoice functionality will be available here.</p>
-        </div>
-    </main>
+                <!-- Drop Zone -->
+                <div id="drop-zone"
+                     class="border-2 border-dashed border-[#3a4d39] rounded-lg p-8 text-center text-gray-500 cursor-pointer hover:bg-gray-50 transition">
+                    <input id="file-input" type="file" class="hidden" multiple>
+                    <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                    <p class="text-sm font-medium">Browse File <span class="block text-xs">(Max 5MB per file)</span></p>
+                </div>
+
+                <!-- File List -->
+                <div id="file-list" class="mt-6 space-y-3"></div>
+            </div>
+
+            <!-- Right: Form -->
+            <div class="flex flex-col">
+                <label for="folder-name" class="font-semibold text-sm text-[#3a4d39] mb-1">Folder Name</label>
+                <input type="text" id="folder-name" name="folder_name" required
+                       class="mb-4 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="e.g., Q3 Utilities">
+
+                <label for="categories" class="font-semibold text-sm text-[#3a4d39] mb-1">Categories</label>
+                <select id="categories" name="category" required
+                        class="mb-4 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+                    <option value="" disabled selected>Select a category...</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Office Supplies">Office Supplies</option>
+                    <option value="Services">Services</option>
+                    <option value="Rent">Rent</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="invoice-date" class="font-semibold text-sm text-[#3a4d39] mb-1">Date</label>
+                <input type="date" id="invoice-date" name="invoice_date" required
+                       class="mb-6 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+
+                <div class="flex gap-4 mt-auto">
+                    <!-- Buttons are now type="button" to prevent default form submission -->
+                    <button id="save-draft" type="button"
+                            class="flex-1 bg-[#6f8a6e] hover:bg-[#5a7159] text-white font-semibold py-3 rounded-lg transition-colors">
+                        Save As Draft
+                    </button>
+                    <button id="upload-btn" type="button"
+                            class="flex-1 bg-[#3a4d39] hover:bg-[#2a382a] text-white font-semibold py-3 rounded-lg transition-colors">
+                        Upload All
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<!-- Attach invoice.js -->
+<script src="{{ url_for('static', filename='js/invoice.js') }}"></script>
 {% endblock %}

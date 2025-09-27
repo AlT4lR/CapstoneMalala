@@ -47,7 +47,7 @@
                 <div class="space-y-2">
                     {% for transaction in transactions %}
                     <div class="grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row">
-                        {# --- THIS IS THE FIX --- #}
+                        <!-- clickable name -->
                         <span class="font-semibold view-details-link cursor-pointer hover:underline" data-id="{{ transaction._id }}">{{ transaction.name }}</span>
                         <span class="text-gray-600">#{{ transaction.check_no }}</span>
                         <span class="text-gray-600">{{ transaction.check_date }}</span>
@@ -65,4 +65,8 @@
         </div>
     </div>
 </main>
+
+<!-- Transaction Details Modal -->
+{% include "_transaction_details_modal.html" %}
+
 {% endblock %}

@@ -14,6 +14,14 @@ class Config:
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'prettymuchputanginaniasadon')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', '3langkamigumagawangcapstoneproject')
     
+    UPLOAD_FOLDER = os.path.join(basedir, 'uploads', 'invoices')
+
+    # --- THIS IS THE FIX ---
+    # PWA Push Notification VAPID Keys
+    VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
+    VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
+    VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL')
+    
     # MongoDB Configuration
     MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
     MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', "deco_db")
@@ -38,7 +46,7 @@ class Config:
     JWT_COOKIE_CSRF_PROTECT = False # Dont enable
 
     # Flask-Limiter Configuration
-    LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter" # Use same DB for limiter data
+    LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter"
     LIMITER_DEFAULT_LIMITS = ["200 per day", "50 per hour"]
     LIMITER_API_LIMITS = ["100 per hour", "10 per minute"]
     LIMITER_HEADERS_ENABLED = True

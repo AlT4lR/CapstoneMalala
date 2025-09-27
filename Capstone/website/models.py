@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_SCHEDULE_CATEGORIES = ['Office', 'Meetings', 'Events', 'Personal', 'Others']
 
 # --- User Operations ---
-# ... (all existing user functions remain here) ...
 def get_user_by_username(username):
     db = current_app.db
     if db is None:
@@ -136,7 +135,6 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     return False
 
 # --- Schedule & Category Operations ---
-# ... (all existing schedule/category functions remain here) ...
 def add_schedule(username, title, start_time, end_time, category, notes=None):
     db = current_app.db
     if db is None: return False
@@ -179,8 +177,6 @@ def add_category(username, category_name):
     return True
 
 # --- Transaction Operations ---
-# --- THIS IS THE FIX ---
-# Added 'payment_method' to the document being saved.
 def add_transaction(username, branch, transaction_data):
     db = current_app.db
     if db is None:
@@ -255,8 +251,6 @@ def delete_transaction(username, transaction_id):
         logger.error(f"Error deleting transaction {transaction_id} for user {username}: {e}", exc_info=True)
         return False
 
-# --- THIS IS THE FIX ---
-# The API function now retrieves and returns the 'method' field for the modal.
 def get_transaction_by_id(username, transaction_id):
     db = current_app.db
     if db is None: return None
@@ -284,3 +278,31 @@ def get_transaction_by_id(username, transaction_id):
     except Exception as e:
         logger.error(f"Error fetching single transaction {transaction_id}: {e}", exc_info=True)
         return None
+
+# --- THIS IS THE FIX ---
+# New function to add an invoice record to the database.
+def add_invoice(username, branch, invoice_data):
+    """Adds a new invoice record to the database."""
+    db = current_app.db
+    if db is None:
+        logger.error("Database not available. Cannot add invoice.")
+        return False
+    try:
+        doc = {
+            'username': username,
+            'branch': branch,
+            'folder_name': invoice_data.get('folder_name'),
+            'category': invoice_data.get('category'),
+            'invoice_date': invoice_data.get('invoice_date'),
+            'original_filename': invoice_data.get('original_filename'),
+            'saved_filename': invoice_data.get('saved_filename'),
+            'filepath': invoice_data.get('filepath'),
+            'filesize': invoice_data.get('filesize'),
+            'createdAt': datetime.now(pytz.utc)
+        }
+        db.invoices.insert_one(doc)
+        logger.info(f"Invoice '{doc['original_filename']}' added successfully for user '{username}'.")
+        return True
+    except Exception as e:
+        logger.error(f"Error adding invoice for user {username}: {e}", exc_info=True)
+        return False

@@ -1,5 +1,7 @@
 # website/__init__.py
 
+# --- THIS IS THE FIX ---
+import os
 from flask import Flask, request, render_template
 from pymongo import MongoClient
 from flask_mail import Mail
@@ -18,7 +20,9 @@ from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp,
     add_schedule, get_schedules_by_date_range, get_all_categories, add_category,
-    add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id
+    add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id,
+    # --- THIS IS THE FIX ---
+    add_invoice
 )
 
 log_config = dict({
@@ -43,6 +47,11 @@ def create_app(config_name='dev'):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
+    # --- THIS IS THE FIX ---
+    # Ensure the upload folder exists before handling any requests
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
@@ -65,11 +74,11 @@ def create_app(config_name='dev'):
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.delete_transaction = delete_transaction
-    # --- FIX: Make sure the new function is registered ---
     app.get_transaction_by_id = get_transaction_by_id
+    # --- THIS IS THE FIX ---
+    app.add_invoice = add_invoice
     app.mail = mail
 
-    # ... (rest of the file remains the same) ...
     # MongoDB Connection
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
