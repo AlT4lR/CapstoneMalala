@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DecoOffice{% endblock %}</title>
     
-    {# --- THIS IS THE FIX --- #}
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/dashboard/tempicon.ico') }}" type="image/x-icon">
     
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#fafaf5"/> <!-- New light background -->
+    <meta name="theme-color" content="#fafaf5"/>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +26,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {% block head %}{% endblock %}
 </head>
-<body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased">
+<!-- --- THIS IS THE FIX --- -->
+<body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased" data-vapid-public-key="{{ config.VAPID_PUBLIC_KEY }}">
     <!-- Main container -->
     <div class="flex h-screen w-screen">
 
