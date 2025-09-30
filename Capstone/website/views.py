@@ -1,22 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, make_response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
-from flask_babel import gettext as _
 import os
 from werkzeug.utils import secure_filename
 
-from .models import (
-    add_category, get_user_by_username, add_user, check_password,
-    update_last_login, set_user_otp, verify_user_otp, record_failed_login_attempt,
-    add_schedule, get_schedules_by_date_range, get_all_categories, 
-    add_invoice 
-    # Assuming other model functions like get_transactions_by_status are registered on current_app
-)
 from .forms import TransactionForm
 import logging
-from flask_limiter.util import get_remote_address
-from . import limiter
 
 logger = logging.getLogger(__name__)
 main = Blueprint('main', __name__)
@@ -27,67 +17,52 @@ BRANCH_CATEGORIES = [
     {'name': 'KASIGLAHAN', 'icon': 'building_icon.png'}, {'name': 'SOUTHVILLE 8B', 'icon': 'building_icon.png'},
     {'name': 'SITIO TANAG', 'icon': 'building_icon.png'}
 ]
-dummy_inbox_notifications = [
-    {'id': 1, 'name': 'Security Bank', 'preview': 'Bill for the week Dear valued customerh', 'date': '30 May 2025, 2:00 PM', 'icon': 'security_bank_icon.png'},
-    {'id': 2, 'name': 'New Message', 'preview': 'You have a new message from support.', 'date': 'July 1, 2025, 1:00 PM', 'icon': 'message_icon.png'},
-    {'id': 3, 'name': 'Reminder', 'preview': 'Review pending payments.', 'date': 'July 2, 2025, 9:00 AM', 'icon': 'reminder_icon.png'},
-]
-ALL_BRANCH_BUDGET_DATA = {
-    'DOUBLE L': [{'label': 'Income', 'value': 40, 'color': '#facc15'}, {'label': 'Spent', 'value': 20, 'color': '#a855f7'}, {'label': 'Savings', 'value': 30, 'color': '#ec4899'}, {'label': 'Scheduled', 'value': 10, 'color': '#3b82f6'}],
-}
 archived_items_data = [
     {'name': 'Nenia Ann Valenzuela', 'id': '#246810', 'datetime': '2025-07-01T10:30:00', 'relative_time': '45 minutes ago'},
     {'name': 'Jessilyn Telma', 'id': '#368912', 'datetime': '2025-07-01T10:30:00', 'relative_time': '45 minutes ago'}
 ]
-analytics_revenue_data = {'month': 'MAY 2025', 'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], 'data': []}
+analytics_revenue_data = {
+    'month': 'MAY 2025', 
+    'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], 
+    'data': [],
+    'legend': [] # Added for completeness
+}
 analytics_supplier_data = []
 
 # --- Helper Functions ---
-
-def get_week_start_date_utc(date_obj):
-    if date_obj.tzinfo is None:
-        date_obj = date_obj.replace(tzinfo=pytz.utc)
-    days_to_subtract = (date_obj.weekday() + 1) % 7
-    return (date_obj - timedelta(days=days_to_subtract)).replace(hour=0, minute=0, second=0, microsecond=0)
-
 def get_category_color(category):
     """Helper to map category names to colors for the calendar."""
     colors = {
-        'Office': '#5c8374',
-        'Meetings': '#e91e63',
-        'Events': '#ef4444',
-        'Personal': '#3b82f6',
-        'Others': '#6b7280'
+        'Office': '#5c8374', 'Meetings': '#e91e63', 'Events': '#ef4444',
+        'Personal': '#3b82f6', 'Others': '#6b7280'
     }
-    return colors.get(category, '#6b7280') # Return gray for unknown categories
+    return colors.get(category, '#6b7280')
 
 # --- Routes ---
-
 @main.route('/')
 def root_route():
     try:
-        verify_jwt_in_request()
-        if session.get('selected_branch'):
-            return redirect(url_for('main.dashboard'))
+        verify_jwt_in_request(optional=True)
+        if get_jwt_identity():
+            if session.get('selected_branch'):
+                return redirect(url_for('main.dashboard'))
+            else:
+                return redirect(url_for('main.branches'))
         else:
-            return redirect(url_for('main.branches'))
+            return redirect(url_for('auth.login'))
     except Exception:
         return redirect(url_for('auth.login'))
 
 @main.route('/branches')
 @jwt_required()
 def branches():
-    return render_template('branches.html',
-                            username=get_jwt_identity(),
-                            available_branches=BRANCH_CATEGORIES,
-                            show_sidebar=False,
-                            show_notifications_button=True,
-                            inbox_notifications=dummy_inbox_notifications)
+    return render_template('branches.html', username=get_jwt_identity(), available_branches=BRANCH_CATEGORIES)
 
 @main.route('/select_branch/<branch_name>')
 @jwt_required()
 def select_branch(branch_name):
-    session['selected_branch'] = branch_name
+    if branch_name.upper() in [b['name'] for b in [{'name': 'MONTALBAN'}, {'name': 'LAGUNA'}]]: # Basic validation
+        session['selected_branch'] = branch_name.upper()
     return redirect(url_for('main.dashboard'))
 
 @main.route('/dashboard')
@@ -97,75 +72,42 @@ def dashboard():
     if not selected_branch:
         flash("Please select a branch first.", "info")
         return redirect(url_for('main.branches'))
-    return render_template('dashboard.html',
-                            username=get_jwt_identity(),
-                            selected_branch=selected_branch,
-                            chart_data=ALL_BRANCH_BUDGET_DATA.get(selected_branch, {}),
-                            show_sidebar=True,
-                            show_notifications_button=True,
-                            inbox_notifications=dummy_inbox_notifications)
+    return render_template('dashboard.html', username=get_jwt_identity(), selected_branch=selected_branch,
+                            show_sidebar=True, show_notifications_button=True, archived_items=archived_items_data)
 
 @main.route('/transactions/paid')
 @jwt_required()
 def transactions_paid():
     selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        flash("Please select a branch to view transactions.", "info")
-        return redirect(url_for('main.branches'))
-    # Assumes get_transactions_by_status is registered on the app object
+    if not selected_branch: return redirect(url_for('main.branches'))
     paid_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Paid')
-    return render_template('paid_transactions.html',
-                            username=get_jwt_identity(),
-                            selected_branch=selected_branch,
-                            transactions=paid_transactions,
-                            current_filter='paid',
-                            show_sidebar=True,
-                            show_notifications_button=True,
-                            inbox_notifications=dummy_inbox_notifications)
+    return render_template('paid_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
+                            transactions=paid_transactions, show_sidebar=True, show_notifications_button=True)
 
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
     selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        flash("Please select a branch to view transactions.", "info")
-        return redirect(url_for('main.branches'))
-    # Assumes get_transactions_by_status is registered on the app object
+    if not selected_branch: return redirect(url_for('main.branches'))
     pending_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Pending')
-    return render_template('pending_transactions.html',
-                            username=get_jwt_identity(),
-                            selected_branch=selected_branch,
-                            transactions=pending_transactions,
-                            current_filter='pending',
-                            show_sidebar=True,
-                            show_notifications_button=True,
-                            inbox_notifications=dummy_inbox_notifications)
+    return render_template('pending_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
+                            transactions=pending_transactions, show_sidebar=True, show_notifications_button=True)
 
 @main.route('/transactions/declined')
 @jwt_required()
 def transactions_declined():
     selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        flash("Please select a branch to view transactions.", "info")
-        return redirect(url_for('main.branches'))
-    # Assumes get_transactions_by_status is registered on the app object
+    if not selected_branch: return redirect(url_for('main.branches'))
     declined_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Declined')
-    return render_template('declined_transactions.html',
-                            username=get_jwt_identity(),
-                            selected_branch=selected_branch,
-                            transactions=declined_transactions,
-                            current_filter='declined',
-                            show_sidebar=True,
-                            show_notifications_button=True,
-                            inbox_notifications=dummy_inbox_notifications)
+    return render_template('declined_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
+                            transactions=declined_transactions, show_sidebar=True, show_notifications_button=True)
 
 @main.route('/add-transaction', methods=['GET', 'POST'])
 @jwt_required()
 def add_transaction():
-    current_user_identity = get_jwt_identity()
+    username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
-
     if not selected_branch:
         flash("Please select a branch before adding a transaction.", "error")
         return redirect(url_for('main.branches'))
@@ -174,287 +116,149 @@ def add_transaction():
         try:
             new_transaction_data = {
                 'name_of_issued_check': form.name_of_issued_check.data,
-                'check_no': form.check_no.data,
-                'check_date': form.check_date.data,
-                'countered_check': form.countered_check.data,
-                'check_amount': form.check_amount.data,
-                'ewt': form.ewt.data,
-                'payment_method': form.payment_method.data,
-                'status': form.status.data
+                'check_no': form.check_no.data, 'check_date': form.check_date.data,
+                'countered_check': form.countered_check.data, 'check_amount': form.check_amount.data,
+                'ewt': form.ewt.data, 'payment_method': form.payment_method.data, 'status': form.status.data
             }
-
-            # Assumes add_transaction is registered on the app object
-            if current_app.add_transaction(current_user_identity, selected_branch, new_transaction_data):
+            if current_app.add_transaction(username, selected_branch, new_transaction_data):
                 flash('Successfully Added a Transaction!', 'success')
-                status_map = {
-                    'Paid': 'main.transactions_paid',
-                    'Pending': 'main.transactions_pending',
-                    'Declined': 'main.transactions_declined'
-                }
+                status_map = {'Paid': 'main.transactions_paid', 'Pending': 'main.transactions_pending', 'Declined': 'main.transactions_declined'}
                 return redirect(url_for(status_map.get(form.status.data, 'main.dashboard')))
             else:
-                logger.error(f"Model function 'add_transaction' returned False for user {current_user_identity}. Data: {new_transaction_data}")
-                flash('An error occurred while adding the transaction. (Model Failure: Check Server Logs)', 'error')
+                flash('An error occurred while adding the transaction.', 'error')
         except Exception as e:
-            logger.error(f"Exception in add_transaction route for user {current_user_identity}: {e}", exc_info=True)
-            flash('An unexpected application error occurred. Please try again.', 'error')
+            logger.error(f"Exception in add_transaction route for user {username}: {e}", exc_info=True)
+            flash('An unexpected application error occurred.', 'error')
 
-    return render_template('add_transaction.html',
-                            username=current_user_identity,
-                            selected_branch=selected_branch,
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True,
-                            form=form)
+    return render_template('add_transaction.html', username=username, selected_branch=selected_branch,
+                            show_sidebar=True, show_notifications_button=True, form=form)
 
+# Other main routes
 @main.route('/archive')
 @jwt_required()
 def archive():
-    return render_template('_archive.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            archived_items=archived_items_data,
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
+    return render_template('_archive.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           archived_items=archived_items_data, show_sidebar=True, show_notifications_button=True)
 @main.route('/billings')
 @jwt_required()
 def wallet():
-    return render_template('billings.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
+    return render_template('billings.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           show_sidebar=True, show_notifications_button=True)
 @main.route('/analytics')
 @jwt_required()
 def analytics():
-    selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        flash("Please select a branch to view analytics.", "info")
-        return redirect(url_for('main.branches'))
-    return render_template('analytics.html',
-                            username=get_jwt_identity(),
-                            selected_branch=selected_branch,
-                            revenue_data=analytics_revenue_data,
-                            suppliers=analytics_supplier_data,
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
-@main.route('/notifications')
-@jwt_required()
-def notifications():
-    return render_template('notifications.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
+    return render_template('analytics.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           revenue_data=analytics_revenue_data, suppliers=analytics_supplier_data,
+                           show_sidebar=True, show_notifications_button=True)
 @main.route('/invoice')
 @jwt_required()
 def invoice():
-    return render_template('invoice.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
-# --- REFACTORED SCHEDULES ROUTE ---
+    return render_template('invoice.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           show_sidebar=True, show_notifications_button=True)
 @main.route('/schedules', methods=['GET'])
 @jwt_required()
 def schedules():
-    return render_template('schedules.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
-
+    return render_template('schedules.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           show_sidebar=True, show_notifications_button=True)
 @main.route('/settings')
 @jwt_required()
 def settings():
-    return render_template('settings.html',
-                            username=get_jwt_identity(),
-                            selected_branch=session.get('selected_branch'),
-                            inbox_notifications=dummy_inbox_notifications,
-                            show_sidebar=True,
-                            show_notifications_button=True)
+    return render_template('settings.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
+                           show_sidebar=True, show_notifications_button=True)
 
 # --- API and PWA Routes ---
-
-# --- API ENDPOINT FOR FULLCALENDAR ---
 @main.route('/api/schedules', methods=['GET'])
 @jwt_required()
 def get_schedules():
-    username = get_jwt_identity()
-    
-    # FullCalendar sends start and end dates as ISO strings in the query
-    start_str = request.args.get('start')
-    end_str = request.args.get('end')
-
-    if not start_str or not end_str:
-        return jsonify({"error": "Missing start or end parameters"}), 400
-
+    username, start_str, end_str = get_jwt_identity(), request.args.get('start'), request.args.get('end')
+    if not start_str or not end_str: return jsonify({"error": "Missing start or end parameters"}), 400
     try:
-        # Parse the ISO strings into datetime objects
         start_date = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
         end_date = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
     except ValueError:
         return jsonify({"error": "Invalid date format"}), 400
     
-    # Assumes get_schedules_by_date_range is available via current_app
     schedules_from_db = current_app.get_schedules_by_date_range(username, start_date, end_date)
-    
-    # Format the data into the structure FullCalendar expects
-    calendar_events = []
-    for schedule in schedules_from_db:
-        calendar_events.append({
-            "id": str(schedule['_id']), # Ensure ID is a string if it's an ObjectId
-            "title": schedule['title'],
-            "start": schedule['start_time'], # Already in ISO format
-            "end": schedule['end_time'],     # Already in ISO format
-            "extendedProps": {
-                "category": schedule.get('category', 'Others'),
-                "notes": schedule.get('notes', '')
-            },
-            # Use the helper function for coloring
-            "backgroundColor": get_category_color(schedule.get('category')),
-            "borderColor": get_category_color(schedule.get('category'))
-        })
-        
+    calendar_events = [{
+        "id": str(s['_id']), "title": s['title'], "start": s['start_time'], "end": s['end_time'],
+        "extendedProps": {"category": s.get('category', 'Others'), "notes": s.get('notes', '')},
+        "backgroundColor": get_category_color(s.get('category')), "borderColor": get_category_color(s.get('category'))
+    } for s in schedules_from_db]
     return jsonify(calendar_events)
 
-# --- API ENDPOINT FOR INVOICE UPLOAD ---
 @main.route('/api/invoice/upload', methods=['POST'])
 @jwt_required()
 def upload_invoice():
-    username = get_jwt_identity()
-    selected_branch = session.get('selected_branch')
-
-    if not selected_branch:
-        return jsonify({'error': 'No branch selected. Please select a branch first.'}), 400
-
-    if 'invoice_file' not in request.files:
-        return jsonify({'error': 'No file part in the request.'}), 400
+    username, selected_branch = get_jwt_identity(), session.get('selected_branch')
+    if not selected_branch: return jsonify({'error': 'No branch selected.'}), 400
+    if 'invoice_file' not in request.files or not request.files['invoice_file'].filename:
+        return jsonify({'error': 'No file selected.'}), 400
     
     file = request.files['invoice_file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected for upload.'}), 400
+    try:
+        original_filename = secure_filename(file.filename)
+        file_ext = os.path.splitext(original_filename)[1]
+        unique_filename = f"{username}_{datetime.now(pytz.utc).strftime('%Y%m%d%H%M%S%f')}{file_ext}"
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(filepath)
+        
+        invoice_date_str = request.form.get('invoice_date')
+        invoice_date = datetime.strptime(invoice_date_str, '%Y-%m-%d') if invoice_date_str else None
 
-    if file:
-        try:
-            # Secure the filename and create a unique name to prevent overwrites
-            original_filename = secure_filename(file.filename)
-            file_ext = os.path.splitext(original_filename)[1]
-            unique_filename = f"{username}_{datetime.now(pytz.utc).strftime('%Y%m%d%H%M%S%f')}{file_ext}"
-            
-            upload_path = current_app.config['UPLOAD_FOLDER']
-            if not os.path.exists(upload_path):
-                os.makedirs(upload_path)
-                
-            filepath = os.path.join(upload_path, unique_filename)
-            file.save(filepath)
-            filesize = os.path.getsize(filepath)
-
-            # Prepare data for the model
-            invoice_date_str = request.form.get('invoice_date')
-            invoice_date = None
-            if invoice_date_str:
-                try:
-                    invoice_date = datetime.strptime(invoice_date_str, '%Y-%m-%d')
-                except ValueError:
-                    logger.warning(f"Invalid invoice_date format received: {invoice_date_str}")
-                    # Keep invoice_date as None or handle as an error if strict validation is required
-
-            invoice_data = {
-                'folder_name': request.form.get('folder_name'),
-                'category': request.form.get('category'),
-                'invoice_date': invoice_date,
-                'original_filename': original_filename,
-                'saved_filename': unique_filename,
-                'filepath': filepath,
-                'filesize': filesize
-            }
-            
-            # Call the model function to save to DB (add_invoice imported directly)
-            if add_invoice(username, selected_branch, invoice_data):
-                return jsonify({'success': True, 'message': 'File uploaded and recorded successfully.'}), 201
-            else:
-                # If DB fails, clean up the saved file
-                os.remove(filepath)
-                return jsonify({'error': 'Failed to record invoice in the database.'}), 500
-
-        except Exception as e:
-            logger.error(f"Invoice upload failed for user {username}: {e}", exc_info=True)
-            # Ensure file cleanup if the exception happened after saving but before DB record (less likely but safer)
-            if 'filepath' in locals() and os.path.exists(filepath):
-                 os.remove(filepath)
-            return jsonify({'error': 'An internal server error occurred during file upload.'}), 500
-    
-    return jsonify({'error': 'An unknown error occurred.'}), 400
+        invoice_data = {
+            'folder_name': request.form.get('folder_name'), 'category': request.form.get('category'),
+            'invoice_date': invoice_date, 'original_filename': original_filename,
+            'saved_filename': unique_filename, 'filepath': filepath, 'filesize': os.path.getsize(filepath)
+        }
+        
+        # --- THIS IS THE FIX ---
+        # Call the model function via current_app for consistency
+        if current_app.add_invoice(username, selected_branch, invoice_data):
+            return jsonify({'success': True, 'message': 'File uploaded successfully.'}), 201
+        else:
+            os.remove(filepath)
+            return jsonify({'error': 'Failed to record invoice in database.'}), 500
+    except Exception as e:
+        logger.error(f"Invoice upload failed for user {username}: {e}", exc_info=True)
+        if 'filepath' in locals() and os.path.exists(filepath): os.remove(filepath)
+        return jsonify({'error': 'An internal server error occurred.'}), 500
 
 @main.route('/api/transaction/<transaction_id>', methods=['GET'])
 @jwt_required()
 def get_transaction_details(transaction_id):
-    username = get_jwt_identity()
-    # Assumes get_transaction_by_id is registered on the app object
-    transaction = current_app.get_transaction_by_id(username, transaction_id)
-    if transaction:
-        return jsonify(transaction), 200
-    else:
-        return jsonify({'error': 'Transaction not found or permission denied.'}), 404
+    transaction = current_app.get_transaction_by_id(get_jwt_identity(), transaction_id)
+    return jsonify(transaction) if transaction else (jsonify({'error': 'Transaction not found.'}), 404)
 
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
-    username = get_jwt_identity()
-    # Assumes delete_transaction is registered on the app object
-    if current_app.delete_transaction(username, transaction_id):
-        return jsonify({'success': True, 'message': 'Transaction deleted successfully.'}), 200
-    else:
-        return jsonify({'error': 'Failed to delete transaction or permission denied.'}), 404
+    if current_app.delete_transaction(get_jwt_identity(), transaction_id):
+        return jsonify({'success': True, 'message': 'Transaction deleted.'}), 200
+    return jsonify({'error': 'Failed to delete transaction.'}), 404
 
 @main.route('/offline')
 def offline():
     return render_template('offline.html')
 
-# -------------------------------------------------------------
-## PWA & Notification API Endpoints Fix
-
+# --- PWA & Notification API Endpoints ---
 @main.route('/api/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    """Fetches unread notifications for the current user."""
-    username = get_jwt_identity()
-    # Assumes get_unread_notifications is registered on the app object
-    notifications = current_app.get_unread_notifications(username)
+    notifications = current_app.get_unread_notifications(get_jwt_identity())
     return jsonify(notifications)
 
 @main.route('/api/notifications/mark-read', methods=['POST'])
 @jwt_required()
 def mark_read():
-    """Marks all user notifications as read."""
-    username = get_jwt_identity()
-    # Assumes mark_notifications_as_read is registered on the app object
-    if current_app.mark_notifications_as_read(username):
+    if current_app.mark_notifications_as_read(get_jwt_identity()):
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to mark notifications as read'}), 500
 
 @main.route('/api/push/subscribe', methods=['POST'])
 @jwt_required()
 def push_subscribe():
-    """Saves the PWA push notification subscription object for the user."""
-    username = get_jwt_identity()
     subscription_info = request.json
-    if not subscription_info:
-        return jsonify({'error': 'No subscription data provided.'}), 400
-    
-    # Assumes save_push_subscription is registered on the app object
-    if current_app.save_push_subscription(username, subscription_info):
+    if not subscription_info: return jsonify({'error': 'No subscription data provided.'}), 400
+    if current_app.save_push_subscription(get_jwt_identity(), subscription_info):
         return jsonify({'success': True}), 201
     return jsonify({'error': 'Failed to save subscription.'}), 500

@@ -1,5 +1,3 @@
-# website/models.py
-
 import bcrypt
 from pymongo.errors import DuplicateKeyError
 import logging
@@ -24,13 +22,45 @@ def get_user_by_username(username):
     if db is None:
         logger.error("Database not available.")
         return None
+    # Case-insensitive search
     return db.users.find_one({'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}})
+
 def get_user_by_email(email):
     db = current_app.db
     if db is None:
         logger.error("Database not available.")
         return None
+    # Case-insensitive search
     return db.users.find_one({'email': {'$regex': f'^{re.escape(email.strip().lower())}$', '$options': 'i'}})
+
+def update_user_password(email, new_password):
+    """
+    Finds a user by email and securely updates their password hash.
+    Used for the password reset mechanism.
+    """
+    db = current_app.db
+    if db is None:
+        logger.error("Database not available. Cannot update password.")
+        return False
+    try:
+        # Hash the new password before storing
+        new_hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Find the user by email (case-insensitive) and set the new hash and update time
+        result = db.users.update_one(
+            {'email': {'$regex': f'^{re.escape(email.strip().lower())}$', '$options': 'i'}},
+            {'$set': {'passwordHash': new_hashed_password, 'updatedAt': datetime.now(pytz.utc)}}
+        )
+        if result.matched_count == 1:
+            logger.info(f"Successfully updated password for user with email: {email}")
+            return True
+        else:
+            logger.warning(f"Attempted to update password for non-existent email: {email}")
+            return False
+    except Exception as e:
+        logger.error(f"Error updating password for {email}: {e}", exc_info=True)
+        return False
+
 def add_user(username, email, password):
     db = current_app.db
     if db is None:
@@ -54,12 +84,14 @@ def add_user(username, email, password):
     except Exception as e:
         logger.error(f"Unexpected error during registration: {e}")
         return False
+
 def check_password(stored_hash, provided_password):
     try:
         return bcrypt.checkpw(provided_password.encode('utf-8'), stored_hash)
     except (TypeError, ValueError):
         logger.error("Invalid password hash format encountered.")
         return False
+
 def update_last_login(username):
     db = current_app.db
     if db is None: return
@@ -70,6 +102,7 @@ def update_last_login(username):
         )
     except Exception as e:
         logger.error(f"Error updating last login for {username}: {e}")
+
 def record_failed_login_attempt(username):
     db = current_app.db
     if db is None: return
@@ -85,6 +118,7 @@ def record_failed_login_attempt(username):
         db.users.update_one({'_id': user['_id']}, {'$set': update_fields})
     except Exception as e:
         logger.error(f"Error recording failed login attempt for {username}: {e}")
+
 def set_user_otp(username, otp_type='email'):
     db = current_app.db
     if db is None: return None
@@ -104,6 +138,7 @@ def set_user_otp(username, otp_type='email'):
             logger.error(f"Error setting email OTP for {username}: {e}")
             return None
     return None
+
 def verify_user_otp(username, submitted_otp, otp_type='email'):
     db = current_app.db
     if db is None: return False
@@ -279,8 +314,6 @@ def get_transaction_by_id(username, transaction_id):
         logger.error(f"Error fetching single transaction {transaction_id}: {e}", exc_info=True)
         return None
 
-# --- THIS IS THE FIX ---
-# New function to add an invoice record to the database.
 def add_invoice(username, branch, invoice_data):
     """Adds a new invoice record to the database."""
     db = current_app.db
@@ -305,4 +338,61 @@ def add_invoice(username, branch, invoice_data):
         return True
     except Exception as e:
         logger.error(f"Error adding invoice for user {username}: {e}", exc_info=True)
+        return False
+
+# PWA Notification and Subscription model functions
+def add_notification(username, title, message, url=None):
+    """Adds an in-app notification for a user."""
+    db = current_app.db
+    if not db: return False
+    try:
+        notification = {
+            'username': username, 'title': title, 'message': message, 'url': url,
+            'is_read': False, 'createdAt': datetime.now(pytz.utc)
+        }
+        db.notifications.insert_one(notification)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding notification for {username}: {e}", exc_info=True)
+        return False
+
+def get_unread_notifications(username):
+    """Retrieves all unread notifications for a user."""
+    db = current_app.db
+    if not db: return []
+    try:
+        notifications = list(db.notifications.find({'username': username, 'is_read': False}).sort('createdAt', -1))
+        for n in notifications:
+            n['_id'] = str(n['_id'])
+            n['createdAt'] = n['createdAt'].isoformat()
+        return notifications
+    except Exception as e:
+        logger.error(f"Error fetching notifications for {username}: {e}", exc_info=True)
+        return []
+
+def mark_notifications_as_read(username):
+    """Marks all notifications for a user as read."""
+    db = current_app.db
+    if not db: return False
+    try:
+        db.notifications.update_many({'username': username, 'is_read': False}, {'$set': {'is_read': True}})
+        return True
+    except Exception as e:
+        logger.error(f"Error marking notifications as read for {username}: {e}", exc_info=True)
+        return False
+
+def save_push_subscription(username, subscription_info):
+    """Saves a PWA push subscription object for a user."""
+    db = current_app.db
+    if not db: return False
+    try:
+        # Use $addToSet to avoid adding duplicate subscription objects
+        db.users.update_one(
+            {'username': username},
+            {'$addToSet': {'push_subscriptions': subscription_info}}
+        )
+        logger.info(f"Saved push subscription for user '{username}'.")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
         return False

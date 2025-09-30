@@ -26,16 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // --- THIS IS THE FIX ---
     /**
-     * CONCEPTUAL: Saves the invoice request data locally to a store like IndexedDB.
-     * In a real application, you'd also save the file itself (e.g., using the Cache API or Filesystem API).
+     * Saves the invoice request data locally to IndexedDB, aligning with the service worker.
      * @param {FormData} formData The form data to be saved.
      * @param {File} file The actual file object.
      * @param {string} tempId A temporary ID for the transaction.
      */
     function saveInvoiceForSync(formData, file, tempId) {
-        // --- NOTE: This is a conceptual implementation. Real IndexedDB logic is required here. ---
-        
         // Convert FormData to a storable object
         const dataToStore = {
             id: tempId,
@@ -44,22 +42,40 @@ document.addEventListener("DOMContentLoaded", () => {
             folder_name: formData.get("folder_name"),
             category: formData.get("category"),
             invoice_date: formData.get("invoice_date"),
-            // In a real app, you'd save the file data itself using a more robust mechanism
-            // For now, we'll just log that it was prepared for sync.
+            // In a real-world, robust implementation, you would store the 'file' object (as a Blob) as well.
+            // For this fix, we are focusing on getting the metadata sync working correctly.
         };
         
-        console.log("Invoice queued for sync. Data:", dataToStore);
-        // IndexedDB: db.add('outbox', dataToStore);
-        
-        // For demonstration, we'll store a placeholder in sessionStorage
-        // In reality, this data would be stored persistently in IndexedDB.
-        let outbox = JSON.parse(sessionStorage.getItem('sync-outbox-invoices') || '[]');
-        outbox.push(dataToStore);
-        sessionStorage.setItem('sync-outbox-invoices', JSON.stringify(outbox));
+        // Open the IndexedDB database
+        const dbPromise = indexedDB.open('invoice-queue-db', 1);
 
-        // We assume the service worker will handle fetching the file from a temporary local store 
-        // or re-uploading the saved data when the sync event fires.
+        dbPromise.onupgradeneeded = event => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('outbox-invoices')) {
+                db.createObjectStore('outbox-invoices', { keyPath: 'id' });
+            }
+        };
+
+        dbPromise.onsuccess = event => {
+            const db = event.target.result;
+            const transaction = db.transaction(['outbox-invoices'], 'readwrite');
+            const store = transaction.objectStore('outbox-invoices');
+            
+            const request = store.add(dataToStore);
+            
+            request.onsuccess = () => {
+                console.log(`Invoice ${tempId} successfully queued for sync in IndexedDB.`);
+            };
+            request.onerror = (err) => {
+                console.error(`Error saving invoice ${tempId} to IndexedDB:`, err);
+            };
+        };
+
+        dbPromise.onerror = event => {
+            console.error('IndexedDB opening error:', event.target.error);
+        };
     }
+    // --- END OF FIX ---
     
     // --- End PWA Logic ---
 
@@ -121,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
         
-        // --- PWA: Background Sync Integration FIX ---
         // Network error (i.e., we are offline)
         xhr.onerror = () => {
             statusText.textContent = "Offline. Queued for sync.";
@@ -132,7 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
             saveInvoiceForSync(formData, file, tempId);
             registerBackgroundSync();
         };
-        // --- End FIX ---
 
         xhr.send(formData);
     }
@@ -145,9 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const item = document.createElement("div");
         item.className = "flex items-center gap-3 p-3 border rounded-lg text-sm relative bg-white shadow-sm";
         
-        // Check if file is already in the map by object reference to prevent duplicates
-        // Note: For files dropped at different times, two identical files might be added
-        // if we don't check by name/size. For simplicity, we stick to object reference for now.
         if (fileMap.has(file)) return;
         fileMap.set(file, item); // Associate file with its element
 
@@ -184,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function handleFiles(files) {
         [...files].forEach(file => {
-            createFileItem(file); // createFileItem now handles the fileMap check
+            createFileItem(file);
         });
     }
 

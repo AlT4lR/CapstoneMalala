@@ -2,51 +2,59 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     const passwordField = document.getElementById('register-password');
-    const togglePassword = document.getElementById('toggle-register-password');
     const passwordRules = document.getElementById('password-rules');
-    const flashMessagesContainer = document.getElementById('flash-messages-container');
+
+    // --- THIS IS MODIFIED ---
+    // Make the password toggle logic work for multiple fields on the same page.
+    const togglePasswordIcons = document.querySelectorAll('.password-toggle-icon');
+    
+    togglePasswordIcons.forEach(icon => {
+        icon.addEventListener('click', function () {
+            // Find the input field right before the icon
+            const input = this.previousElementSibling;
+            if (input && input.tagName === 'INPUT') {
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                
+                // Toggle the eye icon class
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            }
+        });
+    });
 
     // Function to update the checkmark/cross icon for password rules
     function updateRule(ruleElement, isValid) {
+        if (!ruleElement) return;
         const icon = ruleElement.querySelector('i');
-        icon.classList.remove('fa-times-circle', 'text-red-500', 'fa-check-circle', 'text-green-500');
-        ruleElement.classList.remove('text-gray-500', 'text-green-700');
-
-        if (isValid) {
-            icon.classList.add('fa-check-circle', 'text-green-500');
-            ruleElement.classList.add('text-green-700');
-        } else {
-            icon.classList.add('fa-times-circle', 'text-red-500');
-            ruleElement.classList.add('text-gray-500');
-        }
+        icon.classList.toggle('fa-check-circle', isValid);
+        icon.classList.toggle('text-green-500', isValid);
+        icon.classList.toggle('fa-times-circle', !isValid);
+        icon.classList.toggle('text-red-500', !isValid);
+        ruleElement.classList.toggle('text-green-700', isValid);
+        ruleElement.classList.toggle('text-gray-500', !isValid);
     }
 
     // Function to check password strength against rules
     function checkPasswordStrength() {
+        if (!passwordField) return;
         const password = passwordField.value;
 
-        const isLengthValid = password.length >= 8;
-        const hasUppercase = /[A-Z]/.test(password);
-        const hasLowercase = /[a-z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?\":{}|<>]/.test(password); // Updated special chars for clarity
-
-        updateRule(document.getElementById('rule-length'), isLengthValid);
-        updateRule(document.getElementById('rule-uppercase'), hasUppercase);
-        updateRule(document.getElementById('rule-lowercase'), hasLowercase);
-        updateRule(document.getElementById('rule-number'), hasNumber);
-        updateRule(document.getElementById('rule-special'), hasSpecial);
+        updateRule(document.getElementById('rule-length'), password.length >= 8);
+        updateRule(document.getElementById('rule-uppercase'), /[A-Z]/.test(password));
+        updateRule(document.getElementById('rule-lowercase'), /[a-z]/.test(password));
+        updateRule(document.getElementById('rule-number'), /[0-9]/.test(password));
+        updateRule(document.getElementById('rule-special'), /[!@#$%^&*(),.?":{}|<>]/.test(password));
     }
 
-    // Event listeners for password field
-    if (passwordField) {
-        passwordField.addEventListener('focus', function() {
+    // Event listeners for password strength checker
+    if (passwordField && passwordRules) {
+        passwordField.addEventListener('focus', () => {
             passwordRules.classList.remove('hidden');
-            checkPasswordStrength(); // Check strength immediately on focus if field is not empty
+            checkPasswordStrength();
         });
 
-        passwordField.addEventListener('blur', function() {
-            // Hide rules only if the field is empty after losing focus
+        passwordField.addEventListener('blur', () => {
             if (passwordField.value === '') {
                 passwordRules.classList.add('hidden');
             }
@@ -54,34 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         passwordField.addEventListener('input', checkPasswordStrength);
 
-        // If the password field is pre-filled (e.g., after a validation error), show rules and check strength
         if (passwordField.value !== '') {
             passwordRules.classList.remove('hidden');
             checkPasswordStrength();
         }
-    }
-
-    // Event listener for toggling password visibility
-    if (togglePassword) {
-        togglePassword.addEventListener('click', function () {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            
-            // Toggle the eye icon
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-    }
-
-    // Auto-fade for flash messages
-    if (flashMessagesContainer) {
-        setTimeout(() => {
-            flashMessagesContainer.classList.add('fade-out');
-            flashMessagesContainer.addEventListener('transitionend', () => {
-                if (flashMessagesContainer.parentNode) {
-                    flashMessagesContainer.remove();
-                }
-            });
-        }, 5000);
     }
 });

@@ -16,7 +16,7 @@
             </div>
             <div class="flex justify-center items-center flex-wrap gap-x-4 gap-y-1 my-2 text-xs text-gray-500">
                 {% for item in revenue_data.legend %}
-                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color|default('#cccccc') }};"></span>{{ item.label }}</div>
+                <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color|default('#cccccc')|safe }};"></span>{{ item.label }}</div>
                 {% endfor %}
             </div>
             <div class="text-lg font-semibold text-gray-600 uppercase mt-2">{{ selected_branch or 'All Branches' }}</div>
@@ -50,13 +50,13 @@
 
     <!-- Right Column: Supplier Performance -->
     {# --- THIS IS THE FIX --- #}
-    <div class="flex-shrink-0 basis-1/3 max-w-sm flex flex-col"> {# Changed flex-basis-1/3 to basis-1/3 #}
+    <div class="flex-shrink-0 basis-1/3 max-w-sm flex flex-col">
     {# --- END FIX --- #}
         <h2 class="text-lg font-bold text-custom-green-darker uppercase tracking-wider mb-4 px-2">Supplier Performance</h2>
-        <div class="flex-grow bg-supplier-card-bg rounded-xl p-3 overflow-y-auto custom-scrollbar">
+        <div class="flex-grow bg-slate-800 rounded-xl p-3 overflow-y-auto custom-scrollbar">
             <div class="space-y-3">
                 {% for supplier in suppliers %}
-                <div class="bg-slate-800 p-4 rounded-lg text-white/90">
+                <div class="bg-gray-900 p-4 rounded-lg text-white/90">
                     <p class="font-bold text-base mb-2">{{ supplier.name }}</p>
                     <div class="space-y-1 text-sm text-gray-300">
                         <div class="flex justify-between"><span>Score [0-100]:</span> <span class="font-medium text-white">{{ supplier.score }}</span></div>

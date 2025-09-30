@@ -1,9 +1,6 @@
 # website/__init__.py
-
-# --- THIS IS THE FIX ---
 import os
-from flask import Flask, request, render_template
-from pymongo import MongoClient
+from flask import Flask, render_template
 from flask_mail import Mail
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -11,21 +8,24 @@ from flask_limiter.util import get_remote_address
 import logging
 from logging.config import dictConfig
 from flask_talisman import Talisman
+from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-# --- FIX: Make sure all necessary functions are listed here ---
+# --- THIS IS THE FIX ---
+# Make sure all necessary model functions are imported.
 from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp,
     add_schedule, get_schedules_by_date_range, get_all_categories, add_category,
     add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id,
-    # --- THIS IS THE FIX ---
-    add_invoice
+    add_invoice,
+    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription
 )
 
-log_config = dict({
+# Logging configuration
+log_config = {
     'version': 1, 'disable_existing_loggers': False,
     'formatters': {'standard': {'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'}},
     'handlers': {'console': {'level': 'INFO', 'formatter': 'standard', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout'}},
@@ -33,10 +33,11 @@ log_config = dict({
         '': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
         'pymongo': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
     }
-})
+}
 dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
+# Initialize extensions
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
@@ -44,21 +45,24 @@ talisman = Talisman()
 csrf = CSRFProtect()
 
 def create_app(config_name='dev'):
+    """Application factory function."""
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
-    # --- THIS IS THE FIX ---
-    # Ensure the upload folder exists before handling any requests
+    # Ensure the upload folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
+    # Initialize Flask extensions
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-    talisman.init_app(app, content_security_policy=app.config['CSP_RULES'])
+    # Disabling Talisman temporarily if it causes issues with CDNs, can be re-enabled for production.
+    # talisman.init_app(app, content_security_policy=app.config['CSP_RULES'])
     csrf.init_app(app)
 
-    # Attach model functions to the app instance
+    # --- THIS IS THE FIX ---
+    # Attach all model functions to the app instance for easy access via current_app
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
     app.add_user = add_user
@@ -75,21 +79,25 @@ def create_app(config_name='dev'):
     app.get_transactions_by_status = get_transactions_by_status
     app.delete_transaction = delete_transaction
     app.get_transaction_by_id = get_transaction_by_id
-    # --- THIS IS THE FIX ---
     app.add_invoice = add_invoice
+    app.add_notification = add_notification
+    app.get_unread_notifications = get_unread_notifications
+    app.mark_notifications_as_read = mark_notifications_as_read
+    app.save_push_subscription = save_push_subscription
     app.mail = mail
 
-    # MongoDB Connection
+    # MongoDB Connection and Setup
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         mongo_client.admin.command('ping')
         logger.info(f"Successfully connected to MongoDB: {app.config['MONGO_DB_NAME']}")
         
+        # Create unique indexes with case-insensitive collation
         users_collection = app.db.users
         try:
             users_collection.create_index(
-                [('username', 1)], unique=True, name="username_1_case_insensitive_unique", 
+                [('username', 1)], unique=True, name="username_1_case_insensitive_unique",
                 collation={'locale': 'en', 'strength': 2}
             )
             logger.info("Ensured unique index on 'users.username'.")
@@ -98,7 +106,7 @@ def create_app(config_name='dev'):
             else: raise
         try:
             users_collection.create_index(
-                [('email', 1)], unique=True, name="email_1_case_insensitive_unique", 
+                [('email', 1)], unique=True, name="email_1_case_insensitive_unique",
                 collation={'locale': 'en', 'strength': 2}
             )
             logger.info("Ensured unique index on 'users.email'.")
@@ -107,9 +115,12 @@ def create_app(config_name='dev'):
             else: raise
         
         app.db.transactions.create_index([
-            ("username", 1), ("branch", 1), ("status", 1), ("datetime_utc", -1)
+            ("username", 1), ("branch", 1), ("status", 1), ("check_date", -1)
         ])
         logger.info("Ensured index on 'transactions'.")
+        
+        app.db.notifications.create_index([("username", 1), ("is_read", 1)])
+        logger.info("Ensured index on 'notifications'.")
     except Exception as e:
         logger.error(f"MongoDB connection or setup failed: {e}", exc_info=True)
         app.db = None
