@@ -41,9 +41,6 @@
             {% block content %}{% endblock %}
         </main>
 
-        {% if show_notifications_button %}
-            {% include "_notifications_panel.html" %}
-        {% endif %}
     </div>
 
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>

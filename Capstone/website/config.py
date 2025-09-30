@@ -3,21 +3,20 @@
 import os
 from dotenv import load_dotenv
 import re
-import pytz # For timezone handling
+from datetime import timedelta
 
-# Load environment variables from a .env file if it exists
+# Load environment variables from a .env file if it exists in the root directory
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(basedir, '..', '.env'))
 
 class Config:
     """Base configuration class."""
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'prettymuchputanginaniasadon')
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', '3langkamigumagawangcapstoneproject')
+    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'a_very_secret_key_that_should_be_changed')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'a_super_secret_jwt_key_to_change')
     
-    UPLOAD_FOLDER = os.path.join(basedir, 'uploads', 'invoices')
+    UPLOAD_FOLDER = os.path.join(basedir, '..', 'uploads', 'invoices')
 
-    # --- THIS IS THE FIX ---
-    # PWA Push Notification VAPID Keys
+    # --- PWA Push Notification VAPID Keys ---
     VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
     VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
     VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL')
@@ -30,52 +29,36 @@ class Config:
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'wonderweeb15@gmail.com')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'qcgx xawr tpos onva')
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = (os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice'), 
-                           os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'wonderweeb15@gmail.com'))
+                           os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com'))
 
     # JWT Configuration
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
     JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
-
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_CSRF_CHECK_FORM = True  
     JWT_CSRF_IN_COOKIES = True
-
-    JWT_COOKIE_CSRF_PROTECT = False # Dont enable
+    JWT_COOKIE_CSRF_PROTECT = False # Keep this False. CSRF is handled by flask-wtf or headers.
 
     # Flask-Limiter Configuration
     LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter"
-    LIMITER_DEFAULT_LIMITS = ["200 per day", "50 per hour"]
-    LIMITER_API_LIMITS = ["100 per hour", "10 per minute"]
-    LIMITER_HEADERS_ENABLED = True
-    LIMITER_STRATEGY = "fixed-window"
-
-    # Security Configurations
-    BAD_USER_AGENTS = [
-        re.compile(r'python-requests', re.IGNORECASE),
-        re.compile(r'scraperbot', re.IGNORECASE),
-        re.compile(r'curl', re.IGNORECASE),
-    ]
     
-    # Talisman Configuration
-    TALISMAN_FORCE_HTTPS = JWT_COOKIE_SECURE # Force HTTPS if JWT cookies are secure
-    TALISMAN_FRAME_OPTIONS = 'DENY' 
-    TALISMAN_X_CONTENT_TYPE_OPTIONS = True 
-
-    # CSP Rules for Talisman
+    # Talisman CSP Rules
     CSP_RULES = {
         'default-src': "'self'",
-        'script-src': "'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com",
-        'style-src': "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
-        'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+        'script-src': "'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net",
+        'style-src': "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net",
+        'font-src': "'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
         'img-src': "'self' data:",
-        'connect-src': "'self'", # Allow self for API calls
+        'connect-src': "'self'",
     }
 
 class DevelopmentConfig(Config):
-    """Development configuration - overrides defaults with development settings."""
+    """Development configuration."""
     DEBUG = True
     TESTING = False
 
@@ -86,13 +69,14 @@ class TestingConfig(Config):
     LIMITER_STORAGE_URI = f"{Config.MONGO_URI}{MONGO_DB_NAME}_limiter"
     SECRET_KEY = 'test-insecure-secret-key' 
     JWT_SECRET_KEY = 'test-insecure-jwt-secret-key'
+    WTF_CSRF_ENABLED = False # Disable CSRF forms in testing
 
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     TESTING = False
     JWT_COOKIE_SECURE = True 
-    SESSION_COOKIE_SECURE = True 
+    SESSION_COOKIE_SECURE = True
 
 config_by_name = dict(
     dev=DevelopmentConfig,
