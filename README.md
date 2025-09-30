@@ -1,18 +1,16 @@
 # DecoOffice Capstone Project
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-0.026-yellow)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)![License](https://img.shields.io/badge/license-MIT-blue)![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-A Flask web application designed to manage operations for Decolores Merchandise Stores across multiple regions.
+A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches.
 
 ---
 
-## About the Project
+## About The Project
 
-This project serves as a capstone development for managing the operational aspects of Decolores Merchandise Stores. It provides a centralized system for key business tasks, enhancing efficiency and data management across different store branches.
+This project serves as a comprehensive operational management system for Decolores Merchandise Stores. It provides a centralized platform for key business tasks, enhancing efficiency, data management, and user experience across different store branches.
 
-The application is structured using the Flask framework and follows a modular design with blueprints for different functionalities like authentication and core application views. It's currently configured to support operations for stores in specific regions [dun sa may pake kong kagrupo].
+Built with the Flask framework, the application follows a modular design using blueprints for authentication, core views, and APIs. It is designed to be a Progressive Web App (PWA), offering offline capabilities and a native-like app experience.
 
 ---
 
@@ -20,19 +18,45 @@ The application is structured using the Flask framework and follows a modular de
 
 ✨ **Key Features:**
 
-* **User Authentication**: Secure registration, login, logout, email OTP verification, and optional Two-Factor Authentication (2FA) setup.
+*   **Secure User Authentication**:
+    *   User registration with server-side validation and password strength enforcement.
+    *   Secure login/logout and session management using JWT.
+    *   **Password Reset Functionality** via secure, timed email links.
+    *   Email OTP verification for new accounts.
+    *   **Two-Factor Authentication (2FA)** using TOTP for enhanced security.
 
-* **Branch Management**: Users can select a specific store branch to tailor the application's data and context.
+*   **Multi-Branch Management**: Users select a specific store branch (e.g., Montalban, Laguna) to work within a tailored data context.
 
-* **Dashboard**: Provides an overview of key metrics (e.g., financial summaries, budget status) specific to the selected branch.
+*   **Interactive Dashboard**: A dynamic overview of key financial metrics (Total Paid, Pending Amount) and recent activities for the selected branch.
 
-* **Transaction Management**: Browse, view, and add financial transactions, with filtering by status (Paid/Pending) and branch.
+*   **Comprehensive Transaction Management**:
+    *   Create, view, and delete financial transactions.
+    *   Filter transactions by status (Paid, Pending, Declined).
+    *   Clickable transaction details displayed in a clean modal view.
 
-* **Schedule Management**: A calendar interface for viewing and creating schedules, with category filtering and event details.
+*   **Progressive Web App (PWA) Features**:
+    *   **Installable**: Can be installed on desktop or mobile devices for a native app feel.
+    *   **Offline Access**: A custom offline page is served when the user has no network connection.
+    *   **Background Sync**: Queues invoice uploads when offline and automatically syncs them to the server when connectivity is restored.
+    *   **Push Notifications**: Real-time push notifications for important events, such as transaction due dates.
 
-* **Analytics**: Visualizations for branch revenue and supplier performance metrics.
+*   **Schedule Management**: An interactive, full-featured calendar for viewing, creating, and managing events and schedules.
 
-* **Archiving**: A system for archiving old data.
+*   **Invoice Upload System**: Drag-and-drop file uploader for invoices with real-time progress bars.
+
+*   **Analytics & Reporting**: Visualizations for branch revenue and other key performance indicators.
+
+---
+
+## Technology Stack
+
+*   **Backend**: Flask, Python
+*   **Database**: MongoDB (with PyMongo)
+*   **Authentication**: Flask-JWT-Extended, bcrypt
+*   **Frontend**: HTML, Tailwind CSS, JavaScript
+*   **PWA/Service Worker**: Native JavaScript
+*   **Email**: Flask-Mail
+*   **Security**: Flask-Limiter, Flask-Talisman (CSP), Flask-WTF (CSRF)
 
 ---
 
@@ -42,97 +66,86 @@ Follow these steps to get your development environment set up and running.
 
 ### Prerequisites
 
-*   Python 3.6+
+*   Python 3.8+
 *   pip (Python package installer)
-*   MongoDB: A running MongoDB instance (local or cloud-based like MongoDB Atlas).
-*   Email Account: An email account (like Gmail) configured for sending transactional emails, with app passwords enabled if using Gmail.
+*   MongoDB: A running MongoDB instance (local or a cloud service like MongoDB Atlas).
+*   Email Account: A Gmail account with **2-Step Verification enabled** and an **App Password** generated for sending transactional emails.
 
 ### Installation
 
 1.  **Clone the repository:**
-
     ```bash
     git clone https://github.com/AlT4lR/CapstoneMalala.git
-    cd yourrepository
+    cd CapstoneMalala
     ```
 
-2.  **Create a virtual environment** (recommended):
-
-    ```bash
-    python -m venv venv
-    ```
-
-3.  **Activate the virtual environment:**
-
+2.  **Create and activate a virtual environment** (highly recommended):
     *   **On Windows:**
         ```bash
+        python -m venv venv
         venv\Scripts\activate
         ```
     *   **On macOS/Linux:**
         ```bash
+        python3 -m venv venv
         source venv/bin/activate
         ```
 
-4.  **Install dependencies:**
-
+3.  **Install the required dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
-You can Install Flask directly
-    ```bash
-    pip install Flask
-    ```
 
+### Environment Setup
+
+1.  **Create a `.env` file** in the root directory of the project (the same level as `main.py`).
+
+2.  **Copy the contents** of `.env.example` into your new `.env` file.
+
+3.  **Fill in the required values** in your `.env` file:
+    *   `FLASK_SECRET_KEY` and `JWT_SECRET_KEY`: Generate strong, random keys.
+    *   `MONGO_URI`: Your full MongoDB connection string.
+    *   `MAIL_USERNAME` and `MAIL_PASSWORD`: Your Gmail address and the **16-digit App Password** you generated.
+    *   `VAPID_` keys: Generate these once for your PWA push notifications.
 
 ---
 
 ## Usage
 
 1.  **Run the Flask application:**
-
     ```bash
     python main.py
     ```
 
 2.  **Access the application:**
-
     Open your web browser and navigate to `http://127.0.0.1:5000/`.
 
-3.  **Default Credentials (for demonstration):**
+3.  **Register a new user account** or use existing credentials. The application now uses a full registration flow.
 
-    *   **Username:** `admin`
-    *   **Password:** `admin`
-
-
-4.  **Navigate:** Use the links in the sidebar (after selecting a branch) to explore the dashboard and transactions pages.
-
+---
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute, please follow these steps:
+Contributions are welcome! If you'd like to contribute, please feel free to fork the repository and open a pull request.
 
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/your-feature-name`).
-3.  Make your changes.
-4.  Commit your changes (`git commit -m 'Add some feature'`).
-5.  Push to the branch (`git push origin feature/your-feature-name`).
-6.  Open a Pull Request.
-
-Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details
+1.  Fork the Project.
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the Branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
 ---
 
 ## License
 
-Uma Musume Trainer PhD
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## Credits
+## Credits & Collaborators
 
-*   **Author:** Altair
-*   **Figma:** Valenzuela, Herrera
-
-## Collaborators
-* https://github.com/talipapa
-* https://github.com/SSL-ACTX
+*   **Lead Developer / Author:** [Altair](https://github.com/AlT4lR)
+*   **UI/UX Design (Figma):** Valenzuela, Herrera
+*   **Collaborators:**
+    *   [talipapa](https://github.com/talipapa)
+    *   [SSL-ACTX](https://github.com/SSL-ACTX)
