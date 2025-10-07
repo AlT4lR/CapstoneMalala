@@ -3,7 +3,7 @@
 {% block title %}DecoOffice - Paid Transactions{% endblock %}
 
 {% block content %}
-<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]" data-status="Paid">
     <!-- Page Header -->
     <header class="flex justify-between items-center mb-6">
         <div>
@@ -20,7 +20,6 @@
             <!-- Action Buttons -->
             <button class="text-gray-500 hover:text-red-600" title="Delete Selected"><i class="fas fa-trash-alt fa-lg"></i></button>
             <button class="text-gray-500 hover:text-gray-800" title="Archive Selected"><i class="fas fa-archive fa-lg"></i></button>
-            {% include "_notification_button.html" %}
         </div>
     </header>
 
@@ -39,28 +38,9 @@
                 <span class="text-center">Status</span>
             </div>
 
-            <!-- Table Body -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
-                {% if not transactions %}
-                <div class="flex items-center justify-center h-full pt-16"><p class="text-gray-500">No paid transactions found.</p></div>
-                {% else %}
-                <div class="space-y-2">
-                    {% for transaction in transactions %}
-                    <div class="grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row">
-                        <!-- clickable name -->
-                        <span class="font-semibold view-details-link cursor-pointer hover:underline" data-id="{{ transaction._id }}">{{ transaction.name }}</span>
-                        <span class="text-gray-600">#{{ transaction.check_no }}</span>
-                        <span class="text-gray-600">{{ transaction.check_date }}</span>
-                        <span class="text-gray-600">{{ transaction.countered }}</span>
-                        <span class="font-semibold">₱ {{ "%.2f"|format(transaction.amount) }}</span>
-                        <span class="text-gray-600">{{ transaction.ewt }}</span>
-                        <div class="text-center">
-                            <span class="px-4 py-1 bg-[#3a4d39] text-white rounded-full text-xs font-semibold">Paid</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+            <!-- Table Body (Dynamically populated by transactions.js) -->
+            <div id="transaction-list" class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2 space-y-2">
+                <!-- Loading or empty state will be rendered here by JS -->
             </div>
         </div>
     </div>
@@ -69,4 +49,10 @@
 <!-- Transaction Details Modal -->
 {% include "_transaction_details_modal.html" %}
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/idb@7/build/iife/index-min.js"></script>
+<script src="{{ url_for('static', filename='js/db.js') }}"></script>
+<script src="{{ url_for('static', filename='js/transactions.js') }}"></script>
 {% endblock %}

@@ -1,23 +1,45 @@
 // static/js/sw.js
 
-// --- CACHE NAMES & IndexedDB CONSTANTS ---
-const STATIC_CACHE_NAME = 'decooffice-static-v2';  // For app shell, CSS, JS
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v2'; // For API calls and dynamic content
+// --- IMPORT LIBRARIES ---
+// Import the idb library for easier IndexedDB usage
+importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/iife/index-min.js');
+
+// --- CACHE NAMES & IndexedDB CONSTANTS (Using V3 names) ---
+const STATIC_CACHE_NAME = 'decooffice-static-v3';    // For app shell, CSS, JS
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v3';  // For API calls and dynamic content
+
+// Constants for the original invoice queue (V2 logic)
 const INVOICE_DB = 'invoice-queue-db';
 const OUTBOX_STORE = 'outbox-invoices';
 
-// --- IndexedDB Helper Functions for Service Worker ---
+// Constants for the new transaction queue (V3 logic)
+const TRANSACTION_DB_NAME = 'deco-office-db';
+const TRANSACTION_DB_VERSION = 1;
+const TRANSACTION_OUTBOX_STORE = 'transaction-outbox';
+
+// IndexedDB Helper (Using idb library for V3 transaction sync)
+// This promise will be used by the V3 transaction sync logic.
+const dbPromise = idb.openDB(TRANSACTION_DB_NAME, TRANSACTION_DB_VERSION, {
+    upgrade(db) {
+        if (!db.objectStoreNames.contains(TRANSACTION_OUTBOX_STORE)) {
+            db.createObjectStore(TRANSACTION_OUTBOX_STORE, { keyPath: 'id', autoIncrement: true });
+        }
+    }
+});
+
+
+// --- V2 INVOICE IndexedDB Helper Functions (for syncInvoicesToServer) ---
 
 /**
- * Opens and returns the IndexedDB database instance.
+ * Opens and returns the IndexedDB database instance for V2 invoice logic.
+ * Note: This uses the older indexedDB API, distinct from the 'idb' library promise above.
  */
-function openDatabase() {
+function openInvoiceDatabase() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(INVOICE_DB, 1);
 
         request.onupgradeneeded = event => {
             const db = event.target.result;
-            // Create the object store if it doesn't exist
             if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
                 db.createObjectStore(OUTBOX_STORE, { keyPath: 'id' });
             }
@@ -28,17 +50,17 @@ function openDatabase() {
         };
 
         request.onerror = event => {
-            console.error('IndexedDB error:', event.target.error);
+            console.error('IndexedDB error (Invoice DB):', event.target.error);
             reject(event.target.error);
         };
     });
 }
 
 /**
- * Retrieves all items from the outbox store.
+ * Retrieves all items from the invoice outbox store.
  */
 function getOutboxItems() {
-    return openDatabase().then(db => {
+    return openInvoiceDatabase().then(db => {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([OUTBOX_STORE], 'readonly');
             const store = transaction.objectStore(OUTBOX_STORE);
@@ -51,10 +73,10 @@ function getOutboxItems() {
 }
 
 /**
- * Deletes an item from the outbox store after successful sync.
+ * Deletes an item from the invoice outbox store after successful sync.
  */
 function deleteOutboxItem(id) {
-    return openDatabase().then(db => {
+    return openInvoiceDatabase().then(db => {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([OUTBOX_STORE], 'readwrite');
             const store = transaction.objectStore(OUTBOX_STORE);
@@ -66,13 +88,13 @@ function deleteOutboxItem(id) {
     });
 }
 
-// --- Background Sync Implementation ---
+
+// --- Background Sync Implementation (Invoice V2) ---
 
 /**
  * Attempts to sync all queued invoices from IndexedDB to the server.
  */
 function syncInvoicesToServer() {
-    // 1. Get all queued items from IndexedDB
     return getOutboxItems()
         .then(invoices => {
             if (invoices.length === 0) {
@@ -82,10 +104,10 @@ function syncInvoicesToServer() {
 
             console.log(`Attempting to sync ${invoices.length} invoices...`);
 
-            // 2. Process each queued invoice
             const syncPromises = invoices.map(invoice => {
-                // NOTE: In a real app, file/blob reconstruction from IndexedDB would happen here.
                 const formData = new FormData();
+                // We create a dummy file blob because we didn't store the actual file in this version.
+                // In a real app, you would store the blob in IndexedDB and retrieve it here.
                 const dummyFileBlob = new Blob(["Invoice Content"], { type: invoice.fileMimeType || 'application/pdf' });
                 
                 formData.append("invoice_file", dummyFileBlob, invoice.filename);
@@ -93,36 +115,77 @@ function syncInvoicesToServer() {
                 formData.append("category", invoice.category);
                 formData.append("invoice_date", invoice.invoice_date);
                 
-                // 3. Send the request to the server
                 return fetch('/api/invoice/upload', {
                     method: 'POST',
                     body: formData
-                    // Authentication Headers (e.g., JWT) would be needed here.
                 })
                 .then(response => {
                     if (response.ok) {
                         console.log(`Successfully synced invoice ID ${invoice.id}: ${invoice.filename}`);
-                        // 4. Delete successfully synced item from the outbox
                         return deleteOutboxItem(invoice.id);
                     } else {
-                        // Keep item in outbox for next sync attempt
                         console.error(`Failed to sync invoice ID ${invoice.id}. Status: ${response.status}`);
-                        return Promise.resolve(); 
+                        return Promise.resolve(); // Keep in outbox if server returns an error
                     }
                 })
                 .catch(error => {
-                    // Keep item in outbox for next sync attempt (e.g., network timeout)
                     console.error(`Network error while syncing invoice ID ${invoice.id}:`, error);
-                    return Promise.resolve(); 
+                    return Promise.resolve(); // Keep in outbox on network failure
                 });
             });
 
             return Promise.all(syncPromises);
         })
         .catch(error => {
-            console.error('Error during background sync operation:', error);
-            return Promise.reject(error); 
+            console.error('Error during invoice background sync operation:', error);
+            return Promise.reject(error); // Reject to let the sync manager know it failed
         });
+}
+
+
+// --- Background Sync Implementation (Transaction V3) ---
+
+function syncNewTransactions() {
+    console.log('Service Worker: Starting transaction sync...');
+    return dbPromise.then(db => {
+        const tx = db.transaction(TRANSACTION_OUTBOX_STORE, 'readonly');
+        return tx.store.getAll();
+    }).then(outboxItems => {
+        if (outboxItems.length === 0) {
+            console.log('No queued transactions to sync.');
+            return Promise.resolve();
+        }
+
+        const syncPromises = outboxItems.map(item => {
+            return fetch('/api/transactions/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log(`Successfully synced outbox item ID: ${item.id}`);
+                    // Delete the item from the outbox after successful sync
+                    return dbPromise.then(db => {
+                        const deleteTx = db.transaction(TRANSACTION_OUTBOX_STORE, 'readwrite');
+                        return deleteTx.store.delete(item.id);
+                    });
+                } else {
+                    console.error(`Failed to sync transaction ID ${item.id}. Status: ${response.status}`);
+                    return Promise.resolve(); // Keep in outbox if server returns a bad status
+                }
+            })
+            .catch(err => {
+                console.error(`Network failure while syncing transaction ID ${item.id}:`, err);
+                return Promise.resolve(); // Keep in outbox if network fails
+            });
+        });
+        return Promise.all(syncPromises);
+    })
+    .catch(error => {
+        console.error('Error during transaction background sync operation:', error);
+        return Promise.reject(error); 
+    });
 }
 
 
@@ -130,7 +193,11 @@ function syncInvoicesToServer() {
 const urlsToCache = [
     '/',
     '/offline',
+    'https://cdn.jsdelivr.net/npm/idb@7/build/iife/index-min.js', // Cache the idb library
     '/static/js/common.js',
+    '/static/js/db.js',
+    '/static/js/transactions.js',
+    '/static/js/add_transaction.js',
     '/static/js/calendar.js',
     '/static/js/invoice.js',
     'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css',
@@ -164,42 +231,36 @@ self.addEventListener('activate', event => {
 
 // --- FETCH EVENT (Caching Strategies) ---
 self.addEventListener('fetch', event => {
-    const requestUrl = new URL(event.request.url);
+    // Strategy: Stale-While-Revalidate for API calls
+    if (event.request.url.includes('/api/')) {
+        // Skip caching for POST/PUT/DELETE requests (like /api/invoice/upload or /api/transactions/add)
+        if (event.request.method !== 'GET') {
+            return; 
+        }
 
-    // Strategy 1: Cache, then Network for API calls (Stale-While-Revalidate pattern)
-    if (requestUrl.pathname.startsWith('/api/')) {
         event.respondWith(
             caches.open(DYNAMIC_CACHE_NAME).then(cache => {
-                return cache.match(event.request).then(response => {
-                    const fetchPromise = fetch(event.request).then(networkResponse => {
-                        // Cache the fresh response for next time
+                // Try network first, then cache
+                return fetch(event.request)
+                    .then(networkResponse => {
+                        // Only cache successful GET responses
                         if (networkResponse.ok) {
-                            cache.put(event.request, networkResponse.clone());
+                           cache.put(event.request, networkResponse.clone());
                         }
                         return networkResponse;
-                    }).catch(error => {
-                        // Handle network failure for API calls if no cache is available
-                        console.error('API network failure:', error);
-                        // The existing `response` (if any) is returned outside this chain
-                        throw error;
-                    });
-                    // Return cached response immediately if available, otherwise wait for network
-                    return response || fetchPromise;
-                });
+                    })
+                    .catch(() => cache.match(event.request)); // Fallback to cache on network failure
             })
         );
         return;
     }
 
-    // Strategy 2: Cache First for static assets and HTML pages
+    // Strategy: Cache First for all other requests (App Shell, HTML pages, etc.)
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                if (response) {
-                    return response;
-                }
-                // Fetch from the network and handle failure
-                return fetch(event.request).catch(() => {
+                // Return cached response if found, otherwise fetch from network
+                return response || fetch(event.request).catch(() => {
                     // Fallback to the offline page for navigation requests when network fails
                     if (event.request.mode === 'navigate') {
                         return caches.match('/offline');
@@ -209,12 +270,17 @@ self.addEventListener('fetch', event => {
     );
 });
 
+
 // --- SYNC EVENT (Background Data Synchronization) ---
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-new-invoices') {
         console.log('Service Worker: Background sync triggered for invoices. 💾');
-        // Ensure the Service Worker stays alive until the sync process is complete
         event.waitUntil(syncInvoicesToServer());
+    }
+    
+    if (event.tag === 'sync-new-transactions') {
+        console.log('Service Worker: Background sync triggered for transactions. 💾');
+        event.waitUntil(syncNewTransactions());
     }
 });
 

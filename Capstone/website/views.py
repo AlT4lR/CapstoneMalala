@@ -6,6 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 
 from .forms import TransactionForm
+from . import zoho_api
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,10 +34,10 @@ analytics_supplier_data = []
 def get_category_color(category):
     """Helper to map category names to colors for the calendar."""
     colors = {
-        'Office': '#5c8374', 'Meetings': '#e91e63', 'Events': '#ef4444',
-        'Personal': '#3b82f6', 'Others': '#6b7280'
+        'Office': '#93c5fd', 'Meetings': '#fca5a5', 'Events': '#f9a8d4',
+        'Personal': '#6ee7b7', 'Others': '#a5b4fc'
     }
-    return colors.get(category, '#6b7280')
+    return colors.get(category, '#a5b4fc')
 
 # --- Routes ---
 @main.route('/')
@@ -73,118 +74,246 @@ def dashboard():
         flash("Please select a branch first.", "info")
         return redirect(url_for('main.branches'))
     return render_template('dashboard.html', username=get_jwt_identity(), selected_branch=selected_branch,
-                            show_sidebar=True, show_notifications_button=True, archived_items=archived_items_data)
+                             show_sidebar=True, show_notifications_button=True, archived_items=archived_items_data)
 
+# --- Transaction Routes (Merged V2 logic with V3 approach) ---
+
+# The transaction list pages now only serve the template, expecting JS to fetch data via API.
 @main.route('/transactions/paid')
 @jwt_required()
 def transactions_paid():
     selected_branch = session.get('selected_branch')
     if not selected_branch: return redirect(url_for('main.branches'))
-    paid_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Paid')
-    return render_template('paid_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
-                            transactions=paid_transactions, show_sidebar=True, show_notifications_button=True)
+    return render_template('paid_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch, show_sidebar=True, show_notifications_button=True)
 
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
     selected_branch = session.get('selected_branch')
     if not selected_branch: return redirect(url_for('main.branches'))
-    pending_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Pending')
-    return render_template('pending_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
-                            transactions=pending_transactions, show_sidebar=True, show_notifications_button=True)
+    return render_template('pending_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch, show_sidebar=True, show_notifications_button=True)
 
 @main.route('/transactions/declined')
 @jwt_required()
 def transactions_declined():
     selected_branch = session.get('selected_branch')
     if not selected_branch: return redirect(url_for('main.branches'))
-    declined_transactions = current_app.get_transactions_by_status(get_jwt_identity(), selected_branch, 'Declined')
-    return render_template('declined_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch,
-                            transactions=declined_transactions, show_sidebar=True, show_notifications_button=True)
+    return render_template('declined_transactions.html', username=get_jwt_identity(), selected_branch=selected_branch, show_sidebar=True, show_notifications_button=True)
 
-@main.route('/add-transaction', methods=['GET', 'POST'])
+# The add_transaction route now only serves the form page (GET)
+@main.route('/add-transaction', methods=['GET'])
 @jwt_required()
-def add_transaction():
+def add_transaction_page():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
     if not selected_branch:
         flash("Please select a branch before adding a transaction.", "error")
         return redirect(url_for('main.branches'))
-
-    if form.validate_on_submit():
-        try:
-            new_transaction_data = {
-                'name_of_issued_check': form.name_of_issued_check.data,
-                'check_no': form.check_no.data, 'check_date': form.check_date.data,
-                'countered_check': form.countered_check.data, 'check_amount': form.check_amount.data,
-                'ewt': form.ewt.data, 'payment_method': form.payment_method.data, 'status': form.status.data
-            }
-            if current_app.add_transaction(username, selected_branch, new_transaction_data):
-                flash('Successfully Added a Transaction!', 'success')
-                status_map = {'Paid': 'main.transactions_paid', 'Pending': 'main.transactions_pending', 'Declined': 'main.transactions_declined'}
-                return redirect(url_for(status_map.get(form.status.data, 'main.dashboard')))
-            else:
-                flash('An error occurred while adding the transaction.', 'error')
-        except Exception as e:
-            logger.error(f"Exception in add_transaction route for user {username}: {e}", exc_info=True)
-            flash('An unexpected application error occurred.', 'error')
-
     return render_template('add_transaction.html', username=username, selected_branch=selected_branch,
                             show_sidebar=True, show_notifications_button=True, form=form)
 
-# Other main routes
+# The old mixed GET/POST add_transaction route is REMOVED/REPLACED by the above and the API route below.
+
+# --- API Routes for Transactions (New/Updated) ---
+
+@main.route('/api/transactions/add', methods=['POST'])
+@jwt_required()
+def add_transaction_api():
+    username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return jsonify({'error': 'No branch selected.'}), 400
+
+    data = request.get_json()
+    # Convert date string from form/outbox to datetime object
+    data['check_date'] = datetime.strptime(data['check_date'], '%Y-%m-%d').date()
+
+    if current_app.add_transaction(username, selected_branch, data):
+        return jsonify({'success': True, 'message': 'Transaction added successfully.'}), 201
+    else:
+        return jsonify({'error': 'An error occurred while adding the transaction.'}), 500
+
+@main.route('/api/transactions/paid', methods=['GET'])
+@jwt_required()
+def get_paid_transactions_api():
+    transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Paid')
+    return jsonify(transactions)
+
+@main.route('/api/transactions/pending', methods=['GET'])
+@jwt_required()
+def get_pending_transactions_api():
+    transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Pending')
+    return jsonify(transactions)
+
+@main.route('/api/transactions/declined', methods=['GET'])
+@jwt_required()
+def get_declined_transactions_api():
+    transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Declined')
+    return jsonify(transactions)
+
+@main.route('/api/transaction/<transaction_id>', methods=['GET'])
+@jwt_required()
+def get_transaction_details(transaction_id):
+    transaction = current_app.get_transaction_by_id(get_jwt_identity(), transaction_id)
+    return jsonify(transaction) if transaction else (jsonify({'error': 'Transaction not found.'}), 404)
+
+@main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
+@jwt_required()
+def delete_transaction_route(transaction_id):
+    if current_app.delete_transaction(get_jwt_identity(), transaction_id):
+        return jsonify({'success': True, 'message': 'Transaction deleted.'}), 200
+    return jsonify({'error': 'Failed to delete transaction.'}), 404
+
+
+# --- Other main routes (Unchanged) ---
 @main.route('/archive')
 @jwt_required()
 def archive():
     return render_template('_archive.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           archived_items=archived_items_data, show_sidebar=True, show_notifications_button=True)
+                            archived_items=archived_items_data, show_sidebar=True, show_notifications_button=True)
 @main.route('/billings')
 @jwt_required()
 def wallet():
     return render_template('billings.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           show_sidebar=True, show_notifications_button=True)
+                            show_sidebar=True, show_notifications_button=True)
 @main.route('/analytics')
 @jwt_required()
 def analytics():
     return render_template('analytics.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           revenue_data=analytics_revenue_data, suppliers=analytics_supplier_data,
-                           show_sidebar=True, show_notifications_button=True)
-@main.route('/invoice')
+                            revenue_data=analytics_revenue_data, suppliers=analytics_supplier_data,
+                            show_sidebar=True, show_notifications_button=True)
+@main.route('/invoices')
+@jwt_required()
+def invoice_list():
+    username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        flash("Please select a branch to view invoices.", "info")
+        return redirect(url_for('main.branches'))
+    
+    invoices = current_app.get_invoices(username, selected_branch)
+    return render_template('invoice_list.html', 
+                            username=username, 
+                            selected_branch=selected_branch,
+                            invoices=invoices,
+                            show_sidebar=True, 
+                            show_notifications_button=True)
+
+@main.route('/invoice/upload')
 @jwt_required()
 def invoice():
     return render_template('invoice.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           show_sidebar=True, show_notifications_button=True)
+                            show_sidebar=True, show_notifications_button=True)
+                            
 @main.route('/schedules', methods=['GET'])
 @jwt_required()
 def schedules():
-    return render_template('schedules.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           show_sidebar=True, show_notifications_button=True)
+    username = get_jwt_identity()
+    # Fetch categories for the current user to populate the sidebar and modal
+    categories = current_app.get_all_categories(username)
+    return render_template('schedules.html', 
+                            username=username, 
+                            selected_branch=session.get('selected_branch'),
+                            categories=categories,
+                            get_category_color=get_category_color,
+                            show_sidebar=True, 
+                            show_notifications_button=True)
+
 @main.route('/settings')
 @jwt_required()
 def settings():
     return render_template('settings.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'),
-                           show_sidebar=True, show_notifications_button=True)
+                            show_sidebar=True, show_notifications_button=True)
+
+# Zoho OAuth Routes
+@main.route('/zoho/connect')
+@jwt_required()
+def zoho_connect():
+    auth_url = zoho_api.get_auth_url()
+    return redirect(auth_url)
+
+@main.route('/zoho/callback')
+@jwt_required()
+def zoho_callback():
+    username = get_jwt_identity()
+    code = request.args.get('code')
+    if not code:
+        flash('Zoho connection failed: No authorization code provided.', 'error')
+        return redirect(url_for('main.settings'))
+
+    token_data = zoho_api.exchange_code_for_tokens(code)
+    if not token_data:
+        flash('Failed to get access token from Zoho.', 'error')
+        return redirect(url_for('main.settings'))
+        
+    current_app.save_zoho_tokens(username, token_data)
+    
+    # After getting tokens, fetch and save the user's primary calendar
+    calendars = zoho_api.get_calendars(token_data['access_token'])
+    if calendars:
+        primary_cal = next((cal for cal in calendars if cal.get('is_primary')), calendars[0])
+        current_app.save_primary_calendar(username, primary_cal['calendar_id'])
+
+    flash('Successfully connected your Zoho Calendar!', 'success')
+    return redirect(url_for('main.schedules'))
+
 
 # --- API and PWA Routes ---
+# Rewritten to use Zoho API
 @main.route('/api/schedules', methods=['GET'])
 @jwt_required()
 def get_schedules():
-    username, start_str, end_str = get_jwt_identity(), request.args.get('start'), request.args.get('end')
-    if not start_str or not end_str: return jsonify({"error": "Missing start or end parameters"}), 400
+    username = get_jwt_identity()
+    tokens = current_app.get_zoho_tokens(username)
+
+    if not tokens or not tokens.get('access_token'):
+        return jsonify({"error": "Zoho Calendar not connected."}), 401
+    
+    calendar_id = tokens.get('primary_calendar_id')
+    if not calendar_id:
+        return jsonify({"error": "Primary Zoho calendar not set."}), 400
+        
+    start_str, end_str = request.args.get('start'), request.args.get('end')
     try:
         start_date = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
         end_date = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
-    except ValueError:
+    except (ValueError, TypeError):
         return jsonify({"error": "Invalid date format"}), 400
     
-    schedules_from_db = current_app.get_schedules_by_date_range(username, start_date, end_date)
+    zoho_events = zoho_api.get_events(tokens['access_token'], calendar_id, start_date, end_date)
+    
+    # Transform Zoho event format to FullCalendar format
     calendar_events = [{
-        "id": str(s['_id']), "title": s['title'], "start": s['start_time'], "end": s['end_time'],
-        "extendedProps": {"category": s.get('category', 'Others'), "notes": s.get('notes', '')},
-        "backgroundColor": get_category_color(s.get('category')), "borderColor": get_category_color(s.get('category'))
-    } for s in schedules_from_db]
+        "id": event['event_id'], 
+        "title": event['title'], 
+        "start": event['start_time'], 
+        "end": event['end_time'],
+        "extendedProps": {"notes": event.get('description', '')},
+    } for event in zoho_events]
+    
     return jsonify(calendar_events)
+
+@main.route('/api/schedules/create', methods=['POST'])
+@jwt_required()
+def create_schedule():
+    username = get_jwt_identity()
+    tokens = current_app.get_zoho_tokens(username)
+
+    if not tokens or not tokens.get('access_token'):
+        return jsonify({"error": "Zoho Calendar not connected."}), 401
+    
+    calendar_id = tokens.get('primary_calendar_id')
+    if not calendar_id:
+        return jsonify({"error": "Primary Zoho calendar not set."}), 400
+
+    event_data = request.get_json()
+    result = zoho_api.create_event(tokens['access_token'], calendar_id, event_data)
+
+    if result:
+        return jsonify({'success': True, 'message': 'Event created in Zoho Calendar.'}), 201
+    else:
+        return jsonify({'error': 'Failed to create event in Zoho Calendar.'}), 500
 
 @main.route('/api/invoice/upload', methods=['POST'])
 @jwt_required()
@@ -211,8 +340,6 @@ def upload_invoice():
             'saved_filename': unique_filename, 'filepath': filepath, 'filesize': os.path.getsize(filepath)
         }
         
-        # --- THIS IS THE FIX ---
-        # Call the model function via current_app for consistency
         if current_app.add_invoice(username, selected_branch, invoice_data):
             return jsonify({'success': True, 'message': 'File uploaded successfully.'}), 201
         else:
@@ -222,19 +349,6 @@ def upload_invoice():
         logger.error(f"Invoice upload failed for user {username}: {e}", exc_info=True)
         if 'filepath' in locals() and os.path.exists(filepath): os.remove(filepath)
         return jsonify({'error': 'An internal server error occurred.'}), 500
-
-@main.route('/api/transaction/<transaction_id>', methods=['GET'])
-@jwt_required()
-def get_transaction_details(transaction_id):
-    transaction = current_app.get_transaction_by_id(get_jwt_identity(), transaction_id)
-    return jsonify(transaction) if transaction else (jsonify({'error': 'Transaction not found.'}), 404)
-
-@main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
-@jwt_required()
-def delete_transaction_route(transaction_id):
-    if current_app.delete_transaction(get_jwt_identity(), transaction_id):
-        return jsonify({'success': True, 'message': 'Transaction deleted.'}), 200
-    return jsonify({'error': 'Failed to delete transaction.'}), 404
 
 @main.route('/offline')
 def offline():
