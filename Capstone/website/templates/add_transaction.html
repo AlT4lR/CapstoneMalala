@@ -10,7 +10,7 @@
 
     <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8">
         
-        <form id="add-transaction-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="w-full max-w-4xl mx-auto">
+        <form id="add-transaction-form" action="{{ url_for('main.add_transaction_api') }}" method="POST" class="w-full max-w-4xl mx-auto">
             
             {{ form.hidden_tag() }}
 
@@ -46,8 +46,6 @@
                     {{ form.ewt(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400", step="0.01", placeholder="0.00") }}
                     {% for error in form.ewt.errors %}<span class="text-red-500 text-xs">{{ error }}</span>{% endfor %}
                 </div>
-                {# --- THIS IS THE FIX --- #}
-                {# The Payment Method field has been added back to the form layout. #}
                 <div>
                     {{ form.payment_method.label(class="block text-gray-600 text-sm font-semibold mb-2") }}
                     {{ form.payment_method(class="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 appearance-none") }}

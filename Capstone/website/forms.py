@@ -1,13 +1,10 @@
 # website/forms.py
 
 from flask_wtf import FlaskForm
-# Make sure all field types are imported
 from wtforms import StringField, PasswordField, SubmitField, DecimalField, SelectField, DateField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
 from flask import current_app
 import re
-
-# --- THIS IS THE COMPLETE AND CORRECTED FILE ---
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=20)])

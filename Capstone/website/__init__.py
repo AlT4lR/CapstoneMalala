@@ -13,15 +13,15 @@ from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-# --- THIS IS THE FIX ---
-# Make sure all necessary model functions are imported.
+# Import all necessary model functions to attach them to the app context.
 from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
-    record_failed_login_attempt, set_user_otp, verify_user_otp,
-    add_schedule, get_schedules_by_date_range, get_all_categories, add_category,
+    record_failed_login_attempt, set_user_otp, verify_user_otp, update_user_password,
+    get_all_categories,
     add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id,
-    add_invoice,
-    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription
+    add_invoice, get_invoices,
+    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription,
+    save_zoho_tokens, get_zoho_tokens, save_primary_calendar
 )
 
 # Logging configuration
@@ -57,11 +57,9 @@ def create_app(config_name='dev'):
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-    # Disabling Talisman temporarily if it causes issues with CDNs, can be re-enabled for production.
-    # talisman.init_app(app, content_security_policy=app.config['CSP_RULES'])
+    # talisman.init_app(app, content_security_policy=app.config['CSP_RULES']) # Consider re-enabling for production
     csrf.init_app(app)
 
-    # --- THIS IS THE FIX ---
     # Attach all model functions to the app instance for easy access via current_app
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
@@ -71,19 +69,21 @@ def create_app(config_name='dev'):
     app.record_failed_login_attempt = record_failed_login_attempt
     app.set_user_otp = set_user_otp
     app.verify_user_otp = verify_user_otp
-    app.add_schedule = add_schedule
-    app.get_schedules_by_date_range = get_schedules_by_date_range
+    app.update_user_password = update_user_password
     app.get_all_categories = get_all_categories
-    app.add_category = add_category
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.delete_transaction = delete_transaction
     app.get_transaction_by_id = get_transaction_by_id
     app.add_invoice = add_invoice
+    app.get_invoices = get_invoices
     app.add_notification = add_notification
     app.get_unread_notifications = get_unread_notifications
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
+    app.save_zoho_tokens = save_zoho_tokens
+    app.get_zoho_tokens = get_zoho_tokens
+    app.save_primary_calendar = save_primary_calendar
     app.mail = mail
 
     # MongoDB Connection and Setup

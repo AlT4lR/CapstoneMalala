@@ -1,156 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Login - DecoOffice</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <!-- --- THIS IS THE FIX --- -->
-    <style>
-        /* CSS for the fade-out transition */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-        }
-        .flash-message-local.fade-out {
-            opacity: 0;
-        }
-        .password-toggle-icon { cursor: pointer; color: #9ca3af; }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
-                    colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-green-active': '#8aa188',
-                        'custom-green-darker': '#6f8a6e',
-                        'google-button-bg': '#E8F0FE',
-                        'google-button-text': '#4285F4'
-                    }
-                }
-            }
-        }
-    </script>
+  <meta charset="UTF-8">
+  <title>Login - DecoOffice</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #1e1f1e; /* darker bg */
+    }
+    .login-card {
+      background-color: #f5f5f0;
+      border-radius: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .left-panel {
+      border-top-right-radius: 150px;
+      border-bottom-right-radius: 150px;
+      background-color: #506850;
+    }
+    .password-toggle-icon { cursor: pointer; color: #9ca3af; }
+  </style>
 </head>
-<body class="bg-gray-900 font-poppins antialiased">
+<body class="flex items-center justify-center min-h-screen p-6">
 
-<div class="flex items-center justify-center min-h-screen p-6">
-    <div class="relative w-full max-w-3xl mx-auto bg-custom-bg rounded-2xl shadow-2xl overflow-hidden grid md:grid-cols-2">
-
-        <!-- Left Panel -->
-        <div class="hidden md:flex flex-col items-center justify-center p-12 text-center bg-custom-green-darker text-white rounded-tr-[100px] rounded-br-[100px]">
-            <div class="max-w-xs">
-                <h1 class="text-4xl font-bold mb-4">Hello, Welcome!</h1>
-                <p class="text-gray-200 mb-8">Need an account? Click below.</p>
-                <a href="{{ url_for('auth.register') }}" 
-                   class="inline-block w-full py-3 px-6 border-2 border-white rounded-full font-semibold hover:bg-white hover:text-custom-green-darker transition-colors duration-300">
-                    Sign Up
-                </a>
-            </div>
-        </div>
-
-        <!-- Right Panel -->
-        <div class="flex flex-col items-center justify-center p-8 sm:p-12">
-            <h2 class="text-3xl font-bold text-custom-green-darker mb-6">Login</h2>
-
-            <!-- Flash messages -->
-            <!-- --- THIS IS THE FIX --- (Container gets an ID) -->
-            <div id="flash-messages-container" class="w-full max-w-sm mb-4">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="p-3 rounded-md text-white text-sm flash-message-local {{ 'bg-red-500' if category == 'error' else 'bg-green-500' }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-            </div>
-
-            <form action="{{ url_for('auth.login') }}" method="POST" class="w-full space-y-5 max-w-sm" novalidate>
-                {{ form.hidden_tag() }}
-
-                <!-- Username -->
-                 <div>
-                    <div class="relative">
-                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.username(class="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active", placeholder="Username") }}
-                    </div>
-                    {% for error in form.username.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
-                </div>
-
-                <!-- Password -->
-                <div>
-                    <div class="relative">
-                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.password(id="login-password", class="w-full pl-12 pr-10 py-3 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active", placeholder="Password") }}
-                        <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 password-toggle-icon"></i>
-                    </div>
-                     {% for error in form.password.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
-                </div>
-
-                <!-- Forgot password -->
-                <div class="text-right text-sm">
-                    <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-custom-green-darker hover:underline">Forgot your password?</a>
-                </div>
-
-                <!-- Submit -->
-                <button type="submit" class="w-full bg-custom-green-darker text-white py-3 rounded-full font-bold shadow-md hover:bg-custom-green-active transition-colors">
-                    Login
-                </button>
-
-                <!-- Divider -->
-                <div class="flex items-center my-4">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="flex-shrink mx-4 text-gray-500">or</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                <!-- Google -->
-                <button type="button" class="w-full bg-google-button-bg text-google-button-text py-3 rounded-full font-bold shadow-md hover:bg-gray-200 transition-colors flex items-center justify-center">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 h-5 mr-3" alt="Google Logo">
-                    Continue with Google
-                </button>
-            </form>
-
-            <!-- Mobile signup -->
-            <div class="md:hidden mt-8 text-sm">
-                <p class="text-gray-600">
-                    Need an account? <a href="{{ url_for('auth.register') }}" class="font-semibold text-custom-green-darker hover:underline">Sign Up</a>
-                </p>
-            </div>
-        </div>
+  <div class="login-card flex w-[950px] h-[500px]">
+    
+    <!-- Left -->
+    <div class="w-1/2 left-panel text-white flex flex-col justify-center items-center p-10">
+      <h1 class="text-4xl font-bold mb-4">Hello, Welcome!</h1>
+      <p class="text-gray-200 mb-8">Need an account? Click below.</p>
+      <a href="{{ url_for('auth.register') }}" 
+         class="bg-white text-[#506850] py-3 px-10 rounded-full font-semibold hover:bg-[#e8e8e8] transition">
+        Sign Up
+      </a>
     </div>
-</div>
 
-<script src="{{ url_for('static', filename='js/login.js') }}"></script>
-<!-- --- THIS IS THE FIX --- -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const flashContainer = document.getElementById('flash-messages-container');
-        if (flashContainer) {
-            const messages = flashContainer.querySelectorAll('.flash-message-local');
-            if (messages.length > 0) {
-                setTimeout(() => {
-                    messages.forEach(msg => msg.classList.add('fade-out'));
-                    // After the transition ends, we can remove the element to clean up the DOM
-                    messages[messages.length - 1].addEventListener('transitionend', () => {
-                        flashContainer.innerHTML = '';
-                    }, { once: true });
-                }, 5000); // Wait 5 seconds before starting to fade
-            }
-        }
-    });
-</script>
+    <!-- Right -->
+    <div class="w-1/2 flex flex-col items-center justify-center p-10">
+      <h2 class="text-3xl font-bold text-[#506850] mb-6">Login</h2>
+
+      <form action="{{ url_for('auth.login') }}" method="POST" class="w-full max-w-xs space-y-5" novalidate>
+        {{ form.hidden_tag() }}
+
+        <!-- Username -->
+        <div class="relative">
+          <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          {{ form.username(class="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full focus:ring-2 focus:ring-[#8aa188]", placeholder="Username") }}
+        </div>
+
+        <!-- Password -->
+        <div class="relative">
+          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          {{ form.password(id="login-password", class="w-full pl-12 pr-10 py-3 bg-white border border-gray-300 rounded-full focus:ring-2 focus:ring-[#8aa188]", placeholder="Password") }}
+          <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 password-toggle-icon"></i>
+        </div>
+
+        <div class="text-right text-sm">
+          <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-[#506850] hover:underline">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="w-full bg-[#506850] text-white py-3 rounded-full font-bold shadow-md hover:bg-[#6f8a6e] transition">
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>

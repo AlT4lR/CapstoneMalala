@@ -26,9 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- THIS IS THE FIX ---
     /**
-     * Saves the invoice request data locally to IndexedDB, aligning with the service worker.
+     * Saves the invoice request data locally to IndexedDB for the service worker.
      * @param {FormData} formData The form data to be saved.
      * @param {File} file The actual file object.
      * @param {string} tempId A temporary ID for the transaction.
@@ -42,11 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
             folder_name: formData.get("folder_name"),
             category: formData.get("category"),
             invoice_date: formData.get("invoice_date"),
-            // In a real-world, robust implementation, you would store the 'file' object (as a Blob) as well.
-            // For this fix, we are focusing on getting the metadata sync working correctly.
+            // NOTE: In a production app, storing the file blob itself in IndexedDB is recommended.
+            // For this implementation, we focus on syncing the metadata correctly.
         };
         
-        // Open the IndexedDB database
+        // Open the IndexedDB database used by the service worker
         const dbPromise = indexedDB.open('invoice-queue-db', 1);
 
         dbPromise.onupgradeneeded = event => {
@@ -67,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log(`Invoice ${tempId} successfully queued for sync in IndexedDB.`);
             };
             request.onerror = (err) => {
-                console.error(`Error saving invoice ${tempId} to IndexedDB:`, err);
+                console.error(`Error saving invoice ${tempId} to IndexedDB:`, err.target.error);
             };
         };
 
@@ -75,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error('IndexedDB opening error:', event.target.error);
         };
     }
-    // --- END OF FIX ---
     
     // --- End PWA Logic ---
 
@@ -87,9 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function uploadFile(file, itemEl) {
         const xhr = new XMLHttpRequest();
         const formData = new FormData();
-        const csrfToken = window.getCsrfToken(); // Assumes getCsrfToken is globally available from common.js
+        const csrfToken = window.getCsrfToken(); // Assumes getCsrfToken is globally available
 
-        // Use a unique ID to track this transaction across offline queue and eventual upload
+        // Use a unique ID to track this transaction
         const tempId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
         // Append file and form data
@@ -127,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 statusText.textContent = "Done";
                 statusText.className = "status-text text-green-600 font-semibold";
                 progressBar.style.width = "100%";
-                removeBtn.classList.add("hidden"); // Prevent removal of successful uploads
+                removeBtn.classList.add("hidden");
             } else {
                 // Server Error (e.g., 400, 500)
                 const response = JSON.parse(xhr.responseText || "{}");
@@ -141,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         xhr.onerror = () => {
             statusText.textContent = "Offline. Queued for sync.";
             statusText.className = "status-text text-blue-600 font-semibold";
-            retryBtn.classList.add("hidden"); // Cannot retry immediately if offline
+            retryBtn.classList.add("hidden");
 
             // Save the form data locally and register for sync
             saveInvoiceForSync(formData, file, tempId);

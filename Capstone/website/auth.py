@@ -14,7 +14,7 @@ import logging
 from . import jwt, limiter
 # Updated form imports
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
-# Import the necessary model functions (assumed to be available in .models)
+# Import the necessary model functions
 from .models import get_user_by_email, update_user_password
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ auth = Blueprint('auth', __name__)
 
 # --- Serializer for Password Reset Token ---
 def get_serializer():
-    """Initializes and returns a URLSafeTimedSerializer, using the SECRET_KEY from the app config."""
+    """Initializes and returns a URLSafeTimedSerializer."""
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
 # --- JWT Error Handlers ---
@@ -56,16 +56,14 @@ def send_otp_email(recipient_email, otp):
 
 def send_password_reset_email(recipient_email, token):
     """Sends the password reset link to the user's email."""
-    # Use _external=True to generate a fully qualified URL for the email
     reset_url = url_for('auth.reset_password', token=token, _external=True)
     try:
         msg = Message("Reset Your DecoOffice Password", recipients=[recipient_email])
-        msg.body = f"Hello,\n\nPlease click the link below to reset your password:\n\n{reset_url}\n\nIf you did not request a password reset, please ignore this email. This link will expire in 30 minutes."
+        msg.body = f"Hello,\n\nPlease click the link below to reset your password:\n\n{reset_url}\n\nThis link will expire in 30 minutes."
         current_app.mail.send(msg)
         logger.info(f"Successfully sent password reset email to {recipient_email}")
     except Exception as e:
         logger.error(f"Failed to send password reset email to {recipient_email}: {e}")
-        # Note: Do not flash an error here, rely on the main forgot_password route's flash message
         pass 
 
 # --- Routes ---
@@ -91,14 +89,13 @@ def login():
             
             if user.get('otpSecret'): # If 2FA is enabled
                 session['username_for_2fa_login'] = user['username']
+                # Redirect to the 2FA verification page, which is also verify_otp
                 return redirect(url_for('auth.verify_otp'))
             else: # If 2FA is not enabled
                 access_token = create_access_token(identity=user['username'])
                 refresh_token = create_refresh_token(identity=user['username'])
                 
-                # Redirect to the central root route
                 response = make_response(redirect(url_for('main.root_route')))
-                
                 set_access_cookies(response, access_token)
                 set_refresh_cookies(response, refresh_token)
                 session.clear()
@@ -136,29 +133,28 @@ def verify_otp():
     form = OTPForm()
 
     if form.validate_on_submit():
+        # Combine the 6 OTP fields for email verification
+        submitted_otp = "".join([request.form.get(f'otp{i+1}', '') for i in range(6)])
+        # For 2FA, the single field is named 'otp'
         if is_2fa_login:
-            otp_input = request.form.get('otp')
-            if current_app.verify_user_otp(username, otp_input, otp_type='2fa'):
+            submitted_otp = request.form.get('otp')
+
+        otp_type = '2fa' if is_2fa_login else 'email'
+        
+        if current_app.verify_user_otp(username, submitted_otp, otp_type=otp_type):
+            if is_2fa_login:
                 access_token = create_access_token(identity=username)
-                
-                # Redirect to the central root route.
                 response = make_response(redirect(url_for('main.root_route')))
-                
                 set_access_cookies(response, access_token)
                 session.clear()
                 return response
-            else:
-                flash('Invalid 2FA code.', 'error')
-        else: # This is for initial email verification
-            # Assuming OTPForm uses six separate fields, combine them here
-            submitted_otp = "".join([request.form.get(f'otp{i+1}', '') for i in range(6)])
-            if current_app.verify_user_otp(username, submitted_otp, otp_type='email'):
+            else: # Email verification success
                 flash('Email verified! Please set up Two-Factor Authentication.', 'success')
                 session.pop('username_for_otp')
                 session['username_for_2fa_setup'] = username
                 return redirect(url_for('auth.setup_2fa'))
-            else:
-                flash('Invalid or expired OTP.', 'error')
+        else:
+            flash('Invalid or expired code.', 'error')
             
     return render_template('otp_verify.html', form=form, is_2fa_login=is_2fa_login, username_in_context=username)
 
@@ -171,12 +167,11 @@ def setup_2fa():
         
     user = current_app.get_user_by_username(username)
     if not user or not user.get('otpSecret'):
-        flash('Error setting up 2FA. User not found or secret key missing.', 'error')
+        flash('Error setting up 2FA.', 'error')
         return redirect(url_for('auth.login'))
 
     form = OTPForm()
     if form.validate_on_submit():
-        # Assuming single field 'otp' for 2FA validation
         if current_app.verify_user_otp(username, request.form.get('otp'), otp_type='2fa'):
             flash('2FA successfully set up! Please log in to continue.', 'success')
             session.pop('username_for_2fa_setup')
@@ -222,7 +217,7 @@ def resend_otp():
         
     return redirect(url_for('auth.verify_otp'))
 
-# --- Password Reset: Request Email (NEW) ---
+# --- Password Reset: Request Email ---
 @auth.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     form = ForgotPasswordForm()
@@ -230,27 +225,24 @@ def forgot_password():
         email = form.email.data
         user = get_user_by_email(email)
         
-        # We only send the email if the user exists, but we flash a general message
-        # to prevent email enumeration attacks.
         if user:
             s = get_serializer()
-            # Generate a token with a salt unique to password resets
             token = s.dumps(email, salt='password-reset-salt')
             send_password_reset_email(email, token)
             
-        # Generic success message for security
-        flash('If the email address is in our system, a password reset link has been sent to your inbox.', 'success')
+        # Generic success message to prevent email enumeration
+        flash('If an account with that email exists, a password reset link has been sent.', 'success')
         return redirect(url_for('auth.login'))
         
     return render_template('forgot_password.html', form=form)
 
-# --- Password Reset: Reset Password (NEW) ---
+# --- Password Reset: Reset Password ---
 @auth.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     s = get_serializer()
     email = None
     try:
-        # Load and verify the token. max_age=1800 seconds (30 minutes)
+        # Verify the token (max_age=1800 seconds / 30 minutes)
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
     except SignatureExpired:
         flash('The password reset link has expired. Please request a new one.', 'error')
@@ -265,11 +257,10 @@ def reset_password(token):
     if form.validate_on_submit():
         new_password = form.password.data
         
-        # Update the user's password using the email extracted from the token
         if update_user_password(email, new_password):
-            flash('Your password has been successfully updated! You can now log in.', 'success')
+            flash('Your password has been updated! You can now log in.', 'success')
             return redirect(url_for('auth.login'))
         else:
-            flash('An error occurred while updating your password. Please try again.', 'error')
+            flash('An error occurred. Please try again.', 'error')
             
     return render_template('reset_password.html', form=form, token=token)

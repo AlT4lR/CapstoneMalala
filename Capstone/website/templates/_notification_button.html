@@ -1,7 +1,19 @@
 <!-- website/templates/_notification_button.html -->
-<button id="notification-btn" class="relative text-gray-500 hover:text-gray-800 focus:outline-none">
-    <i class="fa-regular fa-bell fa-lg"></i>
-    {# --- THIS IS THE FIX --- #}
-    {# The 'hidden' class will be managed by JS based on API response #}
-    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-custom-bg hidden"></span>
-</button>
+<div class="relative">
+    <button id="notification-btn" class="text-gray-500 hover:text-gray-800 focus:outline-none">
+        <i class="fa-regular fa-bell fa-lg"></i>
+        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white hidden"></span>
+    </button>
+    <!-- Notification Panel -->
+    <div id="notification-panel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border z-50">
+        <div class="p-3 border-b">
+            <h3 class="font-semibold text-gray-800">Notifications</h3>
+        </div>
+        <div id="notification-list" class="max-h-96 overflow-y-auto">
+            <!-- Notifications will be loaded here by common.js -->
+        </div>
+        <a href="#" class="block text-center p-2 text-sm text-indigo-600 hover:bg-gray-100 rounded-b-xl">
+            View all notifications
+        </a>
+    </div>
+</div>

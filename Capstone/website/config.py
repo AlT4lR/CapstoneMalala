@@ -34,6 +34,15 @@ class Config:
     MAIL_DEFAULT_SENDER = (os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice'), 
                            os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com'))
 
+    # --- THIS IS THE FIX ---
+    # Zoho API Configuration
+    ZOHO_CLIENT_ID = os.environ.get('ZOHO_CLIENT_ID')
+    ZOHO_CLIENT_SECRET = os.environ.get('ZOHO_CLIENT_SECRET')
+    ZOHO_REDIRECT_URI = os.environ.get('ZOHO_REDIRECT_URI', 'http://127.0.0.1:5000/zoho/callback')
+    ZOHO_API_BASE_URL = "https://calendar.zoho.com/api/v1"
+    ZOHO_ACCOUNTS_BASE_URL = "https://accounts.zoho.com/oauth/v2"
+    # --- END FIX ---
+
     # JWT Configuration
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')

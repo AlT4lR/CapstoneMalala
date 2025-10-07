@@ -2,134 +2,133 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) return; // Exit if the calendar element isn't on the page
+    if (!calendarEl) return;
 
-    // --- Modal Elements (assuming you create these modals) ---
-    // const createModal = document.getElementById('create-schedule-modal');
-    // const detailsModal = document.getElementById('schedule-details-modal');
-    // const closeCreateBtn = document.getElementById('close-create-modal-btn');
-    // const closeDetailsBtn = document.getElementById('close-details-modal-btn');
+    // --- Modal Elements ---
+    const createModal = document.getElementById('create-schedule-modal');
+    const modalContent = document.getElementById('modal-content');
+    const createScheduleBtn = document.getElementById('create-schedule-btn');
+    const discardBtn = document.getElementById('discard-btn');
+    const scheduleForm = document.getElementById('create-schedule-form');
+
+    // --- Helper function to show/hide the modal ---
+    const showCreateModal = (info = {}) => {
+        scheduleForm.reset();
+        // Pre-fill dates if provided by FullCalendar's 'select' callback
+        if (info.startStr) {
+            const start = new Date(info.startStr);
+            // Format to YYYY-MM-DD for the date input
+            document.getElementById('schedule-start-date').value = start.toISOString().slice(0, 10);
+            // Format to HH:mm for the time input
+            document.getElementById('schedule-start-time').value = start.toTimeString().slice(0, 5);
+        }
+        if (info.endStr) {
+             const end = new Date(info.endStr);
+             document.getElementById('schedule-end-time').value = end.toTimeString().slice(0, 5);
+        }
+        createModal.classList.remove('hidden');
+        setTimeout(() => modalContent.classList.remove('scale-95'), 10); // Entrance animation
+    };
+
+    const hideCreateModal = () => {
+        modalContent.classList.add('scale-95');
+        setTimeout(() => createModal.classList.add('hidden'), 200); // Wait for animation
+    };
+
+    // --- Event Listeners for Modal ---
+    createScheduleBtn.addEventListener('click', () => showCreateModal());
+    discardBtn.addEventListener('click', hideCreateModal);
+    createModal.addEventListener('click', (e) => {
+        if (e.target === createModal) hideCreateModal();
+    });
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-        // --- PLUGIN INITIALIZATION ---
-        initialView: 'timeGridWeek', // The default view (week, day, month)
-        themeSystem: 'standard', // Use standard theme that's easy to override with Tailwind
+        initialView: 'dayGridMonth',
+        themeSystem: 'standard',
 
-        // --- HEADER TOOLBAR ---
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay' // Buttons to switch views
-        },
+        // --- THIS IS THE FIX ---
+        // The header toolbar is removed to match the new design.
+        headerToolbar: false, 
+        height: '100%', // Make calendar fill its container height
         
-        // --- DATE & TIME ---
-        navLinks: true, // Can click day/week names to navigate views
-        dayMaxEvents: true, // Allow "more" link when too many events
-        
-        // --- EVENT DATA ---
-        // This is the core part: fetching events from your Flask API
+        navLinks: true,
+        dayMaxEvents: true,
+        editable: true,
+        selectable: true,
+
         events: {
             url: '/api/schedules',
-            method: 'GET',
-            failure: function() {
-                alert('There was an error while fetching events!');
-            },
-            // You can add extra parameters if needed, like the selected branch
-            extraParams: function() {
-                // This is a placeholder, as branch is stored in the session on the backend
-                return {}; 
-            }
+            failure: () => alert('There was an error while fetching events!'),
         },
 
-        // --- INTERACTIVITY ---
-        editable: true,       // Allows dragging and resizing events
-        selectable: true,       // Allows selecting a time range to create an event
-
-        /**
-         * Triggered when a user clicks on an existing event.
-         * We can use this to open our details modal.
-         */
         eventClick: function(info) {
-            info.jsEvent.preventDefault(); // Don't let the browser navigate
-            
-            // Log for debugging, replace with modal logic
-            console.log('Event Clicked:', info.event);
-            const props = info.event.extendedProps;
+            info.jsEvent.preventDefault();
             alert(
                 `Event: ${info.event.title}\n` +
-                `Category: ${props.category}\n` +
-                `Starts: ${info.event.start.toLocaleString()}\n` +
-                `Ends: ${info.event.end.toLocaleString()}\n` +
-                `Notes: ${props.notes}`
+                `Category: ${info.event.extendedProps.category}\n` +
+                `Notes: ${info.event.extendedProps.notes || 'None'}`
             );
-            // Example of how you would populate a details modal:
-            // document.getElementById('details-title').textContent = info.event.title;
-            // document.getElementById('details-category').textContent = props.category;
-            // ...populate other fields...
-            // detailsModal.classList.remove('hidden');
         },
 
-        /**
-         * Triggered when a user clicks and drags on an empty part of the calendar.
-         * We can use this to open our creation modal with pre-filled dates.
-         */
         select: function(info) {
-            console.log('Date Selected:', info);
-            // For now, we will just prompt the user. Replace this with your modal.
-            var title = prompt('Enter Event Title:');
-            if (title) {
-                // This is where you would make an AJAX call to a new '/api/schedules/create' endpoint
-                // and then refresh the calendar on success.
-                alert(`Creating event "${title}" from ${info.startStr} to ${info.endStr}`);
-                
-                // Example of what a real AJAX call to create an event would look like:
-                /*
-                fetch('/api/schedules/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.getCsrfToken() // From common.js
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        start_time: info.startStr,
-                        end_time: info.endStr,
-                        category: 'Office' // Get this from your create modal
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        calendar.refetchEvents(); // Reload events from the server
-                    } else {
-                        alert('Error: ' + (data.error || 'Could not create event.'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error creating event:', error);
-                    alert('A network error occurred.');
-                });
-                */
-            }
-            calendar.unselect(); // Clear the selection
+            showCreateModal(info);
+            calendar.unselect();
         },
 
-        /**
-         * Triggered after an event is dragged and dropped.
-         */
         eventDrop: function(info) {
-             // Here you would make an AJAX call to an '/api/schedules/update' endpoint
-             // to save the new start/end times for info.event.id
-            alert(info.event.title + " was dropped on " + info.event.start.toISOString() + ". In a real app, this change would be saved to the database!");
-
+            alert(info.event.title + " was dropped on " + info.event.start.toISOString() + ".\nThis change should be saved to the database.");
             if (!confirm("Are you sure about this change?")) {
-                info.revert(); // Revert the change if the user cancels
+                info.revert();
             }
         }
     });
 
     calendar.render();
 
-    // You can add a listener to refetch events if something global changes, like the branch
-    // document.body.addEventListener('branchChanged', () => calendar.refetchEvents());
+    // Handle Form Submission
+    scheduleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(scheduleForm);
+        const title = formData.get('title');
+        const startDate = formData.get('start_date');
+        const startTime = formData.get('start_time');
+        const endTime = formData.get('end_time');
+        const category = formData.get('category');
+        const notes = formData.get('notes');
+
+        // Combine date and time to create full ISO strings
+        const startDateTime = new Date(`${startDate}T${startTime}`).toISOString();
+        const endDateTime = new Date(`${startDate}T${endTime}`).toISOString();
+
+        try {
+            const response = await fetch('/api/schedules/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCsrfToken() // From common.js
+                },
+                body: JSON.stringify({
+                    title: title,
+                    start: startDateTime,
+                    end: endDateTime,
+                    category: category,
+                    notes: notes
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                hideCreateModal();
+                calendar.refetchEvents(); // Reload events from the server
+                alert('Schedule created successfully!');
+            } else {
+                throw new Error(result.error || 'Failed to create schedule.');
+            }
+        } catch (error) {
+            console.error('Error creating schedule:', error);
+            alert(`Error: ${error.message}`);
+        }
+    });
 });

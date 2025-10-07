@@ -18,7 +18,7 @@
         </a>
 
         <!-- Transaction (with submenu) -->
-        {% set is_transactions_active = request.path.startswith('/transactions') or request.path.startswith('/add_transaction') %}
+        {% set is_transactions_active = request.path.startswith('/transactions') or request.path == url_for('main.add_transaction_page') %}
         <div class="flex flex-col w-full">
             <a href="{{ url_for('main.transactions_paid') }}" 
                class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
@@ -27,24 +27,22 @@
                 <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Transaction</span>
             </a>
 
-            {# --- THIS IS THE FIX --- #}
-            {# Submenu is now completely hidden by default and only expands on group hover #}
             {% if is_transactions_active %}
             <div class="flex flex-col space-y-1 overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 group-hover:mt-2 group-hover:ml-6 group-hover:pl-4 group-hover:border-l-2 group-hover:border-gray-500 transition-all duration-300 ease-in-out">
                 <a href="{{ url_for('main.transactions_paid') }}" 
                    class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.transactions_paid') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Paid</a>
                 <a href="{{ url_for('main.transactions_pending') }}" 
                    class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.transactions_pending') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Pending</a>
-                <a href="{{ url_for('main.add_transaction') }}" 
-                   class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.add_transaction') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Add</a>
+                <a href="{{ url_for('main.add_transaction_page') }}" 
+                   class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.add_transaction_page') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Add</a>
             </div>
             {% endif %}
         </div>
 
         <!-- Invoice -->
-        <a href="{{ url_for('main.invoice') }}" 
+        <a href="{{ url_for('main.invoice_list') }}" 
            class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.invoice') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
+           {% if request.path.startswith('/invoice') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
             <i class="w-6 text-center fa-solid fa-file-invoice fa-lg"></i>
             <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Invoice</span>
         </a>
@@ -86,7 +84,7 @@
     <div class="mt-auto shrink-0 flex flex-col items-center group-hover:items-start w-full space-y-2">
         <div class="flex items-center gap-4 w-full h-12 px-3">
             <div class="w-10 h-10 bg-white rounded-full"></div>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 font-semibold">Admin</span>
+            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 font-semibold">{{ username }}</span>
         </div>
     </div>
 </aside>

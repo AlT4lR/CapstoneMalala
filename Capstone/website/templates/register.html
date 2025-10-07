@@ -3,15 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Register - DecoOffice</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <!-- --- THIS IS THE FIX --- -->
+
     <style>
-        /* CSS for the fade-out transition */
+        /* Dark background and font */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1e1f1e; /* dark background */
+        }
+
+        /* Flash message fade effect */
         .flash-message-local {
             opacity: 1;
             transition: opacity 0.5s ease-out;
@@ -20,6 +29,7 @@
             opacity: 0;
         }
     </style>
+
     <script>
         tailwind.config = {
             theme: {
@@ -28,26 +38,23 @@
                     colors: {
                         'custom-bg': '#f5f5f0',
                         'custom-green-active': '#8aa188',
-                        'custom-green-darker': '#6f8a6e',
-                        'google-button-bg': '#E8F0FE',
-                        'google-button-text': '#4285F4'
+                        'custom-green-darker': '#6f8a6e'
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-900 font-poppins antialiased">
 
-<div class="flex items-center justify-center min-h-screen p-6">
-    <div class="relative w-full max-w-3xl mx-auto bg-custom-bg rounded-2xl shadow-2xl overflow-hidden grid md:grid-cols-2">
+<body class="flex items-center justify-center min-h-screen p-6">
+
+    <div class="w-full max-w-3xl mx-auto bg-custom-bg rounded-2xl shadow-2xl overflow-hidden grid md:grid-cols-2">
 
         <!-- Left Panel (Form) -->
         <div class="flex flex-col items-center justify-center p-8 sm:p-12">
             <h2 class="text-3xl font-bold text-custom-green-darker mb-6">Sign Up</h2>
 
-            <!-- Flash messages -->
-            <!-- --- THIS IS THE FIX --- (Container gets an ID) -->
+            <!-- Flash Messages -->
             <div id="flash-messages-container" class="w-full max-w-sm mb-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -67,7 +74,7 @@
                 <div>
                     <div class="relative">
                         <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.username(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Username") }}
+                        {{ form.username(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Username") }}
                     </div>
                     {% for error in form.username.errors %}
                         <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
@@ -78,7 +85,7 @@
                 <div>
                     <div class="relative">
                         <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.email(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Email") }}
+                        {{ form.email(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Email") }}
                     </div>
                     {% for error in form.email.errors %}
                         <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
@@ -89,8 +96,8 @@
                 <div>
                     <div class="relative">
                         <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.password(id="register-password", class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Password") }}
-                        <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 password-toggle-icon" id="toggle-register-password"></i>
+                        {{ form.password(id="register-password", class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Password") }}
+                        <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer" id="toggle-register-password"></i>
                     </div>
                     {% for error in form.password.errors %}
                         <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
@@ -101,20 +108,11 @@
                 <div>
                     <div class="relative">
                         <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.confirm_password(class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Confirm Password") }}
+                        {{ form.confirm_password(class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Confirm Password") }}
                     </div>
                     {% for error in form.confirm_password.errors %}
                         <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
                     {% endfor %}
-                </div>
-
-                <!-- Password validation rules -->
-                <div id="password-rules" class="text-sm px-1 pt-2 hidden space-y-1">
-                    <p id="rule-length" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least 8 characters long</span></p>
-                    <p id="rule-uppercase" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one uppercase letter</span></p>
-                    <p id="rule-lowercase" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one lowercase letter</span></p>
-                    <p id="rule-number" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one number</span></p>
-                    <p id="rule-special" class="text-gray-500 flex items-center"><i class="fas fa-times-circle text-red-500 w-4 h-4 mr-2"></i><span>At least one special character</span></p>
                 </div>
 
                 <!-- Submit -->
@@ -136,25 +134,23 @@
             </div>
         </div>
     </div>
-</div>
 
-<script src="{{ url_for('static', filename='js/register.js') }}"></script>
-<!-- --- THIS IS THE FIX --- -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const flashContainer = document.getElementById('flash-messages-container');
-        if (flashContainer) {
-            const messages = flashContainer.querySelectorAll('.flash-message-local');
-            if (messages.length > 0) {
-                setTimeout(() => {
-                    messages.forEach(msg => msg.classList.add('fade-out'));
-                    messages[messages.length - 1].addEventListener('transitionend', () => {
-                        flashContainer.innerHTML = '';
-                    }, { once: true });
-                }, 5000); // 5 seconds
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashContainer = document.getElementById('flash-messages-container');
+            if (flashContainer) {
+                const messages = flashContainer.querySelectorAll('.flash-message-local');
+                if (messages.length > 0) {
+                    setTimeout(() => {
+                        messages.forEach(msg => msg.classList.add('fade-out'));
+                        messages[messages.length - 1].addEventListener('transitionend', () => {
+                            flashContainer.innerHTML = '';
+                        }, { once: true });
+                    }, 5000);
+                }
             }
-        }
-    });
-</script>
+        });
+    </script>
 </body>
 </html>
