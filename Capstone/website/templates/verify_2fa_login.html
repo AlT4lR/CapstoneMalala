@@ -2,90 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Verify 2FA - DecoOffice</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Two-Factor Authentication - DecoOffice</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <style>
-        .otp-input {
-            width: 12rem;
-            height: 3.5rem;
-            text-align: center;
-            font-size: 1.8rem;
-            border: 1px solid #d3d6c4; /* Use a neutral border color */
-            border-radius: 0.5rem;
-            color: #2f4f2f; /* Use theme color */
-            box-sizing: border-box;
-            line-height: 1;
-        }
-        .otp-input:focus {
-            outline: none;
-            border-color: #4a6842; /* Use theme color */
-            box-shadow: 0 0 0 2px rgba(74, 104, 66, 0.3); /* Use theme color */
-        }
-         /* Flash message animation */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-        }
-        .flash-message-local.fade-out {
-            opacity: 0;
-        }
-    </style>
+
     <script>
-        // Tailwind configuration for standalone pages
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { poppins: ['Poppins', 'sans-serif'] },
                     colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-sidebar': '#d7e0d3',
-                        'custom-green-active': '#8aa188',
-                        'custom-text-dark': '#3a3a3a',
-                        'custom-green-darker': '#6f8a6e',
-                        'custom-logo-text': '#f6f6e9',
-                        'success-bg': '#d4edda', /* For flash messages */
-                        'success-text': '#155724', /* For flash messages */
-                        'success-border': '#c3e6cb', /* For flash messages */
+                        'bg-green': '#6f8a6e',
+                        'bg-cream': '#f6f6e9',
+                        'btn-green': '#8aa188',
+                        'text-dark': '#2f3b2f',
+                        'text-gray': '#6b6b6b'
                     }
                 }
             }
         }
     </script>
+
+    <style>
+        .otp-input {
+            width: 10rem;
+            height: 3rem;
+            text-align: center;
+            font-size: 1.75rem;
+            color: #2f4f2f;
+            border: 2px solid #a0b59f;
+            border-radius: 0.75rem;
+            background-color: #fefefe;
+            transition: all 0.25s ease;
+        }
+        .otp-input:focus {
+            border-color: #6f8a6e;
+            box-shadow: 0 0 0 4px rgba(111,138,110,0.25);
+            outline: none;
+        }
+        .card {
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body class="bg-custom-green-darker font-poppins antialiased">
-<main class="flex items-center justify-center py-10" style="min-height: calc(100vh - 80px);">
-    <div class="w-11/12 max-w-lg mx-auto bg-[#f6f6e9] rounded-xl overflow-hidden shadow-2xl p-8 text-center">
-        
-        <h1 class="text-custom-text-dark mb-4 text-2xl font-bold">Two-Factor Authentication</h1>
 
-        <p class="text-gray-600 mb-6">
-            Enter the 6-digit code from your authenticator app to log in as <span class="font-semibold text-custom-text-dark">{{ username }}</span>.
-        </p>
-
-        <form action="{{ url_for('auth.verify_2fa_login') }}" method="POST">
-            {# Add CSRF token field here #}
-            {{ form.hidden_tag() }} 
+<body class="bg-bg-green font-poppins antialiased">
+    <main class="flex items-center justify-center min-h-screen p-6">
+        <div class="card w-full max-w-md bg-bg-cream shadow-2xl rounded-2xl p-8 text-center">
 
             <div class="flex justify-center mb-6">
-                <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input"
-                       inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
-            </div>
+                <i class="fa-solid fa-shield-halved text-5xl text-bg-green"></i>
+            <div>
 
-            <div class="space-y-4">
-                <button type="submit" class="w-full bg-custom-green-active text-white border-none p-4 rounded-full font-bold cursor-pointer transition duration-200 shadow hover:bg-custom-green-darker hover:shadow-md">Verify & Log In</button>
-                <a href="{{ url_for('auth.logout') }}" class="block w-full bg-transparent text-custom-text-dark border-2 border-custom-green-darker p-3.5 rounded-full font-bold cursor-pointer transition duration-200 hover:bg-custom-green-darker hover:border-custom-green-active">Cancel & Logout</a>
-            </div>
-        </form>
-    </div>
-</main>
-{# Include the new verify_2fa_login-specific JavaScript file #}
-<script src="{{ url_for('static', filename='js/verify_2fa_login.js') }}"></script>
+            <h1 class="text-text-dark text-2xl font-bold mb-3">Two-Factor Authentication</h1>
+            <p class="text-text-gray mb-8">
+                Enter the 6-digit code from your authenticator app to log in as 
+                <span class="font-semibold text-text-dark">{{ username }}</span>.
+            </p>
+
+            <form action="{{ url_for('auth.verify_2fa_login') }}" method="POST">
+                {{ form.hidden_tag() }}
+                <div class="flex justify-center mb-6">
+                    <input type="text" name="otp" maxlength="6" class="otp-input" placeholder="••••••" inputmode="numeric" pattern="\d{6}" required>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-btn-green text-white py-3.5 rounded-full font-semibold shadow-lg hover:bg-bg-green transition-all duration-200">
+                    Verify & Log In
+                </button>
+
+                <a href="{{ url_for('auth.logout') }}"
+                    class="block w-full mt-4 border-2 border-bg-green text-text-dark py-3.5 rounded-full font-semibold hover:bg-bg-green hover:text-white transition-all duration-200">
+                    Cancel & Logout
+                </a>
+            </form>
+
+            <p class="mt-6 text-sm text-gray-500">Need help? Contact <span class="underline">support@decooffice.com</span></p>
+        </div>
+    </main>
 </body>
 </html>

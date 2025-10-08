@@ -11,7 +11,8 @@
             <p class="text-gray-500">Here's a summary of the {{ selected_branch | upper }} branch.</p>
         </div>
         <div class="flex items-center gap-4">
-             <a href="{{ url_for('main.add_transaction') }}" class="flex items-center gap-2 bg-custom-green-darker text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-md">
+             <!-- --- THIS IS THE FIX --- -->
+             <a href="{{ url_for('main.add_transaction_page') }}" class="flex items-center gap-2 bg-custom-green-darker text-white px-4 py-2 rounded-lg font-semibold hover:bg-opacity-90 transition-all shadow-md">
                 <img src="{{ url_for('static', filename='imgs/icons/dashboard/add transaction.png') }}" alt="Add" class="w-5 h-5">
                 <span>Add Transaction</span>
             </a>

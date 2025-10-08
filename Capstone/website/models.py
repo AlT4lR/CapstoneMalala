@@ -136,8 +136,10 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     if not user: return False
     if otp_type == 'email':
         otp_expires_at = user.get('otpExpiresAt')
+        # Ensure the datetime object is timezone-aware before comparison
         if otp_expires_at and otp_expires_at.tzinfo is None:
             otp_expires_at = pytz.utc.localize(otp_expires_at)
+            
         if user.get('otp') == submitted_otp and otp_expires_at and otp_expires_at > datetime.now(pytz.utc):
             try:
                 db.users.update_one(
@@ -209,22 +211,50 @@ def get_all_categories(username):
 
 # --- Transaction Operations ---
 def add_transaction(username, branch, transaction_data):
+    """
+    Adds a new transaction to the database with robust data type conversion.
+    
+    The fix is implemented here to correctly parse the date string from the
+    JSON request body before storing it in MongoDB as a timezone-aware datetime.
+    """
     db = current_app.db
-    if db is None: return False
+    if db is None: 
+        logger.error("Database connection is not available.")
+        return False
     try:
-        check_date_obj = transaction_data.get('check_date')
-        # Ensure date is stored as a proper BSON date
-        datetime_utc = datetime.combine(check_date_obj, datetime.min.time()) if isinstance(check_date_obj, datetime.date) else None
+        # --- START OF FIXED DATE CONVERSION ---
+        check_date_str = transaction_data.get('check_date')
+        datetime_utc = None
+        if check_date_str:
+            # 1. Convert the date string (e.g., "2025-10-08") to a native datetime object.
+            check_date_obj = datetime.strptime(check_date_str, '%Y-%m-%d')
+            # 2. Make the datetime object timezone-aware (UTC) for consistent database storage.
+            datetime_utc = pytz.utc.localize(check_date_obj)
+        # --- END OF FIXED DATE CONVERSION ---
+
+        # Helper function to safely convert form values to float, defaulting to 0.0 on failure
+        def to_float(value):
+            try:
+                # Handles cases where the value is None or an empty string from the form
+                if value is None or value == '':
+                    return 0.0
+                # Remove common formatting before converting to float
+                if isinstance(value, str):
+                    value = value.replace(',', '').replace('₱', '').strip()
+                return float(value)
+            except (ValueError, TypeError):
+                return 0.0
 
         doc = {
             'username': username,
             'branch': branch,
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
+            # Use the correctly converted datetime_utc object here
             'check_date': datetime_utc,
-            'countered_check': float(transaction_data.get('countered_check', 0.0)),
-            'amount': float(transaction_data.get('check_amount')),
-            'ewt': float(transaction_data.get('ewt', 0.0)),
+            'countered_check': to_float(transaction_data.get('countered_check')),
+            'amount': to_float(transaction_data.get('check_amount')),
+            'ewt': to_float(transaction_data.get('ewt')),
             'method': transaction_data.get('payment_method'),
             'status': transaction_data.get('status'),
             'notes': transaction_data.get('notes', ''),
@@ -235,7 +265,8 @@ def add_transaction(username, branch, transaction_data):
         logger.info(f"Transaction {doc['check_no']} added successfully for user '{username}'.")
         return True
     except Exception as e:
-        logger.error(f"Error adding transaction for user {username}: {e}", exc_info=True)
+        # This will log the specific Python error (like the TypeError) to your server console for debugging
+        logger.error(f"CRITICAL ERROR while adding transaction for user {username}: {e}", exc_info=True)
         return False
 
 def get_transactions_by_status(username, branch, status):
@@ -250,7 +281,9 @@ def get_transactions_by_status(username, branch, status):
                 '_id': str(doc.get('_id')),
                 'name': doc.get('name'),
                 'check_no': doc.get('check_no'),
+                # Format date for display
                 'check_date': check_date.strftime('%m/%d/%Y') if check_date else 'N/A',
+                # Format amounts for display
                 'countered': f"₱ {doc.get('countered_check', 0.0):,.2f}",
                 'amount': doc.get('amount', 0.0),
                 'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
@@ -324,6 +357,9 @@ def get_invoices(username, branch):
     try:
         query = {'username': username, 'branch': branch}
         invoices = list(db.invoices.find(query).sort('createdAt', -1))
+        # Convert ObjectId to string for JSON serialization
+        for invoice in invoices:
+             invoice['_id'] = str(invoice['_id'])
         return invoices
     except Exception as e:
         logger.error(f"Error fetching invoices for {username} in {branch}: {e}", exc_info=True)
@@ -352,6 +388,7 @@ def get_unread_notifications(username):
         notifications = list(db.notifications.find({'username': username, 'is_read': False}).sort('createdAt', -1))
         for n in notifications:
             n['_id'] = str(n['_id'])
+            # Convert datetime to ISO format string for consistency in the API response
             n['createdAt'] = n['createdAt'].isoformat()
         return notifications
     except Exception as e:
