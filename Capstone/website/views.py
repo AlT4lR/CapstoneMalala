@@ -26,7 +26,7 @@ analytics_revenue_data = {
     'month': 'MAY 2025', 
     'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], 
     'data': [],
-    'legend': [] # Added for completeness
+    'legend': [] 
 }
 analytics_supplier_data = []
 
@@ -62,7 +62,8 @@ def branches():
 @main.route('/select_branch/<branch_name>')
 @jwt_required()
 def select_branch(branch_name):
-    if branch_name.upper() in [b['name'] for b in [{'name': 'MONTALBAN'}, {'name': 'LAGUNA'}]]: # Basic validation
+    # Basic validation (using mock list for now, but in a real app this should check the DB)
+    if branch_name.upper() in [b['name'] for b in [{'name': 'MONTALBAN'}, {'name': 'LAGUNA'}]]: 
         session['selected_branch'] = branch_name.upper()
     return redirect(url_for('main.dashboard'))
 
@@ -113,25 +114,28 @@ def add_transaction_page():
     return render_template('add_transaction.html', username=username, selected_branch=selected_branch,
                             show_sidebar=True, show_notifications_button=True, form=form)
 
-# The old mixed GET/POST add_transaction route is REMOVED/REPLACED by the above and the API route below.
-
 # --- API Routes for Transactions (New/Updated) ---
 
+# --- THIS IS THE FIX ---
 @main.route('/api/transactions/add', methods=['POST'])
 @jwt_required()
 def add_transaction_api():
+    """Receives transaction data as JSON and passes it to the model for creation."""
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     if not selected_branch:
         return jsonify({'error': 'No branch selected.'}), 400
 
     data = request.get_json()
-    # Convert date string from form/outbox to datetime object
-    data['check_date'] = datetime.strptime(data['check_date'], '%Y-%m-%d').date()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data provided.'}), 400
 
+    # The date conversion is now removed from here and handled robustly in the model.
     if current_app.add_transaction(username, selected_branch, data):
         return jsonify({'success': True, 'message': 'Transaction added successfully.'}), 201
     else:
+        # The generic error message you are seeing originates from here.
+        # Check server logs for the specific Python exception.
         return jsonify({'error': 'An error occurred while adding the transaction.'}), 500
 
 @main.route('/api/transactions/paid', methods=['GET'])

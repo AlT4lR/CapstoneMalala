@@ -57,7 +57,11 @@ def create_app(config_name='dev'):
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-    # talisman.init_app(app, content_security_policy=app.config['CSP_RULES']) # Consider re-enabling for production
+    
+    # --- THIS IS THE FIX ---
+    # Talisman is re-enabled with the corrected, more complete Content Security Policy.
+    talisman.init_app(app, content_security_policy=app.config['CSP_RULES'])
+    
     csrf.init_app(app)
 
     # Attach all model functions to the app instance for easy access via current_app
