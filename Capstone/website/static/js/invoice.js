@@ -85,7 +85,10 @@ document.addEventListener("DOMContentLoaded", () => {
     function uploadFile(file, itemEl) {
         const xhr = new XMLHttpRequest();
         const formData = new FormData();
-        const csrfToken = window.getCsrfToken(); // Assumes getCsrfToken is globally available
+        
+        // --- THIS IS THE FIX ---
+        // Get the CSRF token using the global helper function
+        const csrfToken = window.getCsrfToken();
 
         // Use a unique ID to track this transaction
         const tempId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -108,6 +111,9 @@ document.addEventListener("DOMContentLoaded", () => {
         progressBar.style.width = "0%";
 
         xhr.open("POST", "/api/invoice/upload", true);
+        
+        // --- THIS IS THE FIX ---
+        // Set the CSRF token header for the XMLHttpRequest
         xhr.setRequestHeader("X-CSRF-Token", csrfToken);
 
         // Progress event

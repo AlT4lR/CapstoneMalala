@@ -24,37 +24,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
         for (const trx of data) {
             const row = document.createElement('div');
-            const statusClass = statusColors[status] || 'bg-gray-500 text-white';
+            // This is now dynamically set inside the 'if' block
+            let gridClass = ''; 
+            const statusClass = statusColors[trx.status] || 'bg-gray-500 text-white';
 
-            // --- THIS IS THE FIX ---
-            // We dynamically change the grid columns and the content based on the page status.
-
-            let rowHTML = '';
-            
-            // Default 7-column layout for 'Paid' and 'Pending'
-            let gridClass = 'grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row';
-
-            // Base content for all statuses
-            rowHTML += `
+            let rowHTML = `
                 <span class="font-semibold view-details-link cursor-pointer hover:underline" data-id="${trx._id}">${trx.name}</span>
                 <span class="text-gray-600">#${trx.check_no}</span>
                 <span class="text-gray-600">${trx.check_date}</span>
                 <span class="text-gray-600">${trx.countered}</span>
                 <span class="font-semibold">₱ ${parseFloat(trx.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <span class="text-gray-600">${trx.ewt}</span>
-                <div class="text-center">
-                    <span class="px-4 py-1 rounded-full text-xs font-semibold ${statusClass}">${trx.status}</span>
-                </div>
             `;
 
-            // If the status is 'Declined', change to 8 columns and add the 'Actions' cell
+            // Dynamically adjust grid and content based on the status
             if (status === 'Declined') {
                 gridClass = 'grid grid-cols-8 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row';
                 rowHTML += `
                     <div class="text-center">
+                        <span class="px-4 py-1 rounded-full text-xs font-semibold ${statusClass}">${trx.status}</span>
+                    </div>
+                    <div class="text-center">
                         <button class="text-gray-400 hover:text-red-600 delete-btn" data-id="${trx._id}" title="Delete">
                             <i class="fas fa-trash-alt"></i>
                         </button>
+                    </div>
+                `;
+            } else { // For Paid and Pending
+                gridClass = 'grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm text-gray-700 bg-white rounded-lg border border-gray-200 shadow-sm transaction-row';
+                rowHTML += `
+                    <div class="text-center">
+                        <span class="px-4 py-1 rounded-full text-xs font-semibold ${statusClass}">${trx.status}</span>
                     </div>
                 `;
             }
@@ -65,9 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- Data Fetching Logic (No changes needed here) ---
-
-    // 1. Fetch from network
+    // --- Data Fetching Logic (Network-First, Cache-Fallback) ---
     const apiUrl = `/api/transactions/${status.toLowerCase()}`;
     fetch(apiUrl)
         .then(res => {
@@ -78,15 +76,28 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             networkDataReceived = true;
-            console.log('Received fresh data from network:', data);
-            // Clear old data and write fresh data to IndexedDB
-            window.db.clearAllData('transactions')
-                .then(() => window.db.writeData('transactions', data))
-                .then(() => renderTransactions(data));
+            console.log(`Received fresh data from network for status: ${status}`, data);
+            
+            // --- START OF FIXED CACHING LOGIC ---
+            // 1. Read all existing data from the cache.
+            window.db.readAllData('transactions')
+                .then(existingData => {
+                    // 2. Filter out items that match the current status, preserving the cache for other statuses.
+                    const otherStatusData = existingData.filter(trx => trx.status !== status);
+                    
+                    // 3. Combine the preserved data with the fresh data from the network.
+                    const combinedData = [...otherStatusData, ...data];
+
+                    // 4. Clear the entire store and rewrite the updated, combined dataset.
+                    return window.db.clearAllData('transactions')
+                        .then(() => window.db.writeData('transactions', combinedData))
+                        .then(() => renderTransactions(data)); // Render the fresh data to the page.
+                });
+            // --- END OF FIXED CACHING LOGIC ---
         })
         .catch(err => {
             console.error('Network fetch failed:', err);
-             // If network fails, try to load from IndexedDB
+             // If network fails, try to load from IndexedDB as a fallback.
             window.db.readAllData('transactions')
                 .then(data => {
                     if (!networkDataReceived) {
@@ -97,8 +108,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
 
-    // 2. Load from IndexedDB immediately for a faster initial load
-    if (!navigator.onLine) { // Only load from cache first if offline
+    // Load from IndexedDB immediately for a faster initial load if starting offline.
+    if (!navigator.onLine) {
         window.db.readAllData('transactions')
             .then(data => {
                 if (!networkDataReceived) {

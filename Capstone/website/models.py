@@ -212,51 +212,47 @@ def get_all_categories(username):
 # --- Transaction Operations ---
 def add_transaction(username, branch, transaction_data):
     """
-    Adds a new transaction to the database with robust data type conversion.
-    
-    The fix is implemented here to correctly parse the date string from the
-    JSON request body before storing it in MongoDB as a timezone-aware datetime.
+    Adds a new transaction to the database with robust data type conversion and consistent key fields.
     """
     db = current_app.db
     if db is None: 
         logger.error("Database connection is not available.")
         return False
     try:
-        # --- START OF FIXED DATE CONVERSION ---
+        # Date Conversion
         check_date_str = transaction_data.get('check_date')
         datetime_utc = None
         if check_date_str:
-            # 1. Convert the date string (e.g., "2025-10-08") to a native datetime object.
             check_date_obj = datetime.strptime(check_date_str, '%Y-%m-%d')
-            # 2. Make the datetime object timezone-aware (UTC) for consistent database storage.
             datetime_utc = pytz.utc.localize(check_date_obj)
-        # --- END OF FIXED DATE CONVERSION ---
 
-        # Helper function to safely convert form values to float, defaulting to 0.0 on failure
+        # Float Conversion Helper
         def to_float(value):
             try:
-                # Handles cases where the value is None or an empty string from the form
-                if value is None or value == '':
-                    return 0.0
-                # Remove common formatting before converting to float
-                if isinstance(value, str):
-                    value = value.replace(',', '').replace('₱', '').strip()
+                if value is None or value == '': return 0.0
+                if isinstance(value, str): value = value.replace(',', '').replace('₱', '').strip()
                 return float(value)
             except (ValueError, TypeError):
                 return 0.0
+        
+        # --- START OF FIX ---
+        # Normalize status to Title Case before saving
+        status = 'Pending' # Default value
+        if transaction_data.get('status'):
+            status = transaction_data.get('status').strip().title()
+        # --- END OF FIX ---
 
         doc = {
             'username': username,
-            'branch': branch,
+            'branch': branch.strip().upper(), # Normalize branch to UPPERCASE
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
-            # Use the correctly converted datetime_utc object here
             'check_date': datetime_utc,
             'countered_check': to_float(transaction_data.get('countered_check')),
             'amount': to_float(transaction_data.get('check_amount')),
             'ewt': to_float(transaction_data.get('ewt')),
             'method': transaction_data.get('payment_method'),
-            'status': transaction_data.get('status'),
+            'status': status, # Use the normalized status
             'notes': transaction_data.get('notes', ''),
             'createdAt': datetime.now(pytz.utc),
             'updatedAt': datetime.now(pytz.utc)
@@ -265,14 +261,25 @@ def add_transaction(username, branch, transaction_data):
         logger.info(f"Transaction {doc['check_no']} added successfully for user '{username}'.")
         return True
     except Exception as e:
-        # This will log the specific Python error (like the TypeError) to your server console for debugging
         logger.error(f"CRITICAL ERROR while adding transaction for user {username}: {e}", exc_info=True)
         return False
 
 def get_transactions_by_status(username, branch, status):
+    """
+    Retrieves transactions, ensuring the query filters by normalized branch and status.
+    """
     db = current_app.db
     if db is None: return []
-    query = {'username': username, 'branch': branch, 'status': status}
+    
+    # --- START OF FIX ---
+    # Normalize query parameters to match the stored format
+    query = {
+        'username': username, 
+        'branch': branch.strip().upper(), 
+        'status': status.strip().title()
+    }
+    # --- END OF FIX ---
+    
     transactions = []
     try:
         for doc in db.transactions.find(query).sort('check_date', -1):
@@ -281,9 +288,7 @@ def get_transactions_by_status(username, branch, status):
                 '_id': str(doc.get('_id')),
                 'name': doc.get('name'),
                 'check_no': doc.get('check_no'),
-                # Format date for display
                 'check_date': check_date.strftime('%m/%d/%Y') if check_date else 'N/A',
-                # Format amounts for display
                 'countered': f"₱ {doc.get('countered_check', 0.0):,.2f}",
                 'amount': doc.get('amount', 0.0),
                 'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",

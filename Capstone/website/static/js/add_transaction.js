@@ -5,15 +5,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Helper function to get the CSRF token from the meta tag in your base.html
-    const getCsrfToken = () => {
-        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-        if (csrfMeta) {
-            return csrfMeta.getAttribute('content');
-        }
-        console.warn('CSRF token meta tag not found.');
-        return '';
-    };
+    // --- THIS IS THE FIX ---
+    // The getCsrfToken helper function is now removed from this file.
+    // We will use the global `window.getCsrfToken()` from `common.js`.
 
     /**
      * This function saves the transaction to the local database (IndexedDB)
@@ -57,7 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': getCsrfToken()
+                // --- THIS IS THE FIX ---
+                // The CSRF token is added to the request headers.
+                'X-CSRF-Token': window.getCsrfToken() 
             },
             body: JSON.stringify(transactionData)
         })

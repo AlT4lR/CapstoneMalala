@@ -130,29 +130,30 @@ def add_transaction_api():
     if not data:
         return jsonify({'error': 'Invalid JSON data provided.'}), 400
 
-    # The date conversion is now removed from here and handled robustly in the model.
+    # Pass the selected_branch to the model function
     if current_app.add_transaction(username, selected_branch, data):
         return jsonify({'success': True, 'message': 'Transaction added successfully.'}), 201
     else:
-        # The generic error message you are seeing originates from here.
-        # Check server logs for the specific Python exception.
         return jsonify({'error': 'An error occurred while adding the transaction.'}), 500
 
 @main.route('/api/transactions/paid', methods=['GET'])
 @jwt_required()
 def get_paid_transactions_api():
+    # Pass the selected_branch to the model function
     transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Paid')
     return jsonify(transactions)
 
 @main.route('/api/transactions/pending', methods=['GET'])
 @jwt_required()
 def get_pending_transactions_api():
+    # Pass the selected_branch to the model function
     transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Pending')
     return jsonify(transactions)
 
 @main.route('/api/transactions/declined', methods=['GET'])
 @jwt_required()
 def get_declined_transactions_api():
+    # Pass the selected_branch to the model function
     transactions = current_app.get_transactions_by_status(get_jwt_identity(), session.get('selected_branch'), 'Declined')
     return jsonify(transactions)
 

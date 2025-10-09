@@ -231,29 +231,34 @@ self.addEventListener('activate', event => {
 
 // --- FETCH EVENT (Caching Strategies) ---
 self.addEventListener('fetch', event => {
-    // Strategy: Stale-While-Revalidate for API calls
+    // --- THIS IS THE FIX ---
+    // Strategy: Network First, Cache Fallback for API calls
     if (event.request.url.includes('/api/')) {
-        // Skip caching for POST/PUT/DELETE requests (like /api/invoice/upload or /api/transactions/add)
+        // Skip caching for POST/PUT/DELETE requests as they modify data
         if (event.request.method !== 'GET') {
             return; 
         }
 
         event.respondWith(
-            caches.open(DYNAMIC_CACHE_NAME).then(cache => {
-                // Try network first, then cache
-                return fetch(event.request)
-                    .then(networkResponse => {
-                        // Only cache successful GET responses
+            fetch(event.request)
+                .then(networkResponse => {
+                    // If the network request is successful, cache it and return it
+                    return caches.open(DYNAMIC_CACHE_NAME).then(cache => {
                         if (networkResponse.ok) {
-                           cache.put(event.request, networkResponse.clone());
+                            cache.put(event.request.url, networkResponse.clone());
                         }
                         return networkResponse;
-                    })
-                    .catch(() => cache.match(event.request)); // Fallback to cache on network failure
-            })
+                    });
+                })
+                .catch(err => {
+                    // If the network request fails, try to get the response from the cache
+                    console.log('Network failed, attempting to serve from cache for:', event.request.url);
+                    return caches.match(event.request);
+                })
         );
         return;
     }
+    // --- END FIX ---
 
     // Strategy: Cache First for all other requests (App Shell, HTML pages, etc.)
     event.respondWith(

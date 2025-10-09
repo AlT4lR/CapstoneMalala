@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json',
                     // --- THIS IS THE FIX ---
+                    // The CSRF token is added to the request headers.
                     'X-CSRF-Token': window.getCsrfToken() 
                 },
                 body: JSON.stringify({

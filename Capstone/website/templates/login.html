@@ -44,6 +44,9 @@
       <h2 class="text-3xl font-bold text-[#506850] mb-6">Login</h2>
 
       <form action="{{ url_for('auth.login') }}" method="POST" class="w-full max-w-xs space-y-5" novalidate>
+        
+        <!-- --- THIS IS THE FIX --- -->
+        <!-- Renders the hidden CSRF token field required for the form submission -->
         {{ form.hidden_tag() }}
 
         <!-- Username -->

@@ -84,19 +84,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup the custom dialog functionality immediately
     setupCustomDialog();
 
-    // --- CSRF Token Handling ---
-    let csrfToken = null;
-    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfTokenMeta) {
-        csrfToken = csrfTokenMeta.getAttribute('content');
-    } else {
-        const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrf_access_token='));
-        if (csrfCookie) {
-            csrfToken = csrfCookie.split('=')[1];
+    // --- Global CSRF Token Handling ---
+    const getCsrfToken = () => {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            return csrfMeta.getAttribute('content');
         }
-    }
-    if (!csrfToken) console.warn("CSRF token not found.");
-    window.getCsrfToken = () => csrfToken;
+        console.warn('CSRF token meta tag not found.');
+        return '';
+    };
+    window.getCsrfToken = getCsrfToken;
 
     // ----------------------------------------------------------------------
     // --- PWA & Notification Logic ---
@@ -106,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
         init: function() {
             this.handleNotifications();
             if ('serviceWorker' in navigator && 'PushManager' in window) {
-                // Initialize Push Notifications (Assuming a button with id="enable-push-btn" exists, e.g., on a settings page)
                 this.initPushNotifications();
             }
         },
@@ -116,7 +112,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const notificationBtn = document.getElementById('notification-btn');
             const notificationPanel = document.getElementById('notification-panel');
             const notificationList = document.getElementById('notification-list');
-            // Red dot is the small indicator span inside the button
             const redDot = notificationBtn ? notificationBtn.querySelector('span') : null;
 
             if (!notificationBtn || !notificationPanel) return;
@@ -126,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('/api/notifications')
                     .then(res => res.json())
                     .then(notifications => {
-                        // Only proceed if we have a list to render into
                         if (!notificationList) return;
 
                         if (notifications && notifications.length > 0) {
@@ -144,7 +138,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }).catch(err => {
                         console.error("Failed to fetch notifications:", err);
-                        if (notificationList) notificationList.innerHTML = `<p class="text-sm text-red-500 p-4 text-center">Could not load notifications.</p>`;
+                        if (notificationList) {
+                            notificationList.innerHTML = `<p class="text-sm text-red-500 p-4 text-center">Could not load notifications.</p>`;
+                        }
+                    // --- THIS IS THE FIX ---
+                    // The incorrect closing parenthesis and semicolon have been removed.
                     });
             };
 
@@ -156,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.stopPropagation();
                 notificationPanel.classList.toggle('hidden');
 
-                // Mark as read only if panel is opened and red dot is visible
                 if (!notificationPanel.classList.contains('hidden') && (redDot && !redDot.classList.contains('hidden'))) {
                     fetch('/api/notifications/mark-read', {
                         method: 'POST',
@@ -184,7 +181,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const pushButton = document.getElementById('enable-push-btn');
             if (!pushButton) return;
 
-            // Check and update button state on load
             navigator.serviceWorker.ready.then(swReg => {
                 swReg.pushManager.getSubscription().then(subscription => {
                     if (subscription) {
@@ -195,12 +191,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
 
-            // Toggle subscribe/unsubscribe on button click
             pushButton.addEventListener('click', () => {
                 navigator.serviceWorker.ready.then(swReg => {
                     swReg.pushManager.getSubscription().then(subscription => {
                         if (subscription) {
-                            // Using custom alert instead of native alert()
                             window.showCustomAlert('Unsubscribe logic needs to be implemented on the server.');
                         } else {
                             this.subscribeUser(swReg);
@@ -271,7 +265,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const messages = flashMessagesContainer.querySelectorAll('.flash-message-local');
             messages.forEach(msg => msg.classList.add('fade-out'));
             if (messages.length > 0) {
-                // Only track transition end for the last message
                 messages[messages.length - 1].addEventListener('transitionend', () => {
                     flashMessagesContainer.remove();
                 }, { once: true });
@@ -291,9 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const transactionId = deleteButton.dataset.id;
             if (!transactionId) return;
 
-            // Use custom confirmation dialog instead of native confirm()
             window.showCustomConfirm('Are you sure you want to delete this transaction? This action cannot be undone.', async () => {
-                // User confirmed, proceed with deletion
                 try {
                     const response = await fetch(`/api/transactions/${transactionId}`, {
                         method: 'DELETE',
@@ -301,7 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     const result = await response.json();
                     if (response.ok) {
-                        // Remove row from UI
                         deleteButton.closest('.transaction-row').remove();
                         window.showCustomAlert('Transaction deleted successfully.');
                     } else {
@@ -322,7 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modal) {
         const closeBtn = document.getElementById("close-modal-btn");
 
-        // Use event delegation on the document to handle clicks on any .view-details-link
         document.addEventListener("click", async (event) => {
             const link = event.target.closest(".view-details-link");
             if (!link) return;
@@ -333,8 +322,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!res.ok) throw new Error("Failed to fetch details");
                 const data = await res.json();
 
-                // Populate modal fields
-                // NOTE: Assumes modal fields are correctly implemented in the HTML template
                 document.getElementById("modal-status-text").textContent = `A payment was sent to ${data.name}`;
                 document.getElementById("modal-amount-header").textContent = `₱ ${parseFloat(data.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 document.getElementById("modal-recipient").textContent = data.name;
@@ -347,12 +334,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.classList.remove("hidden");
             } catch (err) {
                 console.error(err);
-                // Use custom alert instead of native alert()
                 window.showCustomAlert("Could not load transaction details.");
             }
         });
 
-        // Close modal logic
         closeBtn.addEventListener("click", () => {
             modal.classList.add("hidden");
         });

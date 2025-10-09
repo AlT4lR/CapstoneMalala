@@ -23,10 +23,13 @@
         .flash-message-local { opacity: 1; transition: all 0.5s ease-out; transform: translateY(0); }
         .flash-message-local.fade-out { opacity: 0; transform: translateY(-20px); }
     </style>
+    
+    <!-- --- THIS IS THE FIX --- -->
+    <!-- Makes the CSRF token available for all AJAX/Fetch requests in JavaScript -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
     {% block head %}{% endblock %}
 </head>
-<!-- --- THIS IS THE FIX --- -->
 <body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased" data-vapid-public-key="{{ config.VAPID_PUBLIC_KEY }}">
     <!-- Main container -->
     <div class="flex h-screen w-screen">
