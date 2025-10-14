@@ -1,13 +1,51 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Settings{% endblock %}
 {% block content %}
-<main class="flex-1 p-8">
-    <header class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Settings</h2>
-        {% include "_notification_button.html" %}
+<main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
+        <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Settings</h2>
+        <div class="flex items-center gap-3">
+             {% include "_notification_button.html" %}
+        </div>
     </header>
-    <div class="bg-white rounded-xl border p-8">
-        <p class="text-gray-500">Settings content goes here.</p>
+
+    <!-- Settings Content -->
+    <div class="max-w-4xl mx-auto space-y-6">
+
+        <!-- General Settings Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-5 sm:p-6">
+            <h3 class="text-lg font-bold text-[#3a4d39] border-b border-gray-200 pb-3 mb-4">General</h3>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div>
+                    <p class="font-semibold text-gray-800">Change Branch</p>
+                    <p class="text-sm text-gray-500 mt-1 sm:mt-0">Switch between your assigned Montalban and Laguna branches.</p>
+                </div>
+                <a href="{{ url_for('main.branches') }}" 
+                   class="w-full sm:w-auto mt-3 sm:mt-0 px-6 py-2 bg-[#3a4d39] text-white text-center font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
+                    Switch
+                </a>
+            </div>
+        </div>
+
+        <!-- Account Settings Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-5 sm:p-6">
+            <h3 class="text-lg font-bold text-[#3a4d39] border-b border-gray-200 pb-3 mb-4">Account</h3>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div>
+                    <p class="font-semibold text-gray-800">Log Out</p>
+                    <p class="text-sm text-gray-500 mt-1 sm:mt-0">End your current session and return to the login page.</p>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" 
+                   class="w-full sm:w-auto mt-3 sm:mt-0 px-6 py-2 bg-red-600 text-white text-center font-semibold rounded-lg shadow-sm hover:bg-red-700 transition-colors">
+                    Log Out
+                </a>
+            </div>
+        </div>
+        
     </div>
 </main>
 {% endblock %}

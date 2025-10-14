@@ -13,15 +13,19 @@ from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-# --- THIS IS THE FIX: All functions are now present in models.py ---
+# --- START OF MODIFICATION ---
+# Added the new functions for archiving and activity logging to the import list.
 from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp, update_user_password,
-    add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id,
+    add_transaction, get_transactions_by_status, get_transaction_by_id,
+    archive_transaction, get_archived_items,  # Changed delete_transaction and added get_archived_items
     get_analytics_data,
+    log_user_activity, get_recent_activity, # Added the missing functions
     add_invoice,
     add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription
 )
+# --- END OF MODIFICATION ---
 
 # Logging configuration
 log_config = {
@@ -56,7 +60,8 @@ def create_app(config_name='dev'):
     limiter.init_app(app)
     csrf.init_app(app)
 
-    # Attach model functions to the app instance
+    # --- START OF MODIFICATION ---
+    # Attach all model functions to the app instance, including the new ones.
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
     app.add_user = add_user
@@ -66,17 +71,25 @@ def create_app(config_name='dev'):
     app.set_user_otp = set_user_otp
     app.verify_user_otp = verify_user_otp
     app.update_user_password = update_user_password
+    
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
-    app.delete_transaction = delete_transaction
     app.get_transaction_by_id = get_transaction_by_id
+    app.archive_transaction = archive_transaction # Correctly mapped archive_transaction
+    app.get_archived_items = get_archived_items   # Attached get_archived_items
+
     app.get_analytics_data = get_analytics_data
+    
+    app.log_user_activity = log_user_activity     # Attached the missing log_user_activity
+    app.get_recent_activity = get_recent_activity # Attached the missing get_recent_activity
+
     app.add_invoice = add_invoice
     app.add_notification = add_notification
     app.get_unread_notifications = get_unread_notifications
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
     app.mail = mail
+    # --- END OF MODIFICATION ---
 
     # MongoDB Connection
     try:

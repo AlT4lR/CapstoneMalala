@@ -1,22 +1,32 @@
 # website/views.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, make_response, current_app, send_from_directory, jsonify
+from flask import (
+    Blueprint, render_template, request, redirect, url_for, session, flash,
+    make_response, current_app, send_from_directory, jsonify
+)
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime
 import os
+import logging
 
 from .forms import TransactionForm
-from .models import get_transactions_by_status, get_analytics_data
-import logging
+from .models import (
+    get_transactions_by_status,
+    get_analytics_data,
+    get_recent_activity,
+    archive_transaction,
+    get_archived_items
+)
 
 logger = logging.getLogger(__name__)
 main = Blueprint('main', __name__)
 
+# --- Static Service Worker ---
 @main.route('/sw.js')
 def service_worker():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
 
-# --- Main Navigation Routes ---
+# --- Root / Branch Selection ---
 @main.route('/')
 def root_route():
     try:
@@ -39,12 +49,35 @@ def select_branch(branch_name):
         session['selected_branch'] = branch_name.upper()
     return redirect(url_for('main.dashboard'))
 
+# --- Dashboard ---
 @main.route('/dashboard')
 @jwt_required()
 def dashboard():
-    if not session.get('selected_branch'):
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
         return redirect(url_for('main.branches'))
-    return render_template('dashboard.html', username=get_jwt_identity(), selected_branch=session.get('selected_branch'), show_sidebar=True)
+    
+    username = get_jwt_identity()
+
+    # Fetch transaction counts
+    pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
+    pending_count = len(pending_transactions)
+
+    paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
+    paid_count = len(paid_transactions)
+
+    # Recent activity
+    recent_activities = get_recent_activity(username, limit=3)
+
+    return render_template(
+        'dashboard.html',
+        username=username,
+        selected_branch=selected_branch,
+        show_sidebar=True,
+        pending_count=pending_count,
+        paid_count=paid_count,
+        recent_activities=recent_activities
+    )
 
 # --- Transaction Routes ---
 @main.route('/transactions')
@@ -58,26 +91,36 @@ def transactions():
 def transactions_pending():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-    if not selected_branch: return redirect(url_for('main.branches'))
+    if not selected_branch:
+        return redirect(url_for('main.branches'))
     
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     form = TransactionForm()
     
-    return render_template('pending_transactions.html', 
-                           transactions=transactions, form=form, show_sidebar=True)
+    return render_template(
+        'pending_transactions.html',
+        transactions=transactions,
+        form=form,
+        show_sidebar=True
+    )
 
 @main.route('/transactions/paid')
 @jwt_required()
 def transactions_paid():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-    if not selected_branch: return redirect(url_for('main.branches'))
+    if not selected_branch:
+        return redirect(url_for('main.branches'))
     
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     form = TransactionForm()
 
-    return render_template('paid_transactions.html', 
-                           transactions=transactions, form=form, show_sidebar=True)
+    return render_template(
+        'paid_transactions.html',
+        transactions=transactions,
+        form=form,
+        show_sidebar=True
+    )
 
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
@@ -86,12 +129,15 @@ def add_transaction():
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
     
-    redirect_url = url_for('main.transactions_pending') # Default
-    if request.referrer and 'paid' in request.referrer:
-        redirect_url = url_for('main.transactions_paid')
-    elif request.referrer and 'transactions' in request.referrer:
-        redirect_url = url_for('main.transactions_pending')
+    # Determine redirect target
+    redirect_url = url_for('main.transactions_pending')
+    if request.referrer:
+        if 'paid' in request.referrer:
+            redirect_url = url_for('main.transactions_paid')
+        elif 'transactions' in request.referrer:
+            redirect_url = url_for('main.transactions_pending')
 
+    # Handle form
     if form.validate_on_submit():
         if current_app.add_transaction(username, selected_branch, form.data):
             flash('Successfully added a new transaction!', 'success')
@@ -103,7 +149,7 @@ def add_transaction():
                 
     return redirect(redirect_url)
 
-# --- Other Main Routes ---
+# --- Analytics / Invoice / Others ---
 @main.route('/analytics')
 @jwt_required()
 def analytics():
@@ -118,39 +164,32 @@ def invoice():
 @main.route('/billings')
 @jwt_required()
 def billings():
-    # Placeholder: Renders a simple page for now.
     return render_template('billings.html', show_sidebar=True)
 
 @main.route('/schedules')
 @jwt_required()
 def schedules():
-    # Placeholder: Renders a simple page for now.
     return render_template('schedules.html', show_sidebar=True)
 
 @main.route('/settings')
 @jwt_required()
 def settings():
-    # Placeholder: Renders a simple page for now.
     return render_template('settings.html', show_sidebar=True)
 
 # --- API Routes ---
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
-    if current_app.delete_transaction(get_jwt_identity(), transaction_id):
-        flash('Successfully deleted a Transaction!', 'success')
+    # Updated to archive instead of delete
+    if archive_transaction(get_jwt_identity(), transaction_id):
+        flash('Transaction successfully moved to archive!', 'success')
         return jsonify({'success': True}), 200
-    return jsonify({'error': 'Failed to delete transaction.'}), 404
+    return jsonify({'error': 'Failed to archive transaction.'}), 404
 
-# --- START OF MODIFICATION ---
-# Added a route to render the archive page
+# --- Archive ---
 @main.route('/archive')
 @jwt_required()
 def archive():
-    # Using placeholder data for demonstration
-    archived_items = [
-        {'name': 'Billing #INV-00123', 'id': 'ID: 4265790', 'datetime': 'Oct 10, 2025, 10:30 AM', 'relative_time': '3 days ago'},
-        {'name': 'Transaction #TR-98765', 'id': 'ID: 1122334', 'datetime': 'Oct 9, 2025, 02:15 PM', 'relative_time': '4 days ago'}
-    ]
+    username = get_jwt_identity()
+    archived_items = get_archived_items(username)
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items)
-# --- END OF MODIFICATION ---
