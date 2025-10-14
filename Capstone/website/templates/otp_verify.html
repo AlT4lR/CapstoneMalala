@@ -3,22 +3,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OTP Verification - DecoOffice</title>
+    <title>
+        {% if is_2fa_login %}
+            Two-Factor Authentication - DecoOffice
+        {% else %}
+            Email Verification - DecoOffice
+        {% endif %}
+    </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
+        /* Custom styles for the single OTP input field */
         .otp-input {
-            width: 4rem; height: 4rem; text-align: center; font-size: 1.5rem;
-            border: 1px solid #d1d5db; border-radius: 0.5rem; margin: 0 0.25rem;
+            width: 16rem;
+            height: 4rem;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
+            letter-spacing: 0.5rem; /* Creates visual space between characters */
+            color: #3a4d39;
+            background-color: #f3f4f6; /* Light grey background */
+            border: 2px solid transparent;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease-in-out;
+            padding-left: 0.5rem; /* Centers the text better with letter-spacing */
         }
-        .otp-input:focus { outline: none; border-color: #6f8a6e; box-shadow: 0 0 0 2px rgba(111, 138, 110, 0.3); }
+        .otp-input::placeholder {
+            letter-spacing: normal;
+        }
+        .otp-input:focus {
+            outline: none;
+            border-color: #6f8a6e;
+            box-shadow: 0 0 0 3px rgba(111, 138, 110, 0.3);
+            background-color: #ffffff;
+        }
+        
+        /* Style for auto-fading flash messages */
+        #flash-messages-overlay-container { 
+            transition: opacity 0.5s ease-out; 
+            position: relative; /* Adjust position for this specific layout */
+            top: auto;
+            left: auto;
+            transform: none;
+            max-width: 100%;
+            margin-bottom: 1.5rem; /* Add space between flash and text */
+        }
+
+        /* Animation for the card appearing */
+        .card {
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-[#6f8a6e] font-poppins antialiased">
-    <main class="flex items-center justify-center min-h-screen">
-        <div class="w-11/12 max-w-lg mx-auto bg-[#fafaf5] rounded-xl shadow-2xl p-8 text-center">
-            
-            <h1 class="text-[#3a4d39] mb-4 text-2xl font-bold">
+<body class="bg-[#333333] font-poppins antialiased">
+    <main class="flex items-center justify-center min-h-screen p-6">
+        <div class="card w-full max-w-md bg-[#F5F3F0] shadow-2xl rounded-2xl p-8 sm:p-12 text-center">
+
+            <div class="flex justify-center mb-6">
+                {% if is_2fa_login %}
+                    <i class="fa-solid fa-shield-halved text-5xl text-[#4A5C49]"></i>
+                {% else %}
+                     <i class="fa-solid fa-envelope-circle-check text-5xl text-[#4A5C49]"></i>
+                {% endif %}
+            </div>
+
+            <h1 class="text-[#333333] text-2xl sm:text-3xl font-bold mb-3">
                 {% if is_2fa_login %}
                     Two-Factor Authentication
                 {% else %}
@@ -28,37 +82,46 @@
 
             {% include "_flash_messages.html" %}
 
-            <p class="text-gray-600 mb-6">
+            <p class="text-gray-600 mb-8">
                 {% if is_2fa_login %}
-                    Enter the 6-digit code from your authenticator app to log in as <span class="font-semibold text-[#3a4d39]">{{ username_in_context }}</span>.
+                    Enter the 6-digit code from your authenticator app for <span class="font-semibold text-[#333333]">{{ username_in_context }}</span>.
                 {% else %}
-                    Please enter the 6-digit verification code sent to your email. It will expire in 10 minutes.
+                    A 6-digit code has been sent to your email. It will expire in 10 minutes.
                 {% endif %}
             </p>
 
-            <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST">
+            <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST" novalidate>
                 {{ form.hidden_tag() }}
 
-                <div class="flex justify-center mb-6" id="otp-inputs">
-                    {% if is_2fa_login %}
-                        <input type="text" name="otp" class="otp-input w-48" placeholder="------" maxlength="6" inputmode="numeric" required>
-                    {% else %}
-                        <input type="text" name="otp1" class="otp-input" maxlength="1" inputmode="numeric" required>
-                        <input type="text" name="otp2" class="otp-input" maxlength="1" inputmode="numeric" required>
-                        <input type="text" name="otp3" class="otp-input" maxlength="1" inputmode="numeric" required>
-                        <input type="text" name="otp4" class="otp-input" maxlength="1" inputmode="numeric" required>
-                        <input type="text" name="otp5" class="otp-input" maxlength="1" inputmode="numeric" required>
-                        <input type="text" name="otp6" class="otp-input" maxlength="1" inputmode="numeric" required>
-                    {% endif %}
+                <div class="flex justify-center mb-8">
+                    <!-- A single, user-friendly input for both 2FA and email OTP -->
+                    <input type="text" name="otp" class="otp-input" placeholder="------" 
+                           maxlength="6" inputmode="numeric" pattern="\d{6}" required autofocus autocomplete="one-time-code">
                 </div>
 
                 <div class="space-y-4">
-                    <button type="submit" class="w-full bg-[#3a4d39] text-white p-4 rounded-full font-bold shadow hover:bg-opacity-90">Verify</button>
-                    <a href="{{ url_for('auth.logout') }}" class="block w-full bg-transparent text-[#3a4d39] border-2 border-[#3a4d39] p-3.5 rounded-full font-bold">Cancel & Logout</a>
+                    <button type="submit" class="w-full bg-[#4A5C49] text-white py-3.5 rounded-full font-bold text-lg shadow-lg hover:bg-opacity-90 transition-colors">
+                        Verify
+                    </button>
+                    <a href="{{ url_for('auth.logout') }}" class="block w-full border-2 border-[#d1d5db] text-[#4A5C49] py-3 rounded-full font-bold hover:border-[#4A5C49] hover:bg-gray-200 transition-all">
+                        Cancel & Logout
+                    </a>
                 </div>
             </form>
         </div>
     </main>
-    <script src="{{ url_for('static', filename='js/otp_verify.js') }}"></script>
+
+    <script>
+        // Script for auto-fading flash messages
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashContainer = document.getElementById('flash-messages-overlay-container');
+            if (flashContainer) {
+                setTimeout(() => {
+                    flashContainer.style.opacity = '0';
+                    flashContainer.addEventListener('transitionend', () => flashContainer.remove());
+                }, 5000);
+            }
+        });
+    </script>
 </body>
 </html>
