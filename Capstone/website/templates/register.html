@@ -11,15 +11,45 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <style>
         #flash-messages-overlay-container { transition: opacity 0.5s ease-out; }
+
+        /* --- Password Tooltip Styles --- */
+        #password-reqs li {
+            transition: all 0.2s ease-in-out;
+        }
+        #password-reqs .valid { color: #16a34a; }
+        #password-reqs .invalid { color: #dc2626; }
+        #password-reqs .valid .fa-check-circle { display: inline-block; }
+        #password-reqs .valid .fa-times-circle { display: none; }
+        #password-reqs .invalid .fa-check-circle { display: none; }
+        #password-reqs .invalid .fa-times-circle { display: inline-block; }
+
+        #password-tooltip {
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 10;
+        }
+        #password-tooltip.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #password-tooltip.hidden {
+            opacity: 0;
+            transform: translateY(-5px);
+            pointer-events: none;
+        }
+        #password-tooltip {
+            background-color: #f9fafb;
+            border-color: #e5e7eb;
+        }
     </style>
+
     <script>
-        // Custom Tailwind CSS configuration to match the new design
+        // Custom Tailwind CSS configuration
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        poppins: ['Poppins', 'sans-serif']
-                    },
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
                     colors: {
                         'brand-cream': '#F5F3F0',
                         'brand-green': '#4A5C49',
@@ -44,36 +74,65 @@
             <form action="{{ url_for('auth.register') }}" method="POST" class="w-full space-y-4" novalidate>
                 {{ form.hidden_tag() }}
 
-                <!-- Username -->
+                <!-- Username Field -->
                 <div>
-                    <!-- --- START OF MODIFICATION --- -->
+                    {{ form.username.label(class="text-sm font-semibold text-gray-700 mb-1 block") }}
                     <div class="relative">
-                        {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
+                        {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your username") }}
                         <i class="fas fa-user absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                    <!-- --- END OF MODIFICATION --- -->
                 </div>
 
-                <!-- Email -->
+                <!-- Email Field -->
                 <div>
+                    {{ form.email.label(class="text-sm font-semibold text-gray-700 mb-1 block") }}
                     <div class="relative">
-                        {{ form.email(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Email") }}
+                        {{ form.email(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your email") }}
                         <i class="fas fa-envelope absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
                 </div>
 
-                <!-- Password -->
-                <div>
-                    <div class="relative">
-                        {{ form.password(id="password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                <!-- Password Field with Tooltip -->
+                <div class="relative">
+                    {{ form.password.label(class="text-sm font-semibold text-gray-700 mb-1 block") }}
+                    <div class="relative" id="password-container">
+                        {{ form.password(id="password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your password") }}
                         <i id="togglePassword" class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
+
+                        <!-- Password Requirements Tooltip -->
+                        <div id="password-tooltip"
+                             class="hidden absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-full max-w-sm text-xs text-gray-600">
+                            <ul id="password-reqs" class="space-y-1">
+                                <li id="length-req" class="invalid flex items-center gap-2">
+                                    <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                    <span>At least 8 characters</span>
+                                </li>
+                                <li id="upper-req" class="invalid flex items-center gap-2">
+                                    <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                    <span>One uppercase letter</span>
+                                </li>
+                                <li id="lower-req" class="invalid flex items-center gap-2">
+                                    <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                    <span>One lowercase letter</span>
+                                </li>
+                                <li id="num-req" class="invalid flex items-center gap-2">
+                                    <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                    <span>One number</span>
+                                </li>
+                                <li id="special-req" class="invalid flex items-center gap-2">
+                                    <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                    <span>One special character (e.g. ! @ # $ % ^ & *)</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Confirm Password -->
+                
+                <!-- Confirm Password Field -->
                 <div>
+                    {{ form.confirm_password.label(class="text-sm font-semibold text-gray-700 mb-1 block") }}
                     <div class="relative">
-                        {{ form.confirm_password(id="confirm_password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Confirm Password") }}
+                        {{ form.confirm_password(id="confirm_password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Confirm your password") }}
                         <i id="toggleConfirmPassword" class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
                     </div>
                 </div>
@@ -82,29 +141,16 @@
                 <button type="submit" class="w-full bg-brand-green text-white py-3 mt-4 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
                     Register
                 </button>
-
-                <!-- Divider -->
-                <div class="flex items-center my-6">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="flex-shrink mx-4 text-gray-500 text-sm">or register with</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                <!-- Google Button -->
-                <button type="button" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-semibold shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 h-5 mr-3" alt="Google Logo">
-                    Continue with Google
-                </button>
             </form>
         </div>
         
-        <!-- Right Panel (Green with Curve) -->
+        <!-- Right Panel -->
         <div class="hidden md:flex bg-brand-green text-white p-12 flex-col justify-center items-center text-center rounded-r-2xl" style="border-top-left-radius: 100px; border-bottom-left-radius: 100px;">
             <div class="max-w-xs">
                 <h1 class="text-4xl font-bold mb-3">Hello, Welcome!</h1>
                 <p class="text-gray-200 mb-8">Already have an account? Click below.</p>
                 <a href="{{ url_for('auth.login') }}"
-                   class="inline-block w-full py-3 px-6 bg-white text-brand-dark rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-300">
+                   class="inline-block w-full py-3 px-6 bg-white text-brand-dark rounded-full font-semibold hover:bg-gray-200 transition-colors duration-300">
                     Login
                 </a>
             </div>
@@ -113,32 +159,72 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Flash Message Logic
-        const flashContainer = document.getElementById('flash-messages-overlay-container');
-        if (flashContainer) {
-            setTimeout(() => {
-                flashContainer.style.opacity = '0';
-                flashContainer.addEventListener('transitionend', () => flashContainer.remove());
-            }, 5000);
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    // Flash Message Fadeout
+    const flashContainer = document.getElementById('flash-messages-overlay-container');
+    if (flashContainer) {
+        setTimeout(() => {
+            flashContainer.style.opacity = '0';
+            flashContainer.addEventListener('transitionend', () => flashContainer.remove());
+        }, 5000);
+    }
 
-        // Password Toggle Logic
-        function setupPasswordToggle(inputId, toggleId) {
-            const toggle = document.querySelector(toggleId);
-            const input = document.querySelector(inputId);
-            if (toggle && input) {
-                toggle.addEventListener('click', function () {
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    this.classList.toggle('fa-eye-slash');
-                });
-            }
+    // Password toggle setup
+    function setupPasswordToggle(inputId, toggleId) {
+        const toggle = document.querySelector(toggleId);
+        const input = document.querySelector(inputId);
+        if (toggle && input) {
+            toggle.addEventListener('click', function () {
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
         }
+    }
+    setupPasswordToggle('#password', '#togglePassword');
+    setupPasswordToggle('#confirm_password', '#toggleConfirmPassword');
 
-        setupPasswordToggle('#password', '#togglePassword');
-        setupPasswordToggle('#confirm_password', '#toggleConfirmPassword');
-    });
+    // Password Tooltip Logic
+    const passwordInput = document.getElementById('password');
+    const tooltip = document.getElementById('password-tooltip');
+    const reqs = {
+        length: document.getElementById('length-req'),
+        upper: document.getElementById('upper-req'),
+        lower: document.getElementById('lower-req'),
+        num: document.getElementById('num-req'),
+        special: document.getElementById('special-req')
+    };
+
+    if (passwordInput && tooltip) {
+        passwordInput.addEventListener('focus', () => {
+            tooltip.classList.remove('hidden');
+            setTimeout(() => tooltip.classList.add('show'), 10);
+        });
+        passwordInput.addEventListener('blur', () => {
+            tooltip.classList.remove('show');
+            setTimeout(() => tooltip.classList.add('hidden'), 200);
+        });
+        
+        passwordInput.addEventListener('input', () => {
+            const value = passwordInput.value;
+            validateReq(reqs.length, value.length >= 8);
+            validateReq(reqs.upper, /[A-Z]/.test(value));
+            validateReq(reqs.lower, /[a-z]/.test(value));
+            validateReq(reqs.num, /[0-9]/.test(value));
+            validateReq(reqs.special, /[!@#$%^&*(),.?":{}|<>]/.test(value));
+        });
+    }
+
+    function validateReq(element, isValid) {
+        if (isValid) {
+            element.classList.add('valid');
+            element.classList.remove('invalid');
+        } else {
+            element.classList.add('invalid');
+            element.classList.remove('valid');
+        }
+    }
+});
 </script>
 
 </body>

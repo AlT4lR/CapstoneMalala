@@ -58,15 +58,10 @@ def dashboard():
         return redirect(url_for('main.branches'))
     
     username = get_jwt_identity()
-
-    # Fetch transaction counts
     pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     pending_count = len(pending_transactions)
-
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     paid_count = len(paid_transactions)
-
-    # Recent activity
     recent_activities = get_recent_activity(username, limit=3)
 
     return render_template(
@@ -100,6 +95,7 @@ def transactions_pending():
     return render_template(
         'pending_transactions.html',
         transactions=transactions,
+        selected_branch=selected_branch,
         form=form,
         show_sidebar=True
     )
@@ -129,7 +125,6 @@ def add_transaction():
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
     
-    # Determine redirect target
     redirect_url = url_for('main.transactions_pending')
     if request.referrer:
         if 'paid' in request.referrer:
@@ -137,7 +132,6 @@ def add_transaction():
         elif 'transactions' in request.referrer:
             redirect_url = url_for('main.transactions_pending')
 
-    # Handle form
     if form.validate_on_submit():
         if current_app.add_transaction(username, selected_branch, form.data):
             flash('Successfully added a new transaction!', 'success')
@@ -180,11 +174,32 @@ def settings():
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
-    # Updated to archive instead of delete
     if archive_transaction(get_jwt_identity(), transaction_id):
         flash('Transaction successfully moved to archive!', 'success')
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to archive transaction.'}), 404
+
+@main.route('/api/transactions/details/<transaction_id>', methods=['GET'])
+@jwt_required()
+def get_transaction_details(transaction_id):
+    username = get_jwt_identity()
+    transaction_data = current_app.get_transaction_by_id(username, transaction_id)
+    if transaction_data:
+        return jsonify(transaction_data)
+    return jsonify({'error': 'Transaction not found'}), 404
+
+@main.route('/api/transactions/<transaction_id>/pay', methods=['POST'])
+@jwt_required()
+def pay_transaction(transaction_id):
+    username = get_jwt_identity()
+    data = request.get_json()
+    notes = data.get('notes')
+
+    if current_app.mark_transaction_as_paid(username, transaction_id, notes):
+        current_app.log_user_activity(username, f'Marked transaction as Paid')
+        return jsonify({'success': True, 'message': 'Transaction marked as Paid.'})
+    
+    return jsonify({'error': 'Failed to mark transaction as Paid.'}), 400
 
 # --- Archive ---
 @main.route('/archive')

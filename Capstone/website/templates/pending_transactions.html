@@ -8,12 +8,11 @@
             <i class="fa-solid fa-arrow-left mr-2"></i>Go Back
         </a>
         
-        <!-- --- THIS IS THE FIX --- -->
-        <h2 class="text-xl font-bold text-[#3a4d39] uppercase">{{ selected_branch }} (Pending)</h2>
+        <h2 class="text-xl font-bold text-[#3a4d39] uppercase">(PENDING)</h2>
         
         <div class="flex items-center gap-4">
             <div class="relative">
-                <input type="text" placeholder="Search..." class="w-72 pl-10 pr-4 py-2 border rounded-lg text-sm">
+                <input type="text" id="search-input" placeholder="Search..." class="w-72 pl-10 pr-4 py-2 border rounded-lg text-sm">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
             {% include "_notification_button.html" %}
@@ -28,27 +27,43 @@
                 <span>Name of Issued Checked</span><span>Check No.</span><span>Check Date</span><span>EWT</span><span>Countered Check</span>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
-                <div class="space-y-2">
+                <div id="transaction-list-container" class="space-y-2">
                     {% for t in transactions %}
-                    <div class="grid grid-cols-5 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border">
+                    <div class="grid grid-cols-5 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border transaction-row cursor-pointer hover:bg-gray-50 transition-colors" data-id="{{ t._id }}" data-name="{{ t.name }}">
                         <span class="font-semibold">{{ t.name }}</span><span>{{ t.check_no }}</span><span>{{ t.check_date }}</span><span>{{ t.ewt }}</span><span>{{ t.countered_check }}</span>
                     </div>
                     {% else %}
                     <p class="text-center text-gray-500 pt-10">No pending transactions.</p>
                     {% endfor %}
+                    <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
                 </div>
             </div>
             <div class="mt-auto pt-4">
-                <button id="create-transaction-btn" class="px-6 py-2 bg-transparent border border-gray-400 rounded-lg hover:bg-gray-100">Create Issued Checked</button>
+                <button id="create-transaction-btn" class="px-6 py-2 bg-transparent border border-[#3a4d39] text-[#3a4d39] font-semibold rounded-lg hover:bg-gray-100 transition-colors">Create Issued Checked</button>
             </div>
         </div>
 
         <!-- Right Panel: Summary -->
-        <div class="w-1/3 flex flex-col space-y-6 bg-white p-6 rounded-lg border">
-            <div class="flex-grow flex flex-col"><label class="font-semibold text-gray-600 mb-2">Notes</label><textarea readonly class="w-full flex-grow p-3 border bg-gray-100 rounded-lg"></textarea></div>
-            <div><label class="font-semibold text-gray-600 mb-2">Countered Checks</label><input type="text" readonly class="w-full px-4 py-2 bg-gray-100 border rounded-lg" value="₱ 0.00"></div>
-            <div><label class="font-semibold text-gray-600 mb-2">Check Amount</label><input type="text" readonly class="w-full px-4 py-2 bg-gray-100 border rounded-lg" value="₱ 0.00"></div>
-            <div class="mt-auto text-right"><button class="px-10 py-3 bg-[#3a4d39] text-white font-bold rounded-lg shadow-md">Paid</button></div>
+        <div id="summary-panel" class="w-1/3 flex flex-col space-y-6 bg-white p-6 rounded-lg border">
+            <p id="select-prompt" class="text-center text-gray-500 my-auto">Select a transaction to view details.</p>
+            <div id="details-view" class="hidden flex-grow flex-col space-y-6">
+                <input type="hidden" id="selected-transaction-id">
+                <div class="flex-grow flex flex-col">
+                    <label class="font-semibold text-gray-600 mb-2">Notes</label>
+                    <textarea id="notes-textarea" class="w-full flex-grow p-3 border border-gray-300 bg-white rounded-lg resize-none focus:outline-none focus:border-green-500"></textarea>
+                </div>
+                <div>
+                    <label class="font-semibold text-gray-600 mb-2">Countered Checks</label>
+                    <input type="text" id="countered-check-input" readonly class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" value="₱ 0.00">
+                </div>
+                <div>
+                    <label class="font-semibold text-gray-600 mb-2">Check Amount</label>
+                    <input type="text" id="check-amount-input" readonly class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" value="₱ 0.00">
+                </div>
+                <div class="mt-auto text-right pt-4">
+                    <button id="paid-btn" class="px-10 py-3 bg-[#3a4d39] text-white font-bold rounded-lg shadow-md hover:bg-[#6f8a6e] transition-colors">Paid</button>
+                </div>
+            </div>
         </div>
     </div>
 </main>
@@ -59,6 +74,7 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Modal logic
         const modal = document.getElementById('create-transaction-modal');
         const openBtn = document.getElementById('create-transaction-btn');
         const closeBtn = document.getElementById('close-create-modal-btn');
@@ -67,6 +83,133 @@
             closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
             modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
         }
+        
+        // --- Element Definitions ---
+        const searchInput = document.getElementById('search-input');
+        const transactionContainer = document.getElementById('transaction-list-container');
+        const transactionRows = transactionContainer.querySelectorAll('.transaction-row');
+        const noResultsMessage = document.getElementById('no-results-message');
+        const detailsView = document.getElementById('details-view');
+        const selectPrompt = document.getElementById('select-prompt');
+        const selectedIdInput = document.getElementById('selected-transaction-id');
+        const notesTextarea = document.getElementById('notes-textarea');
+        const counteredCheckInput = document.getElementById('countered-check-input');
+        const checkAmountInput = document.getElementById('check-amount-input');
+        const paidBtn = document.getElementById('paid-btn');
+        let selectedRow = null;
+
+        // --- Core Functions ---
+        function formatCurrency(amount) {
+            return '₱ ' + parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // --- START OF FIX: Function to reset the details panel ---
+        function resetDetailsPanel() {
+            detailsView.classList.add('hidden');
+            selectPrompt.classList.remove('hidden');
+            selectedIdInput.value = '';
+            if (selectedRow) {
+                selectedRow.classList.remove('bg-gray-100');
+                selectedRow = null;
+            }
+        }
+        // --- END OF FIX ---
+
+        function selectTransaction(rowElement, transactionId) {
+            if (selectedRow) {
+                selectedRow.classList.remove('bg-gray-100');
+            }
+            selectedRow = rowElement;
+            selectedRow.classList.add('bg-gray-100');
+            selectPrompt.classList.add('hidden');
+            detailsView.classList.remove('hidden');
+            notesTextarea.value = 'Loading...';
+            counteredCheckInput.value = '...';
+            checkAmountInput.value = '...';
+
+            fetch(`/api/transactions/details/${transactionId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    selectedIdInput.value = data._id;
+                    notesTextarea.value = data.notes || '';
+                    counteredCheckInput.value = formatCurrency(data.countered_check);
+                    checkAmountInput.value = formatCurrency(data.amount);
+                })
+                .catch(error => {
+                    console.error('Error fetching transaction details:', error);
+                    alert('Failed to load transaction details.');
+                    resetDetailsPanel(); // Reset panel on error
+                });
+        }
+
+        function markAsPaid() {
+            const transactionId = selectedIdInput.value;
+            if (!transactionId) return;
+            const notes = notesTextarea.value;
+            paidBtn.disabled = true;
+            paidBtn.textContent = 'Processing...';
+
+            fetch(`/api/transactions/${transactionId}/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken()
+                },
+                body: JSON.stringify({ notes: notes })
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '{{ url_for("main.transactions_paid") }}';
+                } else {
+                    alert('Failed to mark transaction as paid.');
+                    paidBtn.disabled = false;
+                    paidBtn.textContent = 'Paid';
+                }
+            })
+            .catch(error => {
+                console.error('Error marking as paid:', error);
+                alert('An error occurred. Please try again.');
+                paidBtn.disabled = false;
+                paidBtn.textContent = 'Paid';
+            });
+        }
+
+        // --- Event Listeners ---
+        if (searchInput && transactionRows.length > 0) {
+            searchInput.addEventListener('input', function() {
+                // --- START OF FIX: Reset the panel on every search input ---
+                resetDetailsPanel();
+                // --- END OF FIX ---
+
+                const searchTerm = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                transactionRows.forEach(row => {
+                    const name = row.dataset.name.toLowerCase();
+                    if (name.includes(searchTerm)) {
+                        row.style.display = 'grid';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+            });
+        }
+        
+        transactionRows.forEach(row => {
+            row.addEventListener('click', () => selectTransaction(row, row.dataset.id));
+        });
+
+        paidBtn.addEventListener('click', markAsPaid);
     });
 </script>
 {% endblock %}

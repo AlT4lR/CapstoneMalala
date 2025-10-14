@@ -63,7 +63,8 @@ def add_user(username, email, password):
             'createdAt': datetime.now(pytz.utc),
             'failedLoginAttempts': 0,
             'lockoutUntil': None,
-            'lastLogin': None
+            'lastLogin': None,
+            'notes': ''
         })
         return True
     except DuplicateKeyError:
@@ -153,7 +154,8 @@ def add_transaction(username, branch, transaction_data):
             'status': 'Pending',
             'sub_branch': 'San Isidro',
             'createdAt': datetime.now(pytz.utc),
-            'isArchived': False  # New field
+            'isArchived': False,
+            'notes': ''
         }
         db.transactions.insert_one(doc)
         return True
@@ -166,7 +168,6 @@ def get_transactions_by_status(username, branch, status):
     if db is None: return []
     transactions = []
     try:
-        # Allow branch to be optional (if falsy, don't filter by branch)
         query = {
             'username': username,
             'status': status,
@@ -182,15 +183,52 @@ def get_transactions_by_status(username, branch, status):
                 'check_no': f"#{doc.get('check_no')}",
                 'check_date': doc.get('check_date').strftime('%m/%d/%Y') if doc.get('check_date') else 'N/A',
                 'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
-                'countered_check': f"₱ {doc.get('countered_check', 0.0):,.2f}"
+                'countered_check': f"₱ {doc.get('countered_check', 0.0):,.2f}",
+                'editor': doc.get('username', 'Unknown').capitalize()
             })
     except Exception as e:
         logger.error(f"Error fetching transactions: {e}", exc_info=True)
     return transactions
 
-# Archive transaction (do not hard-delete)
+def get_transaction_by_id(username, transaction_id):
+    db = current_app.db
+    if db is None: return None
+    try:
+        doc = db.transactions.find_one({'_id': ObjectId(transaction_id), 'username': username})
+        if doc:
+            return {
+                '_id': str(doc['_id']),
+                'name': doc.get('name'),
+                'check_no': doc.get('check_no'),
+                'check_date': doc.get('check_date').strftime('%Y-%m-%d') if doc.get('check_date') else '',
+                'ewt': doc.get('ewt', 0.0),
+                'countered_check': doc.get('countered_check', 0.0),
+                'amount': doc.get('amount', 0.0),
+                'notes': doc.get('notes', ''),
+                'status': doc.get('status')
+            }
+    except Exception as e:
+        logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
+    return None
+
+def mark_transaction_as_paid(username, transaction_id, notes=None):
+    db = current_app.db
+    if db is None: return False
+    try:
+        update_data = {'$set': {'status': 'Paid'}}
+        if notes is not None:
+            update_data['$set']['notes'] = notes
+            
+        result = db.transactions.update_one(
+            {'_id': ObjectId(transaction_id), 'username': username},
+            update_data
+        )
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error marking transaction {transaction_id} as paid: {e}", exc_info=True)
+        return False
+
 def archive_transaction(username, transaction_id):
-    """Flags a transaction as archived instead of deleting it."""
     db = current_app.db
     if db is None: return False
     try:
@@ -204,7 +242,6 @@ def archive_transaction(username, transaction_id):
         return False
 
 def get_archived_items(username):
-    """Fetches all archived transactions for a user."""
     db = current_app.db
     if db is None: return []
     items = []
@@ -222,47 +259,35 @@ def get_archived_items(username):
         logger.error(f"Error fetching archived items: {e}", exc_info=True)
     return items
 
-
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
     try:
-        # Monthly totals for the year
         pipeline_monthly = [
             {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
             {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
         ]
         monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
-
-        # Current month weekly breakdown
         current_month = datetime.now(pytz.utc).month
         start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
-        if current_month < 12:
-            start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc)
-        else:
-            start_of_next_month = datetime(year + 1, 1, 1, tzinfo=pytz.utc)
-
+        start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)
         pipeline_weekly = [
             {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
-            # $week is deprecated in some Mongo versions; if your Mongo doesn't support it, consider bucketAuto or computing weeks in Python.
             {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
         weekly_agg = list(db.transactions.aggregate(pipeline_weekly))
         weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(weekly_agg)]
-
-        total_year_earning = sum(monthly_totals.values()) if monthly_totals else 0
+        total_year_earning = sum(monthly_totals.values())
         max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
-
         chart_data = [
             {
                 'month_name': month_name[i][:3],
                 'total': monthly_totals.get(i, 0),
-                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0,
+                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100,
                 'is_current_month': i == current_month
             } for i in range(1, 13)
         ]
-
         return {
             'year': year,
             'total_year_earning': total_year_earning,
@@ -275,9 +300,7 @@ def get_analytics_data(username, year):
         logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
         return {}
 
-
 def log_user_activity(username, activity_type):
-    """Logs a user activity to the database."""
     db = current_app.db
     if db is None: return
     try:
@@ -290,7 +313,6 @@ def log_user_activity(username, activity_type):
         logger.error(f"Error logging user activity for {username}: {e}", exc_info=True)
 
 def get_recent_activity(username, limit=3):
-    """Fetches the most recent activities for a user."""
     db = current_app.db
     if db is None: return []
     activities = []
@@ -304,10 +326,8 @@ def get_recent_activity(username, limit=3):
         logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
     return activities
 
-
 # --- Placeholder functions required by __init__.py ---
 def add_invoice(username, branch, invoice_data): return True
-def get_transaction_by_id(username, transaction_id): return None
 def add_notification(username, title, message, url): return True
 def get_unread_notifications(username): return []
 def mark_notifications_as_read(username): return True

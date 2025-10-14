@@ -4,33 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DecoOffice{% endblock %}</title>
+
+    <!-- Favicon -->
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/dashboard/tempicon.ico') }}" type="image/x-icon">
+
+    <!-- Manifest and Theme -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#fafaf5"/>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Custom Styles -->
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
-        /* --- THIS CSS ENABLES THE SMOOTH FADE-OUT --- */
         #flash-messages-overlay-container { transition: opacity 0.5s ease-out; }
     </style>
+
+    <!-- CSRF Meta Token for JavaScript-based POSTs -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
     {% block head %}{% endblock %}
 </head>
+
 <body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased" data-vapid-public-key="{{ config.VAPID_PUBLIC_KEY }}">
     <div class="flex h-screen w-screen">
         {% if show_sidebar %}
             {% include "_sidebar.html" %}
         {% endif %}
+
         <main class="flex-1 flex flex-col relative overflow-hidden">
             {% include "_flash_messages.html" %}
+
+            {# --- THIS IS THE FIX ---
+               This Jinja comment is ignored by the templating engine,
+               preventing the 'form is undefined' error on pages without forms.
+               ✅ Global CSRF protection for all POST forms.
+               Every form that extends this base should use:
+               <form method="POST"> {{ form.hidden_tag() }} ... </form>
+            #}
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    <!-- Common JavaScript -->
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+    <!-- Global JS Helper for CSRF (AJAX safety) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            // For any JS-based POST requests
+            window.getCSRFToken = () => csrfToken;
+        });
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -30,7 +30,8 @@ class Config:
                            os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com'))
 
     JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
+    JWT_COOKIE_SECURE = False
+    JWT_COOKIE_CSRF_PROTECT = False  # ✅ Disable duplicate CSRF protection
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
 class DevelopmentConfig(Config):

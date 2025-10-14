@@ -13,13 +13,11 @@
         #flash-messages-overlay-container { transition: opacity 0.5s ease-out; }
     </style>
     <script>
-        // Custom Tailwind CSS configuration to match the new design
+        // Custom Tailwind CSS configuration
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        poppins: ['Poppins', 'sans-serif']
-                    },
+                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
                     colors: {
                         'brand-cream': '#F5F3F0',
                         'brand-green': '#4A5C49',
@@ -35,7 +33,7 @@
 <div class="flex items-center justify-center min-h-screen p-6">
     <div class="w-full max-w-5xl mx-auto bg-brand-cream rounded-2xl shadow-2xl grid md:grid-cols-2">
 
-        <!-- Left Panel (Green with Curve) -->
+        <!-- Left Panel -->
         <div class="hidden md:flex bg-brand-green text-white p-12 flex-col justify-center items-center text-center rounded-l-2xl" style="border-top-right-radius: 100px; border-bottom-right-radius: 100px;">
             <div class="max-w-xs">
                 <h1 class="text-4xl font-bold mb-3">Hello, Friend!</h1>
@@ -58,24 +56,24 @@
 
                 <!-- Username -->
                 <div>
-                    <!-- --- START OF MODIFICATION --- -->
+                    {{ form.username.label(class="text-sm font-semibold text-gray-600 mb-1 block") }}
                     <div class="relative">
-                        {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
+                        {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your username") }}
                         <i class="fas fa-user absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                    <!-- --- END OF MODIFICATION --- -->
                 </div>
 
                 <!-- Password -->
                 <div>
+                    {{ form.password.label(class="text-sm font-semibold text-gray-600 mb-1 block") }}
                     <div class="relative">
-                        {{ form.password(id="password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                        {{ form.password(id="password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your password") }}
                         <i id="togglePassword" class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
                     </div>
                 </div>
                 
                 <!-- Forgot Password Link -->
-                <div class="text-right text-sm">
+                <div class="text-right text-sm pt-1">
                     <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-brand-green hover:underline">
                         Forgot password?
                     </a>
@@ -84,19 +82,6 @@
                 <!-- Login Button -->
                 <button type="submit" class="w-full bg-brand-green text-white py-3 mt-4 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
                     Login
-                </button>
-
-                <!-- Divider -->
-                <div class="flex items-center my-6">
-                    <div class="flex-grow border-t border-gray-300"></div>
-                    <span class="flex-shrink mx-4 text-gray-500 text-sm">or login with</span>
-                    <div class="flex-grow border-t border-gray-300"></div>
-                </div>
-
-                <!-- Google Button -->
-                <button type="button" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-semibold shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 h-5 mr-3" alt="Google Logo">
-                    Continue with Google
                 </button>
             </form>
         </div>
