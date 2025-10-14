@@ -1,21 +1,11 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <!-- This outer container positions the flash message at the top center of the page -->
         <div id="flash-messages-overlay-container" class="absolute top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
-            
             {% for category, message in messages %}
-                <!-- 
-                  --- THIS IS THE FIX ---
-                  The classes below have been changed to match your new design.
-                  It now has a white background, a green border, a shadow, and green text.
-                -->
-                <div class="flex items-center justify-center p-3 rounded-lg shadow-md bg-white border border-green-400 flash-message-local">
-                    <span class="text-sm font-semibold text-green-700 underline">
-                        {{ message }}
-                    </span>
+                <div class="flex items-center justify-center p-3 rounded-lg shadow-md bg-white border border-green-400">
+                    <span class="text-sm font-semibold text-green-700">{{ message }}</span>
                 </div>
             {% endfor %}
-
         </div>
     {% endif %}
 {% endwith %}

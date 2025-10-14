@@ -2,10 +2,8 @@
 
 import os
 from dotenv import load_dotenv
-import re
 from datetime import timedelta
 
-# Load environment variables from a .env file if it exists in the root directory
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '..', '.env'))
 
@@ -16,16 +14,13 @@ class Config:
     
     UPLOAD_FOLDER = os.path.join(basedir, '..', 'uploads', 'invoices')
 
-    # --- PWA Push Notification VAPID Keys ---
     VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
     VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
     VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL')
     
-    # MongoDB Configuration
     MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
     MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', "deco_db")
     
-    # Email Configuration
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
@@ -34,61 +29,18 @@ class Config:
     MAIL_DEFAULT_SENDER = (os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice'), 
                            os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com'))
 
-    # --- THIS IS THE FIX ---
-    # Zoho API Configuration
-    ZOHO_CLIENT_ID = os.environ.get('ZOHO_CLIENT_ID')
-    ZOHO_CLIENT_SECRET = os.environ.get('ZOHO_CLIENT_SECRET')
-    ZOHO_REDIRECT_URI = os.environ.get('ZOHO_REDIRECT_URI', 'http://127.0.0.1:5000/zoho/callback')
-    ZOHO_API_BASE_URL = "https://calendar.zoho.com/api/v1"
-    ZOHO_ACCOUNTS_BASE_URL = "https://accounts.zoho.com/oauth/v2"
-    # --- END FIX ---
-
-    # JWT Configuration
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() in ('true', '1', 'yes')
-    JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
-    JWT_CSRF_CHECK_FORM = True  
-    JWT_CSRF_IN_COOKIES = True
-    JWT_COOKIE_CSRF_PROTECT = False # Keep this False. CSRF is handled by flask-wtf or headers.
-
-    # Flask-Limiter Configuration
-    LIMITER_STORAGE_URI = f"{MONGO_URI}{MONGO_DB_NAME}_limiter"
-    
-    # Talisman CSP Rules
-    CSP_RULES = {
-        'default-src': "'self'",
-        'script-src': "'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net",
-        'style-src': "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net",
-        'font-src': "'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
-        'img-src': "'self' data:",
-        'connect-src': "'self'",
-    }
 
 class DevelopmentConfig(Config):
-    """Development configuration."""
     DEBUG = True
-    TESTING = False
-
-class TestingConfig(Config):
-    """Testing configuration."""
-    TESTING = True
-    MONGO_DB_NAME = "deco_db_test" 
-    LIMITER_STORAGE_URI = f"{Config.MONGO_URI}{MONGO_DB_NAME}_limiter"
-    SECRET_KEY = 'test-insecure-secret-key' 
-    JWT_SECRET_KEY = 'test-insecure-jwt-secret-key'
-    WTF_CSRF_ENABLED = False # Disable CSRF forms in testing
 
 class ProductionConfig(Config):
-    """Production configuration."""
     DEBUG = False
-    TESTING = False
     JWT_COOKIE_SECURE = True 
-    SESSION_COOKIE_SECURE = True
 
 config_by_name = dict(
     dev=DevelopmentConfig,
-    test=TestingConfig,
     prod=ProductionConfig
 )

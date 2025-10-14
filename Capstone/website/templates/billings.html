@@ -1,42 +1,13 @@
 {% extends "base.html" %}
-
 {% block title %}DecoOffice Billings{% endblock %}
-
 {% block content %}
-    <main class="flex-1 p-8 flex flex-col">
-        <header class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-custom-green-darker uppercase tracking-wider">Billings Overview</h2>
-            <!-- Notification button -->
-            {% include "_notification_button.html" %}
-        </header>
-
-        {# Flash messages are handled globally by base.html #}
-
-        {# Billings specific content #}
-        <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="p-4 rounded-lg bg-table-header-bg shadow-md flex flex-col items-center justify-center">
-                    <h3 class="text-base font-semibold text-custom-text-dark mb-2 uppercase">Income</h3>
-                    <p class="text-2xl font-bold text-custom-green-darker">₱ 559,559</p>
-                </div>
-                <div class="p-4 rounded-lg bg-table-header-bg shadow-md flex flex-col items-center justify-center">
-                    <h3 class="text-base font-semibold text-custom-text-dark mb-2 uppercase">Interest</h3>
-                    <p class="text-2xl font-bold text-custom-green-darker">₱ 559,559</p>
-                </div>
-                <div class="p-4 rounded-lg bg-table-header-bg shadow-md flex flex-col items-center justify-center">
-                    <h3 class="text-base font-semibold text-custom-text-dark mb-2 uppercase">Paid</h3>
-                    <p class="text-2xl font-bold text-custom-green-darker">₱ 559,559</p>
-                </div>
-                <div class="p-4 rounded-lg bg-table-header-bg shadow-md flex flex-col items-center justify-center">
-                    <h3 class="text-base font-semibold text-custom-text-dark mb-2 uppercase">Insufficient</h3>
-                    <p class="text-2xl font-bold text-custom-green-darker">₱ 440,440</p>
-                </div>
-            </div>
-
-            <div class="mt-6 p-4 rounded-lg bg-table-header-bg shadow-md flex flex-col items-center justify-center max-w-xs mx-auto">
-                <h3 class="text-base font-semibold text-custom-text-dark mb-2 uppercase">Loan</h3>
-                <p class="text-2xl font-bold text-custom-green-darker">₱ 999,999</p>
-            </div>
-        </div>
-    </main>
+<main class="flex-1 p-8">
+    <header class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Billings Overview</h2>
+        {% include "_notification_button.html" %}
+    </header>
+    <div class="bg-white rounded-xl border p-8">
+        <p class="text-gray-500">Billings content goes here.</p>
+    </div>
+</main>
 {% endblock %}

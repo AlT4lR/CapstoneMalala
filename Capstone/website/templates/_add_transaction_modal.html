@@ -1,0 +1,35 @@
+<!-- website/templates/_add_transaction_modal.html -->
+<div id="create-transaction-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
+        <button id="close-create-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+        <form action="{{ url_for('main.add_transaction') }}" method="POST" class="space-y-6" novalidate>
+            {{ form.hidden_tag() }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div>
+                    {{ form.name_of_issued_check.label(class="block text-sm font-semibold mb-2") }}
+                    {{ form.name_of_issued_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.countered_check.label(class="block text-sm font-semibold mb-2") }}
+                    {{ form.countered_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.check_no.label(class="block text-sm font-semibold mb-2") }}
+                    {{ form.check_no(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.ewt.label(class="block text-sm font-semibold mb-2") }}
+                    {{ form.ewt(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div class="md:col-span-2">
+                    {{ form.check_date.label(class="block text-sm font-semibold mb-2") }}
+                    {{ form.check_date(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+            </div>
+            <div class="flex justify-center mt-8 space-x-6">
+                <button type="reset" class="px-12 py-3 bg-[#6f8a6e] text-white font-semibold rounded-lg">Reset</button>
+                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg">Add</button>
+            </div>
+        </form>
+    </div>
+</div>

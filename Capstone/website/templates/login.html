@@ -1,75 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login - DecoOffice</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #1e1f1e; /* darker bg */
-    }
-    .login-card {
-      background-color: #f5f5f0;
-      border-radius: 25px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      overflow: hidden;
-    }
-    .left-panel {
-      border-top-right-radius: 150px;
-      border-bottom-right-radius: 150px;
-      background-color: #506850;
-    }
-    .password-toggle-icon { cursor: pointer; color: #9ca3af; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Login - DecoOffice</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <script>
+        // Custom Tailwind CSS configuration to match the new design
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif']
+                    },
+                    colors: {
+                        'brand-cream': '#F5F3F0',
+                        'brand-green': '#4A5C49',
+                        'brand-dark': '#333333'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="flex items-center justify-center min-h-screen p-6">
+<body class="bg-brand-dark font-poppins antialiased">
 
-  <div class="login-card flex w-[950px] h-[500px]">
-    
-    <!-- Left -->
-    <div class="w-1/2 left-panel text-white flex flex-col justify-center items-center p-10">
-      <h1 class="text-4xl font-bold mb-4">Hello, Welcome!</h1>
-      <p class="text-gray-200 mb-8">Need an account? Click below.</p>
-      <a href="{{ url_for('auth.register') }}" 
-         class="bg-white text-[#506850] py-3 px-10 rounded-full font-semibold hover:bg-[#e8e8e8] transition">
-        Sign Up
-      </a>
+<div class="flex items-center justify-center min-h-screen p-6">
+    <div class="w-full max-w-5xl mx-auto bg-brand-cream rounded-2xl shadow-2xl grid md:grid-cols-2">
+
+        <!-- Left Panel (Green with Curve) -->
+        <div class="hidden md:flex bg-brand-green text-white p-12 flex-col justify-center items-center text-center rounded-l-2xl" style="border-top-right-radius: 100px; border-bottom-right-radius: 100px;">
+            <div class="max-w-xs">
+                <h1 class="text-4xl font-bold mb-3">Hello, Friend!</h1>
+                <p class="text-gray-200 mb-8">Don't have an account? Click below.</p>
+                <a href="{{ url_for('auth.register') }}"
+                   class="inline-block w-full py-3 px-6 bg-white text-brand-dark rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-300">
+                    Sign Up
+                </a>
+            </div>
+        </div>
+
+        <!-- Right Panel (Form) -->
+        <div class="p-8 sm:p-16 flex flex-col justify-center">
+            <h2 class="text-3xl font-bold text-brand-dark mb-8">Login</h2>
+            
+            {% include "_flash_messages.html" %}
+
+            <form action="{{ url_for('auth.login') }}" method="POST" class="w-full space-y-4" novalidate>
+                {{ form.hidden_tag() }}
+
+                <!-- Username -->
+                <div>
+                    {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
+                </div>
+
+                <!-- Password -->
+                <div>
+                    {{ form.password(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                </div>
+                
+                <!-- Forgot Password Link -->
+                <div class="text-right text-sm">
+                    <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-brand-green hover:underline">
+                        Forgot password?
+                    </a>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="w-full bg-brand-green text-white py-3 mt-4 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
+                    Login
+                </button>
+
+                <!-- Divider -->
+                <div class="flex items-center my-6">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 text-sm">or login with</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <!-- Google Button -->
+                <button type="button" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-semibold shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 h-5 mr-3" alt="Google Logo">
+                    Continue with Google
+                </button>
+            </form>
+        </div>
+
     </div>
+</div>
 
-    <!-- Right -->
-    <div class="w-1/2 flex flex-col items-center justify-center p-10">
-      <h2 class="text-3xl font-bold text-[#506850] mb-6">Login</h2>
-
-      <form action="{{ url_for('auth.login') }}" method="POST" class="w-full max-w-xs space-y-5" novalidate>
-        {{ form.hidden_tag() }}
-
-        <!-- Username -->
-        <div class="relative">
-          <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-          {{ form.username(class="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full focus:ring-2 focus:ring-[#8aa188]", placeholder="Username") }}
-        </div>
-
-        <!-- Password -->
-        <div class="relative">
-          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-          {{ form.password(id="login-password", class="w-full pl-12 pr-10 py-3 bg-white border border-gray-300 rounded-full focus:ring-2 focus:ring-[#8aa188]", placeholder="Password") }}
-          <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 password-toggle-icon"></i>
-        </div>
-
-        <div class="text-right text-sm">
-          <a href="{{ url_for('auth.forgot_password') }}" class="font-semibold text-[#506850] hover:underline">Forgot Password?</a>
-        </div>
-
-        <button type="submit" class="w-full bg-[#506850] text-white py-3 rounded-full font-bold shadow-md hover:bg-[#6f8a6e] transition">
-          Login
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 </html>

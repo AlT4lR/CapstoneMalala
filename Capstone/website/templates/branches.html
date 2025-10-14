@@ -2,52 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DecoOffice - Select Branch</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Select Branch - DecoOffice</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 </head>
-<body class="bg-[#3f5f45] font-poppins text-white antialiased">
-
+<body class="bg-[#3f5f45] font-poppins text-white">
     <div class="relative min-h-screen flex flex-col items-center justify-center px-6">
-
-        <!-- Header -->
         <header class="absolute top-0 left-0 w-full p-6 md:p-8">
-            <div class="w-full mx-auto flex justify-between items-center">
-                <h1 class="text-lg md:text-xl font-bold uppercase text-white tracking-wide">
-                    Branches
-                </h1>
-                <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Log out</span>
-                </a>
-            </div>
+            <a href="{{ url_for('auth.logout') }}" class="absolute top-6 right-6 flex items-center gap-2 text-white/80 hover:text-white text-sm">
+                <i class="fa-solid fa-right-from-bracket"></i><span>Log out</span>
+            </a>
         </header>
-
-        <!-- Branch Selection Cards -->
-        <main class="flex flex-col md:flex-row justify-center items-center gap-20 md:gap-32 mt-20">
-
-            <!-- Montalban Card -->
+        <main class="flex flex-col md:flex-row justify-center items-center gap-20">
             <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" class="flex flex-col items-center gap-4 group">
-                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all duration-300 group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
-                <p class="font-semibold uppercase text-sm tracking-wide text-white">Montalban</p>
+                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
+                <p class="font-semibold uppercase text-sm tracking-wide">Montalban</p>
             </a>
-
-            <!-- Laguna Card -->
             <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" class="flex flex-col items-center gap-4 group">
-                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all duration-300 group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
-                <p class="font-semibold uppercase text-sm tracking-wide text-white">Laguna</p>
+                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
+                <p class="font-semibold uppercase text-sm tracking-wide">Laguna</p>
             </a>
-
         </main>
-        
     </div>
-
 </body>
 </html>
