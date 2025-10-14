@@ -2,155 +2,107 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Register - DecoOffice</title>
-
+    <title>Sign Up - DecoOffice</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-
-    <style>
-        /* Dark background and font */
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #1e1f1e; /* dark background */
-        }
-
-        /* Flash message fade effect */
-        .flash-message-local {
-            opacity: 1;
-            transition: opacity 0.5s ease-out;
-        }
-        .flash-message-local.fade-out {
-            opacity: 0;
-        }
-    </style>
-
     <script>
+        // Custom Tailwind CSS configuration to match the new design
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { poppins: ['Poppins', 'sans-serif'] },
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif']
+                    },
                     colors: {
-                        'custom-bg': '#f5f5f0',
-                        'custom-green-active': '#8aa188',
-                        'custom-green-darker': '#6f8a6e'
+                        'brand-cream': '#F5F3F0',
+                        'brand-green': '#4A5C49',
+                        'brand-dark': '#333333'
                     }
                 }
             }
         }
     </script>
 </head>
+<body class="bg-brand-dark font-poppins antialiased">
 
-<body class="flex items-center justify-center min-h-screen p-6">
-
-    <div class="w-full max-w-3xl mx-auto bg-custom-bg rounded-2xl shadow-2xl overflow-hidden grid md:grid-cols-2">
+<div class="flex items-center justify-center min-h-screen p-6">
+    <div class="w-full max-w-5xl mx-auto bg-brand-cream rounded-2xl shadow-2xl grid md:grid-cols-2">
 
         <!-- Left Panel (Form) -->
-        <div class="flex flex-col items-center justify-center p-8 sm:p-12">
-            <h2 class="text-3xl font-bold text-custom-green-darker mb-6">Sign Up</h2>
+        <div class="p-8 sm:p-16 flex flex-col justify-center">
+            <h2 class="text-3xl font-bold text-brand-dark mb-8">Sign Up</h2>
+            
+            {% include "_flash_messages.html" %}
 
-            <!-- Flash Messages -->
-            <div id="flash-messages-container" class="w-full max-w-sm mb-4">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="p-3 rounded-md text-white text-sm flash-message-local {{ 'bg-red-500' if category == 'error' else 'bg-green-500' }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-            </div>
-
-            <form action="{{ url_for('auth.register') }}" method="POST" class="w-full space-y-4 max-w-sm" novalidate>
+            <form action="{{ url_for('auth.register') }}" method="POST" class="w-full space-y-4" novalidate>
                 {{ form.hidden_tag() }}
 
                 <!-- Username -->
                 <div>
-                    <div class="relative">
-                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.username(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Username") }}
-                    </div>
-                    {% for error in form.username.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
+                    {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
                 </div>
 
                 <!-- Email -->
                 <div>
                     <div class="relative">
-                        <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.email(class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Email") }}
+                        {{ form.email(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Email") }}
+                        <i class="fas fa-envelope absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                    {% for error in form.email.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
                 </div>
 
                 <!-- Password -->
                 <div>
                     <div class="relative">
-                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.password(id="register-password", class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Password") }}
-                        <i class="fas fa-eye-slash absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer" id="toggle-register-password"></i>
+                        {{ form.password(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                        <i class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
                     </div>
-                    {% for error in form.password.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
                 </div>
 
-                <!-- Confirm Password -->
+                <!-- Confirm Password (Standard practice, kept for security) -->
                 <div>
                     <div class="relative">
-                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        {{ form.confirm_password(class="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-custom-green-active bg-white", placeholder="Confirm Password") }}
+                        {{ form.confirm_password(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Confirm Password") }}
                     </div>
-                    {% for error in form.confirm_password.errors %}
-                        <p class="text-red-500 text-xs italic mt-1 pl-4">{{ error }}</p>
-                    {% endfor %}
                 </div>
 
-                <!-- Submit -->
-                <button type="submit" class="w-full bg-custom-green-darker text-white py-3 rounded-full font-bold shadow-md hover:bg-custom-green-active transition-colors">
+                <!-- Register Button -->
+                <button type="submit" class="w-full bg-brand-green text-white py-3 mt-4 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
                     Register
+                </button>
+
+                <!-- Divider -->
+                <div class="flex items-center my-6">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 text-sm">or register with</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <!-- Google Button -->
+                <button type="button" class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-semibold shadow-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-5 h-5 mr-3" alt="Google Logo">
+                    Continue with Google
                 </button>
             </form>
         </div>
-
-        <!-- Right Panel -->
-        <div class="hidden md:flex flex-col items-center justify-center p-12 text-center bg-custom-green-darker text-white rounded-tl-[100px] rounded-bl-[100px]">
+        
+        <!-- Right Panel (Green with Curve) -->
+        <div class="hidden md:flex bg-brand-green text-white p-12 flex-col justify-center items-center text-center rounded-r-2xl" style="border-top-left-radius: 100px; border-bottom-left-radius: 100px;">
             <div class="max-w-xs">
-                <h1 class="text-4xl font-bold mb-4">Welcome!</h1>
-                <p class="text-gray-200 mb-8">Already have an account?</p>
-                <a href="{{ url_for('auth.login') }}" 
-                   class="inline-block w-full py-3 px-6 border-2 border-white rounded-full font-semibold hover:bg-white hover:text-custom-green-darker transition-colors duration-300">
+                <h1 class="text-4xl font-bold mb-3">Hello, Welcome!</h1>
+                <p class="text-gray-200 mb-8">Already have an account? Click below.</p>
+                <a href="{{ url_for('auth.login') }}"
+                   class="inline-block w-full py-3 px-6 bg-white text-brand-dark rounded-lg font-semibold hover:bg-gray-200 transition-colors duration-300">
                     Login
                 </a>
             </div>
         </div>
-    </div>
 
-    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const flashContainer = document.getElementById('flash-messages-container');
-            if (flashContainer) {
-                const messages = flashContainer.querySelectorAll('.flash-message-local');
-                if (messages.length > 0) {
-                    setTimeout(() => {
-                        messages.forEach(msg => msg.classList.add('fade-out'));
-                        messages[messages.length - 1].addEventListener('transitionend', () => {
-                            flashContainer.innerHTML = '';
-                        }, { once: true });
-                    }, 5000);
-                }
-            }
-        });
-    </script>
+    </div>
+</div>
+
 </body>
 </html>

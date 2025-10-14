@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}DecoOffice - Transactions{% endblock %}
+
+{% block content %}
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
+    <header class="flex justify-between items-center mb-6 border-b border-gray-300 pb-4">
+        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Transactions</h2>
+        <div class="flex items-center gap-4">
+            <button class="text-gray-500 hover:text-gray-800" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></button>
+            {% include "_notification_button.html" %}
+        </div>
+    </header>
+
+    <div class="flex-1 flex items-center justify-center">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <button id="add-transaction-btn" class="flex flex-col items-center justify-center w-56 h-56 bg-[#6f8a6e] text-white rounded-2xl shadow-lg border-2 border-white hover:scale-105 transition-transform">
+                <i class="fa-solid fa-plus fa-3x mb-3"></i>
+                <span class="text-2xl font-semibold">Add</span>
+            </button>
+            <a href="{{ url_for('main.transactions_pending') }}" class="flex flex-col items-center justify-center w-56 h-56 bg-[#6f8a6e] text-white rounded-2xl shadow-lg border-2 border-white hover:scale-105 transition-transform">
+                <i class="fa-solid fa-file-invoice fa-3x mb-3"></i>
+                <span class="text-2xl font-semibold">Pending</span>
+            </a>
+            <a href="{{ url_for('main.transactions_paid') }}" class="flex flex-col items-center justify-center w-56 h-56 bg-[#6f8a6e] text-white rounded-2xl shadow-lg border-2 border-white hover:scale-105 transition-transform">
+                <i class="fa-solid fa-file-invoice-dollar fa-3x mb-3"></i>
+                <span class="text-2xl font-semibold">Paid</span>
+            </a>
+        </div>
+    </div>
+</main>
+
+{% include "_add_transaction_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('create-transaction-modal');
+        const openBtn = document.getElementById('add-transaction-btn');
+        const closeBtn = document.getElementById('close-create-modal-btn');
+        if (modal && openBtn && closeBtn) {
+            openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+            closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+        }
+    });
+</script>
+{% endblock %}

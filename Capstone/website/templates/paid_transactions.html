@@ -1,58 +1,75 @@
 {% extends "base.html" %}
-
 {% block title %}DecoOffice - Paid Transactions{% endblock %}
-
 {% block content %}
-<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]" data-status="Paid">
-    <!-- Page Header -->
-    <header class="flex justify-between items-center mb-6">
-        <div>
-            <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Transactions</h2>
-            <span class="text-sm font-semibold text-gray-500">(Paid)</span>
-        </div>
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 border-b border-gray-300 pb-4">
+        <a href="{{ url_for('main.transactions') }}" class="text-gray-500 hover:text-gray-800 text-sm">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Go Back
+        </a>
+        
+        <!-- --- THIS IS THE FIX --- -->
+        <h2 class="text-xl font-bold text-[#3a4d39] uppercase">{{ selected_branch }} (Paid)</h2>
+        
         <div class="flex items-center gap-4">
-            <!-- Search Bar -->
             <div class="relative">
-                <input type="text" placeholder="Search..." 
-                       class="w-72 pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm">
+                <input type="text" placeholder="Search..." class="w-72 pl-10 pr-4 py-2 border rounded-lg text-sm">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <!-- Action Buttons -->
-            <button class="text-gray-500 hover:text-red-600" title="Delete Selected"><i class="fas fa-trash-alt fa-lg"></i></button>
-            <button class="text-gray-500 hover:text-gray-800" title="Archive Selected"><i class="fas fa-archive fa-lg"></i></button>
+            {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <div class="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
-        <!-- Table -->
-        <div class="flex-1 flex flex-col transaction-table">
-            <!-- Table Header -->
-            <div class="grid grid-cols-7 gap-4 items-center px-4 py-3 text-sm font-semibold text-white bg-[#3a4d39] rounded-lg shadow-sm">
-                <span>Names of Issued Check</span>
-                <span>Check No.</span>
-                <span>Check Date</span>
-                <span>Countered Check</span>
-                <span>Check Amount</span>
-                <span>EWT</span>
-                <span class="text-center">Status</span>
+    <!-- Main Content -->
+    <div class="flex-1 flex gap-8 overflow-hidden">
+        <!-- Left Panel: Table -->
+        <div class="w-2/3 flex flex-col">
+            <div class="grid grid-cols-6 gap-4 px-4 py-2 text-sm font-semibold text-gray-600 border-b">
+                <span>Name of Issued Checked</span><span>Check No.</span><span>Check Date</span><span>EWT</span><span>Countered Check</span><span class="text-right">Actions</span>
             </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2">
+                <div class="space-y-2">
+                    {% for t in transactions %}
+                    <div class="grid grid-cols-6 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border transaction-item-row">
+                        <span class="font-semibold">{{ t.name }}</span><span>{{ t.check_no }}</span><span>{{ t.check_date }}</span><span>{{ t.ewt }}</span><span>{{ t.countered_check }}</span>
+                        <div class="flex justify-end gap-4 text-gray-500">
+                            <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button title="Delete" class="delete-btn hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-gray-500 pt-10">No paid transactions.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mt-auto pt-4">
+                <button id="create-transaction-btn" class="px-6 py-2 bg-transparent border border-gray-400 rounded-lg hover:bg-gray-100">Create Issued Checked</button>
+            </div>
+        </div>
 
-            <!-- Table Body (Dynamically populated by transactions.js) -->
-            <div id="transaction-list" class="flex-1 overflow-y-auto custom-scrollbar pr-2 mt-2 space-y-2">
-                <!-- Loading or empty state will be rendered here by JS -->
-            </div>
+        <!-- Right Panel: Summary -->
+        <div class="w-1/3 flex flex-col space-y-6 bg-white p-6 rounded-lg border">
+             <div class="flex-grow flex flex-col"><label class="font-semibold text-gray-600 mb-2">Notes</label><textarea readonly class="w-full flex-grow p-3 border bg-gray-100 rounded-lg"></textarea></div>
+            <div><label class="font-semibold text-gray-600 mb-2">Countered Checks</label><input type="text" readonly class="w-full px-4 py-2 bg-gray-100 border rounded-lg" value="₱ 0.00"></div>
+            <div><label class="font-semibold text-gray-600 mb-2">Check Amount</label><input type="text" readonly class="w-full px-4 py-2 bg-gray-100 border rounded-lg" value="₱ 0.00"></div>
         </div>
     </div>
 </main>
 
-<!-- Transaction Details Modal -->
-{% include "_transaction_details_modal.html" %}
-
+{% include "_add_transaction_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/idb@7/build/iife/index-min.js"></script>
-<script src="{{ url_for('static', filename='js/db.js') }}"></script>
-<script src="{{ url_for('static', filename='js/transactions.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('create-transaction-modal');
+        const openBtn = document.getElementById('create-transaction-btn');
+        const closeBtn = document.getElementById('close-create-modal-btn');
+        if (modal && openBtn && closeBtn) {
+            openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+            closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+        }
+    });
+</script>
 {% endblock %}

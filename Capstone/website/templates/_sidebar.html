@@ -1,90 +1,29 @@
-<aside class="w-20 hover:w-72 bg-[#3a4d39] text-white p-4 flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out group overflow-hidden">
-    <!-- Logo -->
+<aside class="w-20 hover:w-72 bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 transition-all duration-300 group overflow-hidden">
     <div class="flex items-center gap-4 h-16 shrink-0 px-2 mb-8">
-        <div class="w-12 h-12 flex justify-center items-center">
-             <i class="fa-solid fa-table-cells-large fa-lg"></i>
-        </div>
-        <span class="text-xl font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">DecoOffice</span>
+        <i class="fa-solid fa-table-cells-large fa-lg w-12 text-center"></i>
+        <span class="text-xl font-bold opacity-0 group-hover:opacity-100 transition-opacity">DecoOffice</span>
     </div>
-
-    <!-- Navigation Links -->
-    <nav class="flex flex-col items-center group-hover:items-start space-y-2 w-full">
-        <!-- Home -->
-        <a href="{{ url_for('main.dashboard') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.dashboard') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-house fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Home</span>
+    <nav class="flex flex-col space-y-2 w-full">
+        {% set nav_items = [
+            ('main.dashboard', 'fa-house', 'Home'),
+            ('main.transactions', 'fa-truck-fast', 'Transaction'),
+            ('main.invoice', 'fa-file-invoice', 'Invoice'),
+            ('main.billings', 'fa-dollar-sign', 'Billings'),
+            ('main.analytics', 'fa-chart-line', 'Analytics'),
+            ('main.schedules', 'fa-calendar-days', 'Schedules'),
+            ('main.settings', 'fa-gear', 'Settings')
+        ] %}
+        {% for route, icon, name in nav_items %}
+        <a href="{{ url_for(route) }}" 
+           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors
+           {% if request.path.startswith(url_for(route)) %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
+            <i class="w-6 text-center fa-solid {{ icon }} fa-lg"></i>
+            <span class="opacity-0 group-hover:opacity-100 transition-opacity">{{ name }}</span>
         </a>
-
-        <!-- Transaction (with submenu) -->
-        {% set is_transactions_active = request.path.startswith('/transactions') or request.path == url_for('main.add_transaction_page') %}
-        <div class="flex flex-col w-full">
-            <a href="{{ url_for('main.transactions_paid') }}" 
-               class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-               {% if is_transactions_active %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-                <i class="w-6 text-center fa-solid fa-truck-fast fa-lg"></i>
-                <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Transaction</span>
-            </a>
-
-            {% if is_transactions_active %}
-            <div class="flex flex-col space-y-1 overflow-hidden max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100 group-hover:mt-2 group-hover:ml-6 group-hover:pl-4 group-hover:border-l-2 group-hover:border-gray-500 transition-all duration-300 ease-in-out">
-                <a href="{{ url_for('main.transactions_paid') }}" 
-                   class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.transactions_paid') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Paid</a>
-                <a href="{{ url_for('main.transactions_pending') }}" 
-                   class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.transactions_pending') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Pending</a>
-                <a href="{{ url_for('main.add_transaction_page') }}" 
-                   class="px-2 py-1 rounded text-sm {% if request.path == url_for('main.add_transaction_page') %}font-semibold text-white{% else %}text-gray-300 hover:text-white{% endif %}">Add</a>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Invoice -->
-        <a href="{{ url_for('main.invoice_list') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path.startswith('/invoice') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-file-invoice fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Invoice</span>
-        </a>
-
-        <!-- Billings -->
-        <a href="{{ url_for('main.wallet') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.wallet') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-dollar-sign fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Billings</span>
-        </a>
-
-        <!-- Analytics -->
-        <a href="{{ url_for('main.analytics') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.analytics') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-chart-line fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Analytics</span>
-        </a>
-
-        <!-- Schedules -->
-        <a href="{{ url_for('main.schedules') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.schedules') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-calendar-days fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Schedules</span>
-        </a>
-
-        <!-- Settings -->
-        <a href="{{ url_for('main.settings') }}" 
-           class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors duration-200
-           {% if request.path == url_for('main.settings') %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
-            <i class="w-6 text-center fa-solid fa-gear fa-lg"></i>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">Settings</span>
-        </a>
+        {% endfor %}
     </nav>
-
-    <!-- Footer Profile -->
-    <div class="mt-auto shrink-0 flex flex-col items-center group-hover:items-start w-full space-y-2">
-        <div class="flex items-center gap-4 w-full h-12 px-3">
-            <div class="w-10 h-10 bg-white rounded-full"></div>
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 font-semibold">{{ username }}</span>
-        </div>
+    <div class="mt-auto shrink-0 flex items-center gap-4 w-full h-12 px-3">
+        <div class="w-10 h-10 bg-white rounded-full"></div>
+        <span class="opacity-0 group-hover:opacity-100 transition-opacity font-semibold">Admin</span>
     </div>
 </aside>

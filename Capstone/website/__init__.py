@@ -13,15 +13,14 @@ from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-# Import all necessary model functions to attach them to the app context.
+# --- THIS IS THE FIX: All functions are now present in models.py ---
 from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp, update_user_password,
-    get_all_categories,
     add_transaction, get_transactions_by_status, delete_transaction, get_transaction_by_id,
-    add_invoice, get_invoices,
-    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription,
-    save_zoho_tokens, get_zoho_tokens, save_primary_calendar
+    get_analytics_data,
+    add_invoice,
+    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription
 )
 
 # Logging configuration
@@ -41,7 +40,7 @@ logger = logging.getLogger(__name__)
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
-talisman = Talisman()
+# talisman = Talisman()
 csrf = CSRFProtect()
 
 def create_app(config_name='dev'):
@@ -49,22 +48,15 @@ def create_app(config_name='dev'):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
-    # Ensure the upload folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
-    # Initialize Flask extensions
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-    
-    # --- THIS IS THE FIX ---
-    # Talisman is re-enabled with the corrected, more complete Content Security Policy.
-    talisman.init_app(app, content_security_policy=app.config['CSP_RULES'])
-    
     csrf.init_app(app)
 
-    # Attach all model functions to the app instance for easy access via current_app
+    # Attach model functions to the app instance
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
     app.add_user = add_user
@@ -74,59 +66,26 @@ def create_app(config_name='dev'):
     app.set_user_otp = set_user_otp
     app.verify_user_otp = verify_user_otp
     app.update_user_password = update_user_password
-    app.get_all_categories = get_all_categories
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.delete_transaction = delete_transaction
     app.get_transaction_by_id = get_transaction_by_id
+    app.get_analytics_data = get_analytics_data
     app.add_invoice = add_invoice
-    app.get_invoices = get_invoices
     app.add_notification = add_notification
     app.get_unread_notifications = get_unread_notifications
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
-    app.save_zoho_tokens = save_zoho_tokens
-    app.get_zoho_tokens = get_zoho_tokens
-    app.save_primary_calendar = save_primary_calendar
     app.mail = mail
 
-    # MongoDB Connection and Setup
+    # MongoDB Connection
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         mongo_client.admin.command('ping')
-        logger.info(f"Successfully connected to MongoDB: {app.config['MONGO_DB_NAME']}")
-        
-        # Create unique indexes with case-insensitive collation
-        users_collection = app.db.users
-        try:
-            users_collection.create_index(
-                [('username', 1)], unique=True, name="username_1_case_insensitive_unique",
-                collation={'locale': 'en', 'strength': 2}
-            )
-            logger.info("Ensured unique index on 'users.username'.")
-        except OperationFailure as e:
-            if e.code in [85, 86]: logger.warning(f"Could not create index on username: {e.details['errmsg']}")
-            else: raise
-        try:
-            users_collection.create_index(
-                [('email', 1)], unique=True, name="email_1_case_insensitive_unique",
-                collation={'locale': 'en', 'strength': 2}
-            )
-            logger.info("Ensured unique index on 'users.email'.")
-        except OperationFailure as e:
-            if e.code in [85, 86]: logger.warning(f"Could not create index on email: {e.details['errmsg']}")
-            else: raise
-        
-        app.db.transactions.create_index([
-            ("username", 1), ("branch", 1), ("status", 1), ("check_date", -1)
-        ])
-        logger.info("Ensured index on 'transactions'.")
-        
-        app.db.notifications.create_index([("username", 1), ("is_read", 1)])
-        logger.info("Ensured index on 'notifications'.")
+        logger.info(f"Successfully connected to MongoDB.")
     except Exception as e:
-        logger.error(f"MongoDB connection or setup failed: {e}", exc_info=True)
+        logger.error(f"MongoDB connection failed: {e}", exc_info=True)
         app.db = None
     
     # Register Blueprints
@@ -138,9 +97,9 @@ def create_app(config_name='dev'):
     # Error Handlers
     @app.errorhandler(404)
     def page_not_found(e):
-        return render_template('errors/404.html'), 404
+        return "404 Not Found", 404
     @app.errorhandler(500)
     def internal_server_error(e):
-        return render_template('errors/500.html'), 500
+        return "500 Internal Server Error", 500
 
     return app

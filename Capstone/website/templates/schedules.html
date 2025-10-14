@@ -1,66 +1,20 @@
 {% extends "base.html" %}
-
 {% block title %}DecoOffice - Schedules{% endblock %}
-
 {% block head %}
-<!-- FullCalendar CSS -->
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
-<style>
-    .fc .fc-toolbar.fc-header-toolbar {
-        margin-bottom: 1.5rem;
-    }
-    .fc .fc-daygrid-day.fc-day-today {
-        background-color: rgba(63, 95, 69, 0.1);
-    }
-    /* Fix for visible height ✅ */
-    #calendar-container, #calendar {
-        height: 100%;
-        min-height: 600px;
-    }
-</style>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
 {% endblock %}
-
 {% block content %}
-<main class="flex-1 p-8 grid grid-cols-1 lg:grid-cols-4 gap-8 bg-[#fafaf5]">
-
-    <!-- Left Sidebar -->
-    <div class="lg:col-span-1 flex flex-col gap-6">
+<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
+    <header class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Schedules</h2>
-
-        <button id="create-schedule-btn"
-            class="w-full bg-white text-gray-700 border border-gray-300 font-semibold py-3 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
-            Create Schedule
-        </button>
-
-        <div class="bg-[#3a4d39] text-white p-4 rounded-xl shadow-md">
-            <!-- Optional: Mini calendar -->
-            <p class="text-center text-sm opacity-75">Mini calendar placeholder</p>
-        </div>
-
-        <div class="bg-[#3a4d39] text-white p-4 rounded-xl shadow-md flex flex-col flex-1">
-            <h3 class="font-semibold text-sm mb-4">Categories</h3>
-            <div class="space-y-3">
-                {% for category in categories %}
-                    <p class="text-sm pl-2">{{ category }}</p>
-                {% endfor %}
-            </div>
-            <button
-                class="mt-auto w-full bg-white/20 hover:bg-white/30 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors">
-                + Add Categories
-            </button>
-        </div>
-    </div>
-
-    <!-- Calendar -->
-    <div id="calendar-container" class="lg:col-span-3 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        {% include "_notification_button.html" %}
+    </header>
+    <div class="flex-1 bg-white rounded-xl border p-6">
         <div id="calendar"></div>
     </div>
 </main>
-
-{% include "_schedule_create_modal.html" %}
 {% endblock %}
-
 {% block scripts %}
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
-<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 {% endblock %}
