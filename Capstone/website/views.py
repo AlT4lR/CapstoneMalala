@@ -115,7 +115,6 @@ def analytics():
 def invoice():
     return render_template('invoice.html', show_sidebar=True)
 
-# --- THIS IS THE FIX: Added Missing Routes ---
 @main.route('/billings')
 @jwt_required()
 def billings():
@@ -133,7 +132,6 @@ def schedules():
 def settings():
     # Placeholder: Renders a simple page for now.
     return render_template('settings.html', show_sidebar=True)
-# --- End of Fix ---
 
 # --- API Routes ---
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
@@ -143,3 +141,16 @@ def delete_transaction_route(transaction_id):
         flash('Successfully deleted a Transaction!', 'success')
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to delete transaction.'}), 404
+
+# --- START OF MODIFICATION ---
+# Added a route to render the archive page
+@main.route('/archive')
+@jwt_required()
+def archive():
+    # Using placeholder data for demonstration
+    archived_items = [
+        {'name': 'Billing #INV-00123', 'id': 'ID: 4265790', 'datetime': 'Oct 10, 2025, 10:30 AM', 'relative_time': '3 days ago'},
+        {'name': 'Transaction #TR-98765', 'id': 'ID: 1122334', 'datetime': 'Oct 9, 2025, 02:15 PM', 'relative_time': '4 days ago'}
+    ]
+    return render_template('_archive.html', show_sidebar=True, archived_items=archived_items)
+# --- END OF MODIFICATION ---
