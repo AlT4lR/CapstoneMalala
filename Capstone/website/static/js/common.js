@@ -52,13 +52,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     window.getCsrfToken = () => csrfToken;
 
+    // --- START OF MODIFICATION ---
+    // This block finds the flash message container and makes it fade out.
     const flashContainer = document.getElementById('flash-messages-overlay-container');
     if (flashContainer) {
+        // Wait 5 seconds before starting the fade-out
         setTimeout(() => {
             flashContainer.style.opacity = '0';
+            // After the CSS transition is complete, remove the element from the DOM
             flashContainer.addEventListener('transitionend', () => flashContainer.remove());
         }, 5000);
     }
+    // --- END OF MODIFICATION ---
 
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
