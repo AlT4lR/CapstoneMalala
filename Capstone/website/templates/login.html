@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <style>
+        #flash-messages-overlay-container { transition: opacity 0.5s ease-out; }
+    </style>
     <script>
         // Custom Tailwind CSS configuration to match the new design
         tailwind.config = {
@@ -55,12 +58,20 @@
 
                 <!-- Username -->
                 <div>
-                    {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
+                    <!-- --- START OF MODIFICATION --- -->
+                    <div class="relative">
+                        {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Username") }}
+                        <i class="fas fa-user absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <!-- --- END OF MODIFICATION --- -->
                 </div>
 
                 <!-- Password -->
                 <div>
-                    {{ form.password(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                    <div class="relative">
+                        {{ form.password(id="password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Password") }}
+                        <i id="togglePassword" class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
+                    </div>
                 </div>
                 
                 <!-- Forgot Password Link -->
@@ -89,9 +100,33 @@
                 </button>
             </form>
         </div>
-
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Flash Message Logic
+        const flashContainer = document.getElementById('flash-messages-overlay-container');
+        if (flashContainer) {
+            setTimeout(() => {
+                flashContainer.style.opacity = '0';
+                flashContainer.addEventListener('transitionend', () => flashContainer.remove());
+            }, 5000);
+        }
+
+        // Password Toggle Logic
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+
+        if (togglePassword && password) {
+            togglePassword.addEventListener('click', function (e) {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+    });
+</script>
 
 </body>
 </html>

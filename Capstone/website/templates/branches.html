@@ -3,26 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <title>Select Branch - DecoOffice</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <script>
+        // Custom Tailwind CSS configuration to match the login screen design
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif']
+                    },
+                    colors: {
+                        'brand-cream': '#F5F3F0',
+                        'brand-green': '#4A5C49',
+                        'brand-dark': '#333333'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-[#3f5f45] font-poppins text-white">
-    <div class="relative min-h-screen flex flex-col items-center justify-center px-6">
-        <header class="absolute top-0 left-0 w-full p-6 md:p-8">
-            <a href="{{ url_for('auth.logout') }}" class="absolute top-6 right-6 flex items-center gap-2 text-white/80 hover:text-white text-sm">
-                <i class="fa-solid fa-right-from-bracket"></i><span>Log out</span>
+<body class="bg-brand-dark font-poppins text-white antialiased">
+    <div class="relative min-h-screen flex flex-col items-center justify-center p-6">
+
+        <header class="absolute top-0 right-0 p-6">
+            <a href="{{ url_for('auth.logout') }}" class="px-5 py-2.5 bg-brand-green text-white font-semibold rounded-lg text-sm shadow-md hover:bg-opacity-90 transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Log Out</span>
             </a>
         </header>
-        <main class="flex flex-col md:flex-row justify-center items-center gap-20">
-            <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" class="flex flex-col items-center gap-4 group">
-                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
-                <p class="font-semibold uppercase text-sm tracking-wide">Montalban</p>
-            </a>
-            <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" class="flex flex-col items-center gap-4 group">
-                <div class="w-56 h-80 bg-[#4f6a52] rounded-md shadow-md border border-[#2f3f32] transition-all group-hover:bg-[#a8cfa1] group-hover:scale-105"></div>
-                <p class="font-semibold uppercase text-sm tracking-wide">Laguna</p>
-            </a>
+
+        <main class="text-center">
+            <div class="mb-12">
+                <h1 class="text-4xl font-bold text-brand-cream mb-2">DecoOffice</h1>
+                <p class="text-lg text-gray-300">Please select your assigned branch to continue.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center items-center gap-10">
+                <!-- Montalban Branch Card -->
+                <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" 
+                   class="group w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
+                          transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
+                    <i class="fa-solid fa-building-columns text-7xl text-brand-dark mb-6 transition-transform group-hover:-translate-y-1"></i>
+                    <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Montalban</span>
+                </a>
+                
+                <!-- Laguna Branch Card -->
+                <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" 
+                   class="group w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
+                          transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
+                    <i class="fa-solid fa-building-columns text-7xl text-brand-dark mb-6 transition-transform group-hover:-translate-y-1"></i>
+                    <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Laguna</span>
+                </a>
+            </div>
         </main>
     </div>
 </body>
