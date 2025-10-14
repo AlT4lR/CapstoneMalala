@@ -14,10 +14,28 @@ import random
 import string
 from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES
 
-
 logger = logging.getLogger(__name__)
 
-# --- THIS IS THE FIX: Changed all `if db` checks to `if db is not None` ---
+# --- Helper function for timestamps ---
+def _format_relative_time(dt):
+    """Formats a datetime object into a relative time string."""
+    now = datetime.now(pytz.utc)
+    diff = now - dt
+
+    seconds = diff.total_seconds()
+    if seconds < 60:
+        return "just now"
+    minutes = seconds / 60
+    if minutes < 60:
+        return f"{int(minutes)}m ago"
+    hours = minutes / 60
+    if hours < 24:
+        return f"{int(hours)}h ago"
+    days = hours / 24
+    if days < 7:
+        return f"{int(days)}d ago"
+    return dt.strftime('%b %d, %Y')
+
 
 # --- User & Auth Models ---
 def get_user_by_username(username):
@@ -37,9 +55,15 @@ def add_user(username, email, password):
     otp_secret = pyotp.random_base32()
     try:
         db.users.insert_one({
-            'username': username.strip().lower(), 'email': email.strip().lower(), 'passwordHash': hashed_password,
-            'isActive': False, 'otpSecret': otp_secret, 'createdAt': datetime.now(pytz.utc),
-            'failedLoginAttempts': 0, 'lockoutUntil': None, 'lastLogin': None
+            'username': username.strip().lower(),
+            'email': email.strip().lower(),
+            'passwordHash': hashed_password,
+            'isActive': False,
+            'otpSecret': otp_secret,
+            'createdAt': datetime.now(pytz.utc),
+            'failedLoginAttempts': 0,
+            'lockoutUntil': None,
+            'lastLogin': None
         })
         return True
     except DuplicateKeyError:
@@ -64,14 +88,14 @@ def record_failed_login_attempt(username):
     if db is None: return
     user = get_user_by_username(username)
     if not user: return
-    
+
     new_attempts = user.get('failedLoginAttempts', 0) + 1
     update_fields = {'$set': {'failedLoginAttempts': new_attempts}}
-    
+
     if new_attempts >= LOGIN_ATTEMPT_LIMIT:
         lockout_time = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         update_fields['$set']['lockoutUntil'] = lockout_time
-    
+
     db.users.update_one({'_id': user['_id']}, update_fields)
 
 def update_user_password(email, new_password):
@@ -109,6 +133,7 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         return totp.verify(submitted_otp, valid_window=1)
     return False
 
+
 # --- Transaction & Other Models ---
 
 def add_transaction(username, branch, transaction_data):
@@ -117,7 +142,8 @@ def add_transaction(username, branch, transaction_data):
     try:
         check_date_obj = transaction_data.get('check_date')
         doc = {
-            'username': username, 'branch': branch,
+            'username': username,
+            'branch': branch,
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
             'check_date': pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time())) if check_date_obj else datetime.now(pytz.utc),
@@ -126,7 +152,8 @@ def add_transaction(username, branch, transaction_data):
             'ewt': float(transaction_data.get('ewt', 0.0)),
             'status': 'Pending',
             'sub_branch': 'San Isidro',
-            'createdAt': datetime.now(pytz.utc)
+            'createdAt': datetime.now(pytz.utc),
+            'isArchived': False  # New field
         }
         db.transactions.insert_one(doc)
         return True
@@ -139,50 +166,144 @@ def get_transactions_by_status(username, branch, status):
     if db is None: return []
     transactions = []
     try:
-        for doc in db.transactions.find({'username': username, 'branch': branch, 'status': status}).sort('check_date', -1):
+        # Allow branch to be optional (if falsy, don't filter by branch)
+        query = {
+            'username': username,
+            'status': status,
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }
+        if branch:
+            query['branch'] = branch
+
+        for doc in db.transactions.find(query).sort('check_date', -1):
             transactions.append({
-                '_id': str(doc['_id']), 'name': doc.get('name'), 'check_no': f"#{doc.get('check_no')}",
+                '_id': str(doc['_id']),
+                'name': doc.get('name'),
+                'check_no': f"#{doc.get('check_no')}",
                 'check_date': doc.get('check_date').strftime('%m/%d/%Y') if doc.get('check_date') else 'N/A',
-                'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}", 'countered_check': f"₱ {doc.get('countered_check', 0.0):,.2f}"
+                'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
+                'countered_check': f"₱ {doc.get('countered_check', 0.0):,.2f}"
             })
     except Exception as e:
         logger.error(f"Error fetching transactions: {e}", exc_info=True)
     return transactions
 
-def delete_transaction(username, transaction_id):
+# Archive transaction (do not hard-delete)
+def archive_transaction(username, transaction_id):
+    """Flags a transaction as archived instead of deleting it."""
     db = current_app.db
     if db is None: return False
     try:
-        result = db.transactions.delete_one({'_id': ObjectId(transaction_id), 'username': username})
-        return result.deleted_count == 1
+        result = db.transactions.update_one(
+            {'_id': ObjectId(transaction_id), 'username': username},
+            {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
+        )
+        return result.modified_count == 1
     except Exception as e:
-        logger.error(f"Error deleting transaction {transaction_id}: {e}", exc_info=True)
+        logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
+
+def get_archived_items(username):
+    """Fetches all archived transactions for a user."""
+    db = current_app.db
+    if db is None: return []
+    items = []
+    try:
+        query = {'username': username, 'isArchived': True}
+        for doc in db.transactions.find(query).sort('archivedAt', -1):
+            items.append({
+                'id': str(doc['_id']),
+                'name': doc.get('name', 'N/A'),
+                'details': f"Check #{doc.get('check_no', 'N/A')}",
+                'archived_at_str': doc.get('archivedAt').strftime('%b %d, %Y, %I:%M %p') if doc.get('archivedAt') else 'N/A',
+                'relative_time': _format_relative_time(doc.get('archivedAt')) if doc.get('archivedAt') else ''
+            })
+    except Exception as e:
+        logger.error(f"Error fetching archived items: {e}", exc_info=True)
+    return items
+
 
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
-    # ... (rest of function is the same)
-    pipeline_monthly = [
-        {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
-        {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
-    ]
-    monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
-    current_month = datetime.now().month
-    pipeline_weekly = [
-        {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': datetime(year, current_month, 1, tzinfo=pytz.utc), '$lt': datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
-        {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
-        {'$sort': {'_id': 1}}
-    ]
-    weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(db.transactions.aggregate(pipeline_weekly))]
-    total_year_earning = sum(monthly_totals.values())
-    max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
-    chart_data = [{'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0), 'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0, 'is_current_month': i == current_month} for i in range(1, 13)]
-    return {
-        'year': year, 'total_year_earning': total_year_earning, 'chart_data': chart_data,
-        'current_month_name': month_name[current_month].upper(), 'weekly_breakdown': weekly_breakdown,
-        'current_month_total': monthly_totals.get(current_month, 0)
-    }
+    try:
+        # Monthly totals for the year
+        pipeline_monthly = [
+            {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
+            {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
+        ]
+        monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
+
+        # Current month weekly breakdown
+        current_month = datetime.now(pytz.utc).month
+        start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
+        if current_month < 12:
+            start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc)
+        else:
+            start_of_next_month = datetime(year + 1, 1, 1, tzinfo=pytz.utc)
+
+        pipeline_weekly = [
+            {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
+            # $week is deprecated in some Mongo versions; if your Mongo doesn't support it, consider bucketAuto or computing weeks in Python.
+            {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
+            {'$sort': {'_id': 1}}
+        ]
+        weekly_agg = list(db.transactions.aggregate(pipeline_weekly))
+        weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(weekly_agg)]
+
+        total_year_earning = sum(monthly_totals.values()) if monthly_totals else 0
+        max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
+
+        chart_data = [
+            {
+                'month_name': month_name[i][:3],
+                'total': monthly_totals.get(i, 0),
+                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0,
+                'is_current_month': i == current_month
+            } for i in range(1, 13)
+        ]
+
+        return {
+            'year': year,
+            'total_year_earning': total_year_earning,
+            'chart_data': chart_data,
+            'current_month_name': month_name[current_month].upper(),
+            'weekly_breakdown': weekly_breakdown,
+            'current_month_total': monthly_totals.get(current_month, 0)
+        }
+    except Exception as e:
+        logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
+        return {}
+
+
+def log_user_activity(username, activity_type):
+    """Logs a user activity to the database."""
+    db = current_app.db
+    if db is None: return
+    try:
+        db.activity_logs.insert_one({
+            'username': username,
+            'activity_type': activity_type,
+            'timestamp': datetime.now(pytz.utc)
+        })
+    except Exception as e:
+        logger.error(f"Error logging user activity for {username}: {e}", exc_info=True)
+
+def get_recent_activity(username, limit=3):
+    """Fetches the most recent activities for a user."""
+    db = current_app.db
+    if db is None: return []
+    activities = []
+    try:
+        for doc in db.activity_logs.find({'username': username}).sort('timestamp', -1).limit(limit):
+            activities.append({
+                'username': doc['username'].capitalize(),
+                'relative_time': _format_relative_time(doc['timestamp'])
+            })
+    except Exception as e:
+        logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
+    return activities
+
 
 # --- Placeholder functions required by __init__.py ---
 def add_invoice(username, branch, invoice_data): return True

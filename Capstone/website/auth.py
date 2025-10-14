@@ -80,6 +80,11 @@ def login():
                 session['username_for_2fa_login'] = user['username']
                 return redirect(url_for('auth.verify_otp'))
             
+            # --- START OF MODIFICATION ---
+            # Log successful login for users WITHOUT 2FA
+            current_app.log_user_activity(user['username'], 'User Log In')
+            # --- END OF MODIFICATION ---
+            
             access_token = create_access_token(identity=user['username'])
             response = make_response(redirect(url_for('main.root_route')))
             set_access_cookies(response, access_token)
@@ -116,6 +121,12 @@ def verify_otp():
         
         if is_2fa_login:
             if current_app.verify_user_otp(username, otp_input, otp_type='2fa'):
+                
+                # --- START OF MODIFICATION ---
+                # Log successful login for users WITH 2FA
+                current_app.log_user_activity(username, 'User Log In')
+                # --- END OF MODIFICATION ---
+
                 access_token = create_access_token(identity=username)
                 response = make_response(redirect(url_for('main.root_route')))
                 set_access_cookies(response, access_token)
