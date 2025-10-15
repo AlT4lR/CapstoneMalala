@@ -24,6 +24,10 @@ from .models import (
     add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription,
     add_loan,
     add_schedule, 
+    get_schedules,
+    # --- START OF MODIFICATION ---
+    restore_item, delete_item_permanently
+    # --- END OF MODIFICATION ---
     get_schedules
 )
 
@@ -96,6 +100,12 @@ def create_app(config_name='dev'):
     app.add_loan = add_loan
     app.add_schedule = add_schedule
     app.get_schedules = get_schedules
+    
+    # --- START OF MODIFICATION ---
+    app.restore_item = restore_item
+    app.delete_item_permanently = delete_item_permanently
+    # --- END OF MODIFICATION ---
+
 
     # MongoDB Connection
     try:

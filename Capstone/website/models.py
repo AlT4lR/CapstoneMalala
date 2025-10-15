@@ -412,6 +412,41 @@ def get_archived_items(username):
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
 
+# --- START OF MODIFICATION ---
+def restore_item(username, item_type, item_id):
+    """Restores an archived item by setting its 'isArchived' flag to False."""
+    db = current_app.db
+    if db is None: return False
+    
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+    
+    try:
+        result = collection.update_one(
+            {'_id': ObjectId(item_id), 'username': username},
+            {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
+        )
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error restoring {item_type} {item_id}: {e}", exc_info=True)
+        return False
+
+def delete_item_permanently(username, item_type, item_id):
+    """Permanently deletes an item from the database."""
+    db = current_app.db
+    if db is None: return False
+
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+
+    try:
+        result = collection.delete_one({'_id': ObjectId(item_id), 'username': username})
+        return result.deleted_count == 1
+    except Exception as e:
+        logger.error(f"Error permanently deleting {item_type} {item_id}: {e}", exc_info=True)
+        return False
+# --- END OF MODIFICATION ---
+
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
