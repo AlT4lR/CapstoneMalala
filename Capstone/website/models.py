@@ -5,7 +5,7 @@ from pymongo.errors import DuplicateKeyError
 import logging
 from datetime import datetime, timedelta
 import pytz
-from flask import current_app
+from flask import current_app, url_for
 import pyotp
 import re
 from bson.objectid import ObjectId
@@ -321,21 +321,92 @@ def get_recent_activity(username, limit=3):
     activities = []
     try:
         for doc in db.activity_logs.find({'username': username}).sort('timestamp', -1).limit(limit):
-            # --- START OF MODIFICATION ---
-            # We now also return the 'activity_type' so the front end can use it.
             activities.append({
                 'username': doc['username'].capitalize(),
                 'relative_time': _format_relative_time(doc['timestamp']),
                 'activity_type': doc.get('activity_type', 'Unknown Action') 
             })
-            # --- END OF MODIFICATION ---
     except Exception as e:
         logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
     return activities
 
-# --- Placeholder functions required by __init__.py ---
+# --- Notification and Push Subscription Models ---
+
+def add_notification(username, title, message, url):
+    """Adds a new notification for a user to the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        db.notifications.insert_one({
+            'username': username,
+            'title': title,
+            'message': message,
+            'url': url,
+            'is_read': False,
+            'timestamp': datetime.now(pytz.utc)
+        })
+        return True
+    except Exception as e:
+        logger.error(f"Error adding notification for {username}: {e}", exc_info=True)
+        return False
+
+def get_unread_notifications(username):
+    """Fetches all unread notifications for a user."""
+    db = current_app.db
+    if db is None: return []
+    notifications = []
+    try:
+        query = {'username': username, 'is_read': False}
+        for doc in db.notifications.find(query).sort('timestamp', -1):
+            notifications.append({
+                'id': str(doc['_id']),
+                'title': doc.get('title'),
+                'message': doc.get('message'),
+                'url': doc.get('url'),
+                'relative_time': _format_relative_time(doc['timestamp'])
+            })
+    except Exception as e:
+        logger.error(f"Error fetching unread notifications for {username}: {e}", exc_info=True)
+    return notifications
+
+def get_unread_notification_count(username):
+    """Counts the number of unread notifications for a user."""
+    db = current_app.db
+    if db is None: return 0
+    try:
+        return db.notifications.count_documents({'username': username, 'is_read': False})
+    except Exception as e:
+        logger.error(f"Error counting notifications for {username}: {e}", exc_info=True)
+        return 0
+
+def mark_notifications_as_read(username):
+    """Marks all unread notifications for a user as read."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        db.notifications.update_many(
+            {'username': username, 'is_read': False},
+            {'$set': {'is_read': True}}
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error marking notifications as read for {username}: {e}", exc_info=True)
+        return False
+
+def save_push_subscription(username, subscription_info):
+    """Saves a web push subscription for a user."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        # Avoid duplicate subscriptions
+        db.users.update_one(
+            {'username': username},
+            {'$addToSet': {'push_subscriptions': subscription_info}}
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
+        return False
+
+# Placeholder for add_invoice
 def add_invoice(username, branch, invoice_data): return True
-def add_notification(username, title, message, url): return True
-def get_unread_notifications(username): return []
-def mark_notifications_as_read(username): return True
-def save_push_subscription(username, subscription_info): return True
