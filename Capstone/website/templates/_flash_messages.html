@@ -1,13 +1,13 @@
+<!-- website/templates/_flash_messages.html -->
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <div id="flash-messages-overlay-container" class="absolute top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+        <div id="flash-messages-overlay-container" class="absolute top-5 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4">
             {% for category, message in messages %}
-                <!-- --- START OF MODIFICATION --- -->
-                {# This div now matches the new, cleaner design. #}
-                <div class="flex items-center justify-center p-4 rounded-lg shadow-lg bg-white border border-[#d4d8c4]">
-                    <span class="text-sm font-medium text-[#3a4d39] underline">{{ message }}</span>
+                {# --- START OF MODIFICATION: Custom styled flash message --- #}
+                <div class="flex items-center justify-center p-4 mb-2 rounded-lg shadow-lg bg-white border border-[#d4d8c4] animate-fade-in-down">
+                    <span class="text-sm font-medium text-[#3a4d39]">{{ message }}</span>
                 </div>
-                <!-- --- END OF MODIFICATION --- -->
+                {# --- END OF MODIFICATION --- #}
             {% endfor %}
         </div>
     {% endif %}

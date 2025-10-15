@@ -283,6 +283,7 @@ def get_transactions_by_status(username, branch, status):
         logger.error(f"Error fetching transactions: {e}", exc_info=True)
     return transactions
 
+# --- START OF MODIFICATION: Added the missing function ---
 def get_child_transactions_by_parent_id(username, parent_id):
     db = current_app.db
     if db is None: return []
@@ -299,6 +300,7 @@ def get_child_transactions_by_parent_id(username, parent_id):
     except Exception as e:
         logger.error(f"Error fetching child transactions for parent {parent_id}: {e}", exc_info=True)
     return child_checks
+# --- END OF MODIFICATION ---
 
 def get_transaction_by_id(username, transaction_id, full_document=False):
     db = current_app.db
@@ -319,6 +321,7 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
 
+# --- START OF MODIFICATION: Added the missing function ---
 def mark_folder_as_paid(username, folder_id, notes=None):
     db = current_app.db
     if db is None: return False
@@ -357,6 +360,7 @@ def mark_folder_as_paid(username, folder_id, notes=None):
     except Exception as e:
         logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
         return False
+# --- END OF MODIFICATION ---
 
 def archive_transaction(username, transaction_id):
     db = current_app.db

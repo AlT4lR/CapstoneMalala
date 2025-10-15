@@ -1,6 +1,6 @@
 # DecoOffice Capstone Project
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-1.0-yellow) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-blue)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-1.9-yellow) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-blue)
 
 A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches.
 

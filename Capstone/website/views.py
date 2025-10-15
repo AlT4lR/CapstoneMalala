@@ -73,10 +73,28 @@ def dashboard():
     selected_branch = session.get('selected_branch')
     if not selected_branch: return redirect(url_for('main.branches'))
     username = get_jwt_identity()
-    pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
+    
+    # --- START OF MODIFICATION ---
+    # Calculate pending count based on child checks, not folders
+    pending_transaction_folders = get_transactions_by_status(username, selected_branch, 'Pending')
+    total_pending_checks = 0
+    for folder in pending_transaction_folders:
+        child_checks = get_child_transactions_by_parent_id(username, folder['_id'])
+        total_pending_checks += len(child_checks)
+    # --- END OF MODIFICATION ---
+
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     recent_activities = get_recent_activity(username, limit=3)
-    return render_template( 'dashboard.html', username=username, selected_branch=selected_branch, show_sidebar=True, pending_count=len(pending_transactions), paid_count=len(paid_transactions), recent_activities=recent_activities)
+    
+    return render_template(
+        'dashboard.html', 
+        username=username, 
+        selected_branch=selected_branch, 
+        show_sidebar=True, 
+        pending_count=total_pending_checks, # Use the new count
+        paid_count=len(paid_transactions), 
+        recent_activities=recent_activities
+    )
 
 @main.route('/transactions')
 @jwt_required()
@@ -365,27 +383,3 @@ def add_schedule_route():
     
     flash('Failed to create schedule.', 'error')
     return jsonify({"error": "Failed to create schedule"}), 500
-
-# --- START OF MODIFICATION ---
-@main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
-@jwt_required()
-def restore_item_route(item_type, item_id):
-    username = get_jwt_identity()
-    if current_app.restore_item(username, item_type, item_id):
-        flash(f'{item_type} successfully restored!', 'success')
-        current_app.log_user_activity(username, f'Restored a {item_type.lower()}')
-        return jsonify({'success': True}), 200
-    flash(f'Failed to restore {item_type.lower()}.', 'error')
-    return jsonify({'error': f'Failed to restore {item_type.lower()}.'}), 404
-
-@main.route('/api/archive/delete/<item_type>/<item_id>', methods=['DELETE'])
-@jwt_required()
-def delete_item_permanently_route(item_type, item_id):
-    username = get_jwt_identity()
-    if current_app.delete_item_permanently(username, item_type, item_id):
-        flash(f'{item_type} permanently deleted!', 'success')
-        current_app.log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
-        return jsonify({'success': True}), 200
-    flash(f'Failed to permanently delete {item_type.lower()}.', 'error')
-    return jsonify({'error': f'Failed to delete {item_type.lower()}.'}), 404
-# --- END OF MODIFICATION ---

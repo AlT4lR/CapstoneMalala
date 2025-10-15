@@ -28,6 +28,7 @@ from .models import (
     # --- START OF MODIFICATION ---
     restore_item, delete_item_permanently
     # --- END OF MODIFICATION ---
+    get_schedules
 )
 
 # Logging configuration
