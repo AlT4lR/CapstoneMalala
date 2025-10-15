@@ -24,7 +24,8 @@ main = Blueprint('main', __name__)
 # --- Static Service Worker ---
 @main.route('/sw.js')
 def service_worker():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    # Correctly serves the sw.js file from the 'website/static/js' directory.
+    return send_from_directory(os.path.join(main.root_path, 'static', 'js'), 'sw.js', mimetype='application/javascript')
 
 # --- Root / Branch Selection ---
 @main.route('/')
@@ -42,6 +43,12 @@ def root_route():
 def branches():
     return render_template('branches.html')
 
+# This new route serves the dedicated offline page.
+@main.route('/offline')
+def offline():
+    """Renders the offline fallback page."""
+    return render_template('offline.html')
+
 @main.route('/select_branch/<branch_name>')
 @jwt_required()
 def select_branch(branch_name):
@@ -56,7 +63,7 @@ def dashboard():
     selected_branch = session.get('selected_branch')
     if not selected_branch:
         return redirect(url_for('main.branches'))
-    
+
     username = get_jwt_identity()
     pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     pending_count = len(pending_transactions)
@@ -88,10 +95,10 @@ def transactions_pending():
     selected_branch = session.get('selected_branch')
     if not selected_branch:
         return redirect(url_for('main.branches'))
-    
+
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     form = TransactionForm()
-    
+
     return render_template(
         'pending_transactions.html',
         transactions=transactions,
@@ -107,7 +114,7 @@ def transactions_paid():
     selected_branch = session.get('selected_branch')
     if not selected_branch:
         return redirect(url_for('main.branches'))
-    
+
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     form = TransactionForm()
 
@@ -124,7 +131,7 @@ def add_transaction():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
-    
+
     redirect_url = url_for('main.transactions_pending')
     if request.referrer:
         if 'paid' in request.referrer:
@@ -135,12 +142,16 @@ def add_transaction():
     if form.validate_on_submit():
         if current_app.add_transaction(username, selected_branch, form.data):
             flash('Successfully added a new transaction!', 'success')
+            # --- START OF MODIFICATION ---
+            # Log this successful action.
+            current_app.log_user_activity(username, 'Added a new transaction')
+            # --- END OF MODIFICATION ---
         else:
             flash('An error occurred.', 'error')
     else:
         for field, errors in form.errors.items():
             flash(f"Error in {getattr(form, field).label.text}: {errors[0]}", "error")
-                
+
     return redirect(redirect_url)
 
 # --- Analytics / Invoice / Others ---
@@ -174,8 +185,13 @@ def settings():
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
-    if archive_transaction(get_jwt_identity(), transaction_id):
+    username = get_jwt_identity() # --- MODIFICATION: Get username for logging
+    if archive_transaction(username, transaction_id):
         flash('Transaction successfully moved to archive!', 'success')
+        # --- START OF MODIFICATION ---
+        # Log this successful action.
+        current_app.log_user_activity(username, 'Archived a transaction')
+        # --- END OF MODIFICATION ---
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to archive transaction.'}), 404
 
@@ -196,9 +212,10 @@ def pay_transaction(transaction_id):
     notes = data.get('notes')
 
     if current_app.mark_transaction_as_paid(username, transaction_id, notes):
+        # This was already here, but it's good to confirm it's part of our system.
         current_app.log_user_activity(username, f'Marked transaction as Paid')
         return jsonify({'success': True, 'message': 'Transaction marked as Paid.'})
-    
+
     return jsonify({'error': 'Failed to mark transaction as Paid.'}), 400
 
 # --- Archive ---

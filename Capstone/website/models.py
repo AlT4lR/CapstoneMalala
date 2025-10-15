@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 # --- Helper function for timestamps ---
 def _format_relative_time(dt):
     """Formats a datetime object into a relative time string."""
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+
     now = datetime.now(pytz.utc)
     diff = now - dt
 
@@ -318,10 +321,14 @@ def get_recent_activity(username, limit=3):
     activities = []
     try:
         for doc in db.activity_logs.find({'username': username}).sort('timestamp', -1).limit(limit):
+            # --- START OF MODIFICATION ---
+            # We now also return the 'activity_type' so the front end can use it.
             activities.append({
                 'username': doc['username'].capitalize(),
-                'relative_time': _format_relative_time(doc['timestamp'])
+                'relative_time': _format_relative_time(doc['timestamp']),
+                'activity_type': doc.get('activity_type', 'Unknown Action') 
             })
+            # --- END OF MODIFICATION ---
     except Exception as e:
         logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
     return activities

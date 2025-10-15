@@ -4,7 +4,6 @@
 {% block content %}
 <main class="flex flex-col flex-1 bg-[#f6f7f1] min-h-screen px-3 sm:px-4 lg:px-6 py-4 text-[#3a4d39]">
 
-    <!-- Header -->
     <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2">
         <h1 class="text-2xl font-semibold">Home</h1>
         <div class="flex items-center gap-3">
@@ -15,7 +14,6 @@
         </div>
     </header>
 
-    <!-- Welcome -->
     <section class="bg-[#eceee3] rounded-lg p-5 mb-4">
         <h2 class="text-2xl sm:text-3xl font-extrabold text-[#3a4d39] leading-tight">
             Welcome, {{ username | capitalize }}!
@@ -25,13 +23,10 @@
         </p>
     </section>
 
-    <!-- Main Dashboard Grid -->
     <section class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 
-        <!-- Left main area -->
         <div class="lg:col-span-2 xl:col-span-3 flex flex-col gap-4">
 
-            <!-- Schedules -->
             <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="font-semibold text-base">Schedules</h3>
@@ -56,32 +51,29 @@
                 </div>
             </div>
 
-            <!-- Quick Actions + Recent Activity -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Quick Actions -->
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                     <h3 class="font-semibold text-base mb-3">Quick Actions</h3>
                     <div class="flex flex-col gap-1.5">
                         <a href="{{ url_for('main.transactions') }}" 
-                           class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-truck-fast"></i> Transactions
                         </a>
                         <a href="{{ url_for('main.analytics') }}" 
-                           class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-chart-line"></i> Analytics
                         </a>
                         <a href="{{ url_for('main.invoice') }}" 
-                           class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-download"></i> Download Invoice
                         </a>
                         <a href="{{ url_for('main.schedules') }}" 
-                           class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-calendar-plus"></i> Add Scheduled Task
                         </a>
                     </div>
                 </div>
 
-                <!-- Recent Activity -->
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-semibold text-base">Recent Activity</h3>
@@ -93,15 +85,29 @@
                             <span>Date Modified</span>
                         </div>
                         <div class="space-y-1.5">
-                            <!-- --- START OF MODIFICATION --- -->
                             {% for activity in recent_activities %}
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
-                                    <i class="fa-solid fa-right-to-bracket text-green-600"></i>
+                                    
+                                    {# --- Dynamically set icon and color based on activity type --- #}
+                                    {% if activity.activity_type == 'User Log In' %}
+                                        <i class="fa-solid fa-right-to-bracket text-green-600"></i>
+                                    {% elif activity.activity_type == 'Added a new transaction' %}
+                                        <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                                    {% elif activity.activity_type == 'Archived a transaction' %}
+                                        <i class="fa-solid fa-box-archive text-red-600"></i>
+                                    {% elif 'Paid' in activity.activity_type %}
+                                        <i class="fa-solid fa-dollar-sign text-purple-600"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-info-circle text-gray-500"></i>
+                                    {% endif %}
+                                    
                                     <div>
                                         <p class="font-medium">{{ activity.username }}</p>
-                                        <p class="text-[10px] text-gray-500">Logged In</p>
+                                        {# --- Dynamically set the action text --- #}
+                                        <p class="text-[10px] text-gray-500">{{ activity.activity_type }}</p>
                                     </div>
+
                                 </div>
                                 <span class="text-gray-600">{{ activity.relative_time }}</span>
                             </div>
@@ -110,14 +116,12 @@
                                 No recent activity found.
                             </div>
                             {% endfor %}
-                            <!-- --- END OF MODIFICATION --- -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column -->
         <div class="flex flex-col gap-4">
             <a href="{{ url_for('main.transactions_pending') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
                 <h4 class="font-semibold text-base text-[#3a4d39]">Pendings</h4>
