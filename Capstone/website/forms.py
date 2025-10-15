@@ -46,7 +46,9 @@ class ResetPasswordForm(FlaskForm):
 class TransactionForm(FlaskForm):
     """Form for the 'Create Issued Checked' modal."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
-    check_no = StringField('Check No.', validators=[DataRequired(), Length(max=50)])
+    # --- START OF MODIFICATION: Make check_no optional for the initial folder creation ---
+    check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
+    # --- END OF MODIFICATION ---
     check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])

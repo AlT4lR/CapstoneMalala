@@ -7,7 +7,7 @@
     <header class="flex justify-between items-center mb-6 border-b border-gray-300 pb-4">
         <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Transactions</h2>
         <div class="flex items-center gap-4">
-            <button class="text-gray-500 hover:text-gray-800" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></button>
+            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-gray-800" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -34,16 +34,66 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- --- START OF MODIFICATION: Updated script to reload on error to show flash message --- -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('create-transaction-modal');
         const openBtn = document.getElementById('add-transaction-btn');
         const closeBtn = document.getElementById('close-create-modal-btn');
+        const form = document.getElementById('create-transaction-folder-form');
+        const successMessage = document.getElementById('success-message-container');
+
+        const openModal = () => {
+            form.reset();
+            form.style.display = 'block';
+            successMessage.classList.add('hidden');
+            modal.classList.remove('hidden');
+        };
+
+        const closeModal = () => modal.classList.add('hidden');
+
         if (modal && openBtn && closeBtn) {
-            openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-            closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
         }
+        
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating...';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' 
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    form.style.display = 'none';
+                    successMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = result.redirect_url;
+                    }, 1500);
+                } else {
+                    // On failure, reload the page. The backend flashed the error.
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Submission failed:', error);
+                // On network error, also reload to let the user see what happened.
+                window.location.reload();
+            }
+        });
     });
 </script>
+<!-- --- END OF MODIFICATION --- -->
 {% endblock %}

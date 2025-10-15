@@ -1,40 +1,40 @@
 <!-- website/templates/_add_transaction_modal.html -->
+<!-- --- START OF MODIFICATION: Replaced with the new simple design for folder creation --- -->
 <div id="create-transaction-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <div class="bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
-        <button id="close-create-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+    <div class="bg-[#f8f6f2] rounded-lg shadow-xl w-full max-w-lg p-8 relative text-[#3a4d39]">
         
-        <!-- This form submits via a standard POST, so it needs the hidden CSRF token -->
-        <form action="{{ url_for('main.add_transaction') }}" method="POST" class="space-y-6" novalidate>
+        <button id="close-create-modal-btn" class="absolute top-4 right-5 text-gray-500 hover:text-red-600 text-3xl font-light">&times;</button>
+        
+        <!-- Success Message: Initially hidden -->
+        <div id="success-message-container" class="hidden text-center mb-6">
+            <div class="inline-block px-6 py-2 border border-gray-300 rounded-lg bg-white">
+                <span class="text-sm font-medium text-[#3a4d39] underline">Successfully added a new transaction!</span>
+            </div>
+        </div>
+
+        <form id="create-transaction-folder-form" action="{{ url_for('main.add_transaction') }}" method="POST" class="space-y-6" novalidate>
             
-            <!-- ✅ THIS IS THE FIX: Renders the hidden CSRF input field -->
             {{ form.hidden_tag() }}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <!-- Form Fields -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <div>
-                    {{ form.name_of_issued_check.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.name_of_issued_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                    <label for="name_of_issued_check" class="block text-sm font-medium mb-2">Name</label>
+                    <!-- We only need the 'name' field from the form here -->
+                    {{ form.name_of_issued_check(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
                 <div>
-                    {{ form.countered_check.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.countered_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
-                </div>
-                <div>
-                    {{ form.check_no.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.check_no(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
-                </div>
-                <div>
-                    {{ form.ewt.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.ewt(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
-                </div>
-                <div class="md:col-span-2">
-                    {{ form.check_date.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.check_date(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                    <label for="check_date" class="block text-sm font-medium mb-2">Date</label>
+                    <!-- We only need the 'date' field from the form here -->
+                    {{ form.check_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
             </div>
-            <div class="flex justify-center mt-8 space-x-6">
-                <button type="reset" class="px-12 py-3 bg-[#6f8a6e] text-white font-semibold rounded-lg">Reset</button>
-                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg">Add</button>
+
+            <!-- Create Button -->
+            <div class="flex justify-center pt-6">
+                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90">Create</button>
             </div>
         </form>
     </div>
 </div>
+<!-- --- END OF MODIFICATION --- -->

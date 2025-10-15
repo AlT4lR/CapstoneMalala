@@ -117,10 +117,12 @@
                 <h4 class="font-semibold text-base text-[#3a4d39]">Pendings</h4>
                 <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ pending_count }}</p>
             </a>
+            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ url_for('main.transactions_paid') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
-                <h4 class="font-semibold text-base text-[#3a4d39]">Transactions</h4>
+                <h4 class="font-semibold text-base text-[#3a4d39]">Paid</h4>
                 <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ paid_count }}</p>
             </a>
+            <!-- --- END OF MODIFICATION --- -->
         </div>
     </section>
 </main>
