@@ -52,13 +52,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     window.getCsrfToken = () => csrfToken;
 
+    // --- START OF MODIFICATION: Auto-hiding logic for flash messages ---
     const flashContainer = document.getElementById('flash-messages-overlay-container');
     if (flashContainer) {
         setTimeout(() => {
             flashContainer.style.opacity = '0';
             flashContainer.addEventListener('transitionend', () => flashContainer.remove());
-        }, 5000);
+        }, 5000); // Messages disappear after 5 seconds
     }
+    // --- END OF MODIFICATION ---
 
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
@@ -70,19 +72,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!transactionId) return;
 
         window.showCustomConfirm(`Are you sure you want to delete ${transactionName}?`, async () => {
-            const response = await fetch(`/api/transactions/${transactionId}`, {
-                method: 'DELETE',
-                headers: { 'X-CSRF-Token': window.getCsrfToken() }
-            });
-            if (response.ok) {
+            // --- START OF MODIFICATION: Removed alert(), now just reloads to show flash message ---
+            try {
+                const response = await fetch(`/api/transactions/${transactionId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': window.getCsrfToken() }
+                });
+                // Always reload the page. The backend will have flashed the correct
+                // success or error message, which will be displayed upon reload.
                 window.location.reload();
-            } else {
-                alert('Error: Could not delete the transaction.');
+            } catch (error) {
+                console.error("Deletion failed:", error);
+                // Reload even on network error to potentially show an offline page or let user retry.
+                window.location.reload();
             }
+            // --- END OF MODIFICATION ---
         });
     });
 
-    // --- Notification Panel Logic ---
+    // --- Notification Panel Logic (remains unchanged) ---
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
     const notificationIndicator = document.getElementById('notification-indicator');
