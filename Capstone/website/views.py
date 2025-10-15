@@ -366,7 +366,6 @@ def add_schedule_route():
     flash('Failed to create schedule.', 'error')
     return jsonify({"error": "Failed to create schedule"}), 500
 
-
 # --- START OF MODIFICATION ---
 @main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
 @jwt_required()
