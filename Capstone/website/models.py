@@ -283,7 +283,6 @@ def get_transactions_by_status(username, branch, status):
         logger.error(f"Error fetching transactions: {e}", exc_info=True)
     return transactions
 
-# --- START OF MODIFICATION: Added the missing function ---
 def get_child_transactions_by_parent_id(username, parent_id):
     db = current_app.db
     if db is None: return []
@@ -300,7 +299,6 @@ def get_child_transactions_by_parent_id(username, parent_id):
     except Exception as e:
         logger.error(f"Error fetching child transactions for parent {parent_id}: {e}", exc_info=True)
     return child_checks
-# --- END OF MODIFICATION ---
 
 def get_transaction_by_id(username, transaction_id, full_document=False):
     db = current_app.db
@@ -321,7 +319,6 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
 
-# --- START OF MODIFICATION: Added the missing function ---
 def mark_folder_as_paid(username, folder_id, notes=None):
     db = current_app.db
     if db is None: return False
@@ -360,7 +357,6 @@ def mark_folder_as_paid(username, folder_id, notes=None):
     except Exception as e:
         logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
         return False
-# --- END OF MODIFICATION ---
 
 def archive_transaction(username, transaction_id):
     db = current_app.db
@@ -411,6 +407,41 @@ def get_archived_items(username):
     except Exception as e:
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
+
+# --- START OF MODIFICATION ---
+def restore_item(username, item_type, item_id):
+    """Restores an archived item by setting its 'isArchived' flag to False."""
+    db = current_app.db
+    if db is None: return False
+    
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+    
+    try:
+        result = collection.update_one(
+            {'_id': ObjectId(item_id), 'username': username},
+            {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
+        )
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error restoring {item_type} {item_id}: {e}", exc_info=True)
+        return False
+
+def delete_item_permanently(username, item_type, item_id):
+    """Permanently deletes an item from the database."""
+    db = current_app.db
+    if db is None: return False
+
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+
+    try:
+        result = collection.delete_one({'_id': ObjectId(item_id), 'username': username})
+        return result.deleted_count == 1
+    except Exception as e:
+        logger.error(f"Error permanently deleting {item_type} {item_id}: {e}", exc_info=True)
+        return False
+# --- END OF MODIFICATION ---
 
 def get_analytics_data(username, year):
     db = current_app.db
