@@ -22,7 +22,12 @@ from .models import (
     log_user_activity, get_recent_activity,
     add_invoice, get_invoices, get_invoice_by_id, archive_invoice,
     add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription,
-    add_loan
+    add_loan,
+    add_schedule, 
+    get_schedules,
+    # --- START OF MODIFICATION ---
+    restore_item, delete_item_permanently
+    # --- END OF MODIFICATION ---
 )
 
 # Logging configuration
@@ -92,6 +97,14 @@ def create_app(config_name='dev'):
     app.mail = mail
     
     app.add_loan = add_loan
+    app.add_schedule = add_schedule
+    app.get_schedules = get_schedules
+    
+    # --- START OF MODIFICATION ---
+    app.restore_item = restore_item
+    app.delete_item_permanently = delete_item_permanently
+    # --- END OF MODIFICATION ---
+
 
     # MongoDB Connection
     try:

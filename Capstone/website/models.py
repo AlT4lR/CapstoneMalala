@@ -231,22 +231,29 @@ def archive_invoice(username, invoice_id):
 # =========================================================
 # --- Transaction & Other Models ---
 # =========================================================
-def add_transaction(username, branch, transaction_data):
+def add_transaction(username, branch, transaction_data, parent_id=None):
     db = current_app.db
     if db is None: return False
     try:
         check_date_obj = transaction_data.get('check_date')
+        countered_check_val = transaction_data.get('countered_check')
+        ewt_val = transaction_data.get('ewt')
+        
         doc = {
             'username': username, 'branch': branch,
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
             'check_date': pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time())) if check_date_obj else datetime.now(pytz.utc),
-            'countered_check': float(transaction_data.get('countered_check', 0.0)),
-            'amount': float(transaction_data.get('countered_check', 0.0)),
-            'ewt': float(transaction_data.get('ewt', 0.0)),
-            'status': 'Pending', 'sub_branch': 'San Isidro',
-            'createdAt': datetime.now(pytz.utc), 'isArchived': False, 'notes': ''
+            'countered_check': float(countered_check_val or 0.0),
+            'amount': float(countered_check_val or 0.0),
+            'ewt': float(ewt_val or 0.0),
+            'status': 'Pending',
+            'createdAt': datetime.now(pytz.utc),
+            'isArchived': False,
+            'notes': '',
+            'parent_id': ObjectId(parent_id) if parent_id else None
         }
+        
         db.transactions.insert_one(doc)
         return True
     except Exception as e:
@@ -258,48 +265,97 @@ def get_transactions_by_status(username, branch, status):
     if db is None: return []
     transactions = []
     try:
-        query = {'username': username, 'status': status, '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]}
+        query = {
+            'username': username, 
+            'status': status,
+            'parent_id': None,
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }
         if branch: query['branch'] = branch
+        
         for doc in db.transactions.find(query).sort('check_date', -1):
             transactions.append({
-                '_id': str(doc['_id']), 'name': doc.get('name'),
-                'check_no': f"#{doc.get('check_no')}",
+                '_id': str(doc['_id']),
+                'name': doc.get('name'),
                 'check_date': doc.get('check_date').strftime('%m/%d/%Y') if doc.get('check_date') else 'N/A',
-                'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
-                'countered_check': f"₱ {doc.get('countered_check', 0.0):,.2f}",
-                'editor': doc.get('username', 'Unknown').capitalize()
             })
     except Exception as e:
         logger.error(f"Error fetching transactions: {e}", exc_info=True)
     return transactions
 
-def get_transaction_by_id(username, transaction_id):
+def get_child_transactions_by_parent_id(username, parent_id):
+    db = current_app.db
+    if db is None: return []
+    child_checks = []
+    try:
+        query = {
+            'username': username,
+            'parent_id': ObjectId(parent_id),
+            'status': 'Pending',
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }
+        for doc in db.transactions.find(query).sort('createdAt', 1):
+            child_checks.append(doc)
+    except Exception as e:
+        logger.error(f"Error fetching child transactions for parent {parent_id}: {e}", exc_info=True)
+    return child_checks
+
+def get_transaction_by_id(username, transaction_id, full_document=False):
     db = current_app.db
     if db is None: return None
     try:
         doc = db.transactions.find_one({'_id': ObjectId(transaction_id), 'username': username})
-        if doc:
-            return {
-                '_id': str(doc['_id']), 'name': doc.get('name'),
-                'check_no': doc.get('check_no'),
-                'check_date': doc.get('check_date').strftime('%Y-%m-%d') if doc.get('check_date') else '',
-                'ewt': doc.get('ewt', 0.0), 'countered_check': doc.get('countered_check', 0.0),
-                'amount': doc.get('amount', 0.0), 'notes': doc.get('notes', ''), 'status': doc.get('status')
-            }
+        if not doc: return None
+        if full_document: return doc
+        
+        return {
+            '_id': str(doc['_id']), 'name': doc.get('name'),
+            'check_no': doc.get('check_no'),
+            'check_date': doc.get('check_date').strftime('%Y-%m-%d') if doc.get('check_date') else '',
+            'ewt': doc.get('ewt', 0.0), 'countered_check': doc.get('countered_check', 0.0),
+            'amount': doc.get('amount', 0.0), 'notes': doc.get('notes', ''), 'status': doc.get('status')
+        }
     except Exception as e:
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
-    return None
+        return None
 
-def mark_transaction_as_paid(username, transaction_id, notes=None):
+def mark_folder_as_paid(username, folder_id, notes=None):
     db = current_app.db
     if db is None: return False
     try:
-        update_data = {'$set': {'status': 'Paid'}}
-        if notes is not None: update_data['$set']['notes'] = notes
-        result = db.transactions.update_one({'_id': ObjectId(transaction_id), 'username': username}, update_data)
-        return result.modified_count == 1
+        child_checks = list(db.transactions.find({
+            'username': username,
+            'parent_id': ObjectId(folder_id)
+        }))
+        
+        total_amount = sum(check.get('amount', 0.0) for check in child_checks)
+
+        update_data = {
+            '$set': {
+                'status': 'Paid',
+                'amount': total_amount,
+                'paidAt': datetime.now(pytz.utc)
+            }
+        }
+        if notes is not None:
+            update_data['$set']['notes'] = notes
+            
+        result = db.transactions.update_one(
+            {'_id': ObjectId(folder_id), 'username': username},
+            update_data
+        )
+
+        if result.modified_count == 0:
+            return False
+
+        db.transactions.update_many(
+            {'parent_id': ObjectId(folder_id), 'username': username},
+            {'$set': {'status': 'Paid'}}
+        )
+        
+        return True
     except Exception as e:
-        logger.error(f"Error marking transaction {transaction_id} as paid: {e}", exc_info=True)
+        logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
         return False
 
 def archive_transaction(username, transaction_id):
@@ -352,12 +408,47 @@ def get_archived_items(username):
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
 
+# --- START OF MODIFICATION ---
+def restore_item(username, item_type, item_id):
+    """Restores an archived item by setting its 'isArchived' flag to False."""
+    db = current_app.db
+    if db is None: return False
+    
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+    
+    try:
+        result = collection.update_one(
+            {'_id': ObjectId(item_id), 'username': username},
+            {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
+        )
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error restoring {item_type} {item_id}: {e}", exc_info=True)
+        return False
+
+def delete_item_permanently(username, item_type, item_id):
+    """Permanently deletes an item from the database."""
+    db = current_app.db
+    if db is None: return False
+
+    collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
+    collection = db[collection_name]
+
+    try:
+        result = collection.delete_one({'_id': ObjectId(item_id), 'username': username})
+        return result.deleted_count == 1
+    except Exception as e:
+        logger.error(f"Error permanently deleting {item_type} {item_id}: {e}", exc_info=True)
+        return False
+# --- END OF MODIFICATION ---
+
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
     try:
         pipeline_monthly = [
-            {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
+            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
             {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
         ]
         monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
@@ -365,7 +456,7 @@ def get_analytics_data(username, year):
         start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
         start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)
         pipeline_weekly = [
-            {'$match': {'username': username, 'status': 'Paid', 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
+            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
             {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
@@ -376,7 +467,7 @@ def get_analytics_data(username, year):
         chart_data = [
             {
                 'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0),
-                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100,
+                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0,
                 'is_current_month': i == current_month
             } for i in range(1, 13)
         ]
@@ -448,26 +539,86 @@ def save_push_subscription(username, subscription_info):
         return False
 
 def add_loan(username, branch, loan_data):
-    """Adds a new loan record to the database."""
     db = current_app.db
     if db is None: return False
     try:
         date_issued_obj = loan_data.get('date_issued')
         date_paid_obj = loan_data.get('date_paid')
-
         doc = {
-            'username': username,
-            'branch': branch,
+            'username': username, 'branch': branch,
             'name': loan_data.get('name_of_loan'),
             'bank_name': loan_data.get('bank_name'),
             'amount': float(loan_data.get('amount', 0.0)),
             'date_issued': pytz.utc.localize(datetime.combine(date_issued_obj, datetime.min.time())) if date_issued_obj else None,
             'date_paid': pytz.utc.localize(datetime.combine(date_paid_obj, datetime.min.time())) if date_paid_obj else None,
-            'createdAt': datetime.now(pytz.utc),
-            'isArchived': False
+            'createdAt': datetime.now(pytz.utc), 'isArchived': False
         }
         db.loans.insert_one(doc)
         return True
     except Exception as e:
         logger.error(f"Error adding loan for {username}: {e}", exc_info=True)
         return False
+
+def add_schedule(username, schedule_data):
+    db = current_app.db
+    if db is None: return False
+    try:
+        date_str = schedule_data.get('date')
+        start_time_str = schedule_data.get('start_time')
+        end_time_str = schedule_data.get('end_time')
+        is_all_day = 'all_day' in schedule_data
+        if is_all_day:
+            start_dt = datetime.strptime(date_str, '%Y-%m-%d')
+            end_dt = start_dt + timedelta(days=1)
+        else:
+            start_dt = datetime.strptime(f"{date_str} {start_time_str}", '%Y-%m-%d %H:%M')
+            end_dt = datetime.strptime(f"{date_str} {end_time_str}", '%Y-%m-%d %H:%M')
+        doc = {
+            'username': username,
+            'title': schedule_data.get('title'),
+            'description': schedule_data.get('description'),
+            'start': pytz.utc.localize(start_dt),
+            'end': pytz.utc.localize(end_dt),
+            'allDay': is_all_day,
+            'location': schedule_data.get('location'),
+            'label': schedule_data.get('label', 'Others'),
+            'reminder': schedule_data.get('reminder'),
+            'reminderSent': False,
+            'createdAt': datetime.now(pytz.utc)
+        }
+        db.schedules.insert_one(doc)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding schedule for {username}: {e}", exc_info=True)
+        return False
+
+def get_schedules(username, start, end):
+    db = current_app.db
+    if db is None: return []
+    label_colors = {
+        "Office": "#3b82f6", "Meetings": "#8b5cf6",
+        "Events": "#ec4899", "Personal": "#f59e0b", "Others": "#6b7280"
+    }
+    schedules_list = []
+    try:
+        start_dt = pytz.utc.localize(datetime.fromisoformat(start.replace('Z', '')))
+        end_dt = pytz.utc.localize(datetime.fromisoformat(end.replace('Z', '')))
+        query = {'username': username, 'start': {'$gte': start_dt}, 'end': {'$lte': end_dt}}
+        for doc in db.schedules.find(query):
+            label = doc.get('label', 'Others')
+            schedules_list.append({
+                'id': str(doc['_id']),
+                'title': doc.get('title'),
+                'start': doc.get('start').isoformat(),
+                'end': doc.get('end').isoformat(),
+                'allDay': doc.get('allDay'),
+                'backgroundColor': label_colors.get(label),
+                'extendedProps': {
+                    'description': doc.get('description'),
+                    'location': doc.get('location'),
+                    'label': label
+                }
+            })
+    except Exception as e:
+        logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
+    return schedules_list
