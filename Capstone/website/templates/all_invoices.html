@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}DecoOffice - All Invoices{% endblock %}
+{% block content %}
+<main class="flex-1 p-6 sm:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
+    
+    <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
+        <h2 class="text-2xl font-semibold uppercase tracking-wide">Invoice</h2>
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="Search Invoices..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            
+            <!-- --- THIS IS THE FIX --- -->
+            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                <i class="fa-solid fa-box-archive fa-lg"></i>
+            </a>
+            <!-- --- END OF FIX --- -->
+
+            {% include "_notification_button.html" %}
+        </div>
+    </header>
+
+    <div class="mb-8">
+        <a href="{{ url_for('main.invoice') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Go Back...</span>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-[#3a4d39] text-white">
+                <tr>
+                    <th class="p-3 text-left font-semibold">File Name</th>
+                    <th class="p-3 text-left font-semibold">Dates</th>
+                    <th class="p-3 text-left font-semibold">Categories</th>
+                </tr>
+            </thead>
+            <tbody id="invoice-table-body">
+                {% for invoice in invoices %}
+                <tr class="border-t border-gray-200 hover:bg-gray-50 invoice-row cursor-pointer" 
+                    data-name="{{ invoice.file_name | lower }}" 
+                    data-id="{{ invoice.id }}">
+                    <td class="p-3 font-medium">{{ invoice.file_name }}</td>
+                    <td class="p-3">{{ invoice.date }}</td>
+                    <td class="p-3">{{ invoice.category }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="p-8 text-center text-gray-500">No invoices found.</td>
+                </tr>
+                {% endfor %}
+                <tr id="no-results-row" class="hidden">
+                     <td colspan="3" class="p-8 text-center text-gray-500">No results found.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+{% include "_invoice_details_modal.html" %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Search Logic (remains the same) ---
+    const searchInput = document.getElementById('search-input');
+    const tableBody = document.getElementById('invoice-table-body');
+    const invoiceRows = tableBody.querySelectorAll('.invoice-row');
+    const noResultsRow = document.getElementById('no-results-row');
+
+    if (searchInput && invoiceRows.length > 0) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            invoiceRows.forEach(row => {
+                const name = row.dataset.name;
+                if (name.includes(searchTerm)) {
+                    row.style.display = 'table-row';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            noResultsRow.style.display = visibleCount === 0 ? 'table-row' : 'none';
+        });
+    }
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('invoice-details-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const modalTitle = document.getElementById('modal-invoice-title');
+    const modalImage = document.getElementById('modal-invoice-image');
+    const modalDownloadBtn = document.getElementById('modal-download-btn');
+    const modalDeleteBtn = document.getElementById('modal-delete-btn');
+
+    const openModal = () => modal.classList.remove('hidden');
+    const closeModal = () => modal.classList.add('hidden');
+
+    invoiceRows.forEach(row => {
+        row.addEventListener('click', async () => {
+            const invoiceId = row.dataset.id;
+            if (!invoiceId) return;
+            try {
+                const response = await fetch(`/api/invoices/details/${invoiceId}`);
+                if (!response.ok) throw new Error('Failed to fetch invoice details.');
+                const data = await response.json();
+                
+                modalTitle.textContent = data.folder_name || 'Invoice Details';
+                if (data.files && data.files.length > 0) {
+                     modalImage.src = `/uploads/invoices/${data.files[0].filename}`;
+                     modalImage.classList.remove('hidden');
+                } else {
+                     modalImage.src = '';
+                     modalImage.classList.add('hidden');
+                }
+                modalDownloadBtn.href = `/api/invoices/${invoiceId}/download`;
+                modalDeleteBtn.dataset.id = data._id;
+                modalDeleteBtn.dataset.name = data.folder_name || 'this invoice';
+
+                openModal();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Could not load invoice details.');
+            }
+        });
+    });
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    modalDeleteBtn.addEventListener('click', function() {
+        const invoiceId = this.dataset.id;
+        const invoiceName = this.dataset.name;
+        if (!invoiceId) return;
+
+        window.showCustomConfirm(`Are you sure you want to archive "${invoiceName}"?`, async () => {
+            try {
+                const response = await fetch(`/api/invoices/${invoiceId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': window.getCsrfToken ? window.getCsrfToken() : '' }
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    window.location.reload();
+                } else {
+                    alert(result.error || 'Failed to archive the invoice.');
+                }
+            } catch (error) {
+                console.error('Error archiving invoice:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

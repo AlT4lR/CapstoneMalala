@@ -1,18 +1,81 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Invoice{% endblock %}
 {% block content %}
-<main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
-    <header class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Invoice</h2>
-        {% include "_notification_button.html" %}
-    </header>
-    <div class="flex-1 bg-white rounded-xl border p-8">
-        <div id="drop-zone" class="border-2 border-dashed border-[#3a4d39] rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50">
-            <input id="file-input" type="file" class="hidden" multiple>
-            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-gray-400"></i>
-            <p>Drag & Drop files here or click to browse.</p>
+<main class="flex-1 p-6 sm:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
+    
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
+        <h2 class="text-2xl font-semibold uppercase tracking-wide">Invoice</h2>
+        <div class="flex items-center gap-4">
+            <a href="#" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                <i class="fa-solid fa-box-archive fa-lg"></i>
+            </a>
+            {% include "_notification_button.html" %}
         </div>
-        <div id="file-list" class="mt-6 space-y-3"></div>
+    </header>
+
+    <!-- Sub-header and Action Button -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h3 class="text-xl font-bold">Create Invoice</h3>
+            <p class="text-sm text-gray-500">Drop files to create a new invoice.</p>
+        </div>
+        <!-- --- THIS IS THE FIX --- -->
+        <a href="{{ url_for('main.all_invoices') }}" class="px-5 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
+            Go To All Invoice
+        </a>
+        <!-- --- END OF FIX --- -->
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Left Side: File Uploader and List -->
+        <div class="flex flex-col gap-6">
+            <!-- Drop Zone -->
+            <div id="drop-zone" class="relative flex flex-col items-center justify-center w-full h-56 border-2 border-dashed border-[#d4d8c4] rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors">
+                <div class="text-center">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-400 mb-3"></i>
+                    <p class="font-semibold">Browse File</p>
+                    <p class="text-xs text-gray-500">(5mb max per img)</p>
+                </div>
+                <input id="file-input" type="file" class="hidden" multiple>
+            </div>
+
+            <!-- File List Container -->
+            <div id="file-list" class="space-y-3">
+                <!-- File items will be injected here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Right Side: Form -->
+        <div class="bg-white rounded-lg border border-[#e1e4d5] p-6 h-fit">
+            <form id="invoice-form" class="space-y-6">
+                <div>
+                    <label for="folder-name" class="block text-sm font-semibold mb-2">Folder Name</label>
+                    <input type="text" id="folder-name" name="folder-name" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                </div>
+                <div>
+                    <label for="categories" class="block text-sm font-semibold mb-2">Categories</label>
+                    <select id="categories" name="categories" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                        <option>Select a category...</option>
+                        <option>Receipts</option>
+                        <option>Contracts</option>
+                        <option>Reports</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="date" class="block text-sm font-semibold mb-2">Date</label>
+                    <input type="date" id="date" name="date" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-4 pt-4">
+                    <button type="button" id="save-draft-btn" class="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">Save As Draft</button>
+                    <button type="submit" id="upload-btn" class="px-8 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90 transition-colors">Upload</button>
+                </div>
+            </form>
+        </div>
     </div>
 </main>
 {% endblock %}

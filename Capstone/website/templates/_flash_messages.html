@@ -2,9 +2,12 @@
     {% if messages %}
         <div id="flash-messages-overlay-container" class="absolute top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
             {% for category, message in messages %}
-                <div class="flex items-center justify-center p-3 rounded-lg shadow-md bg-white border border-green-400">
-                    <span class="text-sm font-semibold text-green-700">{{ message }}</span>
+                <!-- --- START OF MODIFICATION --- -->
+                {# This div now matches the new, cleaner design. #}
+                <div class="flex items-center justify-center p-4 rounded-lg shadow-lg bg-white border border-[#d4d8c4]">
+                    <span class="text-sm font-medium text-[#3a4d39] underline">{{ message }}</span>
                 </div>
+                <!-- --- END OF MODIFICATION --- -->
             {% endfor %}
         </div>
     {% endif %}
