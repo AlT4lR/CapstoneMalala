@@ -2,16 +2,18 @@
 {% block title %}DecoOffice - Pending Transactions{% endblock %}
 {% block content %}
 <main class="flex-1 p-8 flex flex-col bg-[#fafaf5]">
-    <header class="flex justify-between items-center mb-6 border-b border-gray-300 pb-4">
-        <a href="{{ url_for('main.transactions') }}" class="text-gray-500 hover:text-gray-800 text-sm">
-            <i class="fa-solid fa-arrow-left mr-2"></i>Go Back
-        </a>
-        
-        <h2 class="text-xl font-bold text-[#3a4d39] uppercase">(PENDING)</h2>
+    <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
+        <div>
+            <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
+            <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Go Back...</span>
+            </a>
+        </div>
         
         <div class="flex items-center gap-4">
             <div class="relative">
-                <input type="text" id="search-input" placeholder="Search..." class="w-72 pl-10 pr-4 py-2 border rounded-lg text-sm">
+                <input type="text" id="search-input" placeholder="Search Pending..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
             {% include "_notification_button.html" %}
@@ -42,24 +44,42 @@
 
         <div id="summary-panel" class="w-1/3 flex flex-col space-y-6 bg-white p-6 rounded-lg border">
             <p id="select-prompt" class="text-center text-gray-500 my-auto">Select a transaction to view details.</p>
+            
+            <!-- --- START OF MODIFICATION --- -->
             <div id="details-view" class="hidden flex-grow flex-col space-y-6">
                 <input type="hidden" id="selected-transaction-id">
+                
+                <!-- Notes Section -->
                 <div class="flex-grow flex flex-col">
-                    <label class="font-semibold text-gray-600 mb-2">Notes</label>
-                    <textarea id="notes-textarea" class="w-full flex-grow p-3 border border-gray-300 bg-white rounded-lg resize-none focus:outline-none focus:border-green-500"></textarea>
+                    <label for="notes-textarea" class="font-semibold text-gray-600 mb-2">Notes</label>
+                    <div class="relative flex-grow">
+                        <textarea id="notes-textarea" class="w-full h-full p-3 bg-transparent border border-[#3a4d39]/30 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[#6f8a6e] text-[#3a4d39] min-h-[120px]"></textarea>
+                        <button class="absolute bottom-3 right-3 text-gray-400 hover:text-[#3a4d39]"><i class="fas fa-pencil-alt"></i></button>
+                    </div>
                 </div>
+
+                <!-- Countered Checks Section -->
                 <div>
-                    <label class="font-semibold text-gray-600 mb-2">Countered Checks</label>
-                    <input type="text" id="countered-check-input" readonly class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" value="₱ 0.00">
+                    <label for="countered-check-input" class="font-semibold text-gray-600 mb-2">Countered Checks</label>
+                    <input type="text" id="countered-check-input" readonly class="w-full px-4 py-3 bg-transparent border border-[#3a4d39]/30 text-[#3a4d39] font-semibold rounded-lg">
                 </div>
+
+                <!-- Check Amount Section -->
                 <div>
-                    <label class="font-semibold text-gray-600 mb-2">Check Amount</label>
-                    <input type="text" id="check-amount-input" readonly class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg" value="₱ 0.00">
+                    <label for="check-amount-input" class="font-semibold text-gray-600 mb-2">Check Amount</label>
+                    <div class="relative">
+                        <input type="text" id="check-amount-input" class="w-full px-4 py-3 bg-transparent border border-[#3a4d39]/30 text-[#3a4d39] font-semibold rounded-lg focus:outline-none focus:ring-1 focus:ring-[#6f8a6e]">
+                        <button class="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 hover:text-[#3a4d39]"><i class="fas fa-pencil-alt"></i></button>
+                    </div>
                 </div>
+                
+                <!-- Paid Button Section -->
                 <div class="mt-auto text-right pt-4">
-                    <button id="paid-btn" class="px-10 py-3 bg-[#3a4d39] text-white font-bold rounded-lg shadow-md hover:bg-[#6f8a6e] transition-colors">Paid</button>
+                    <button id="paid-btn" class="px-8 py-2.5 bg-[#3a4d39] text-white font-bold rounded-lg shadow-md hover:bg-[#6f8a6e] transition-colors">Paid</button>
                 </div>
             </div>
+            <!-- --- END OF MODIFICATION --- -->
+
         </div>
     </div>
 </main>

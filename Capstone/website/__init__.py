@@ -23,7 +23,8 @@ from .models import (
     get_analytics_data,
     log_user_activity, get_recent_activity, # Added the missing functions
     add_invoice,
-    add_notification, get_unread_notifications, mark_notifications_as_read, save_push_subscription
+    # FIX: Import the missing get_unread_notification_count function.
+    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription
 )
 # --- END OF MODIFICATION ---
 
@@ -86,6 +87,8 @@ def create_app(config_name='dev'):
     app.add_invoice = add_invoice
     app.add_notification = add_notification
     app.get_unread_notifications = get_unread_notifications
+    # FIX: Attach the get_unread_notification_count function to the app instance.
+    app.get_unread_notification_count = get_unread_notification_count
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
     app.mail = mail

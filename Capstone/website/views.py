@@ -15,7 +15,8 @@ from .models import (
     get_analytics_data,
     get_recent_activity,
     archive_transaction,
-    get_archived_items
+    get_archived_items,
+    get_invoices # ADDED: New function for Invoice list view
 )
 
 logger = logging.getLogger(__name__)
@@ -137,6 +138,7 @@ def add_transaction():
             redirect_url = url_for('main.transactions_pending')
 
     if form.validate_on_submit():
+        # NOTE: Using current_app to call model function
         if current_app.add_transaction(username, selected_branch, form.data):
             flash('Successfully added a new transaction!', 'success')
             current_app.log_user_activity(username, 'Added a new transaction')
@@ -158,7 +160,40 @@ def analytics():
 @main.route('/invoice')
 @jwt_required()
 def invoice():
+    # This is the "Create Invoice" page with the upload form
     return render_template('invoice.html', show_sidebar=True)
+
+# --- START OF MERGED INVOICE ROUTES ---
+@main.route('/invoices')
+@jwt_required()
+def all_invoices():
+    """Displays a list of all invoices."""
+    username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    
+    # For demonstration, add a dummy invoice if none exist
+    if current_app.db.invoices.count_documents({'username': username}) == 0:
+        dummy_invoice = {
+            'folder_name': 'cupcakes', 'category': 'Salary', 
+            'date': datetime(2025, 9, 22),
+        }
+        # NOTE: Using current_app to call the model function
+        current_app.add_invoice(username, selected_branch, dummy_invoice, [])
+
+    invoice_list = get_invoices(username, selected_branch)
+    return render_template('all_invoices.html', show_sidebar=True, invoices=invoice_list)
+
+@main.route('/api/invoices/upload', methods=['POST'])
+@jwt_required()
+def upload_invoice():
+    """API endpoint to handle invoice uploads."""
+    # In a real application, you would handle file saving here and then
+    # call add_invoice with the form data and file info.
+    username = get_jwt_identity()
+    current_app.log_user_activity(username, 'Uploaded an invoice')
+    flash('Successfully added an invoice!', 'success')
+    return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
+# --- END OF MERGED INVOICE ROUTES ---
 
 @main.route('/billings')
 @jwt_required()

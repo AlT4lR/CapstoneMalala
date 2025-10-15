@@ -12,16 +12,19 @@ from bson.objectid import ObjectId
 from calendar import month_name
 import random
 import string
-from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES
+# NOTE: Assumes constants are available, e.g., from a separate file or directly defined
+from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES 
 
 logger = logging.getLogger(__name__)
 
 # --- Helper function for timestamps ---
 def _format_relative_time(dt):
     """Formats a datetime object into a relative time string."""
+    # Ensure dt (the stored timestamp) is timezone-aware
     if dt.tzinfo is None:
         dt = pytz.utc.localize(dt)
 
+    # Ensure now (current time) is also timezone-aware (using UTC)
     now = datetime.now(pytz.utc)
     diff = now - dt
 
@@ -40,7 +43,10 @@ def _format_relative_time(dt):
     return dt.strftime('%b %d, %Y')
 
 
+# =========================================================
 # --- User & Auth Models ---
+# =========================================================
+
 def get_user_by_username(username):
     db = current_app.db
     if db is None: return None
@@ -97,7 +103,9 @@ def record_failed_login_attempt(username):
     update_fields = {'$set': {'failedLoginAttempts': new_attempts}}
 
     if new_attempts >= LOGIN_ATTEMPT_LIMIT:
-        lockout_time = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+        # Note: datetime.utcnow() is offset-naive, but using it with timedelta works.
+        # However, for consistency, we should use datetime.now(pytz.utc)
+        lockout_time = datetime.now(pytz.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         update_fields['$set']['lockoutUntil'] = lockout_time
 
     db.users.update_one({'_id': user['_id']}, update_fields)
@@ -138,7 +146,87 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     return False
 
 
+# =========================================================
+# --- Activity Models ---
+# =========================================================
+
+def log_user_activity(username, activity_type):
+    db = current_app.db
+    if db is None: return
+    try:
+        db.activity_logs.insert_one({
+            'username': username,
+            'activity_type': activity_type,
+            'timestamp': datetime.now(pytz.utc)
+        })
+    except Exception as e:
+        logger.error(f"Error logging user activity for {username}: {e}", exc_info=True)
+
+def get_recent_activity(username, limit=3):
+    db = current_app.db
+    if db is None: return []
+    activities = []
+    try:
+        for doc in db.activity_logs.find({'username': username}).sort('timestamp', -1).limit(limit):
+            activities.append({
+                'username': doc['username'].capitalize(),
+                'relative_time': _format_relative_time(doc['timestamp']),
+                'activity_type': doc.get('activity_type', 'Unknown Action') 
+            })
+    except Exception as e:
+        # This error handling is critical for the previous TypeErrors
+        logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
+    return activities
+
+
+# =========================================================
+# --- Invoice Models (New) ---
+# =========================================================
+
+def add_invoice(username, branch, invoice_data, files):
+    """Adds a new invoice record to the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        # Note: 'files' should be a list of file info after saving them.
+        db.invoices.insert_one({
+            'username': username,
+            'branch': branch,
+            'folder_name': invoice_data.get('folder_name'),
+            'category': invoice_data.get('category'),
+            'date': invoice_data.get('date'),
+            'files': files, # e.g., [{'filename': 'photo.png', 'path': '/uploads/...'}]
+            'createdAt': datetime.now(pytz.utc)
+        })
+        return True
+    except Exception as e:
+        logger.error(f"Error adding invoice for {username}: {e}", exc_info=True)
+        return False
+
+def get_invoices(username, branch):
+    """Fetches all invoices for a user and branch."""
+    db = current_app.db
+    if db is None: return []
+    invoices = []
+    try:
+        query = {'username': username, 'branch': branch}
+        for doc in db.invoices.find(query).sort('date', -1):
+            # The 'date' field from the form is typically a string, 
+            # but if it was stored as a datetime object in MongoDB, the strftime will work.
+            invoices.append({
+                'id': str(doc['_id']),
+                'file_name': doc.get('folder_name', 'N/A'),
+                'date': doc.get('date').strftime('%m/%d/%Y') if doc.get('date') else 'N/A',
+                'category': doc.get('category', 'N/A')
+            })
+    except Exception as e:
+        logger.error(f"Error fetching invoices for {username}: {e}", exc_info=True)
+    return invoices
+
+
+# =========================================================
 # --- Transaction & Other Models ---
+# =========================================================
 
 def add_transaction(username, branch, transaction_data):
     db = current_app.db
@@ -303,34 +391,10 @@ def get_analytics_data(username, year):
         logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
         return {}
 
-def log_user_activity(username, activity_type):
-    db = current_app.db
-    if db is None: return
-    try:
-        db.activity_logs.insert_one({
-            'username': username,
-            'activity_type': activity_type,
-            'timestamp': datetime.now(pytz.utc)
-        })
-    except Exception as e:
-        logger.error(f"Error logging user activity for {username}: {e}", exc_info=True)
 
-def get_recent_activity(username, limit=3):
-    db = current_app.db
-    if db is None: return []
-    activities = []
-    try:
-        for doc in db.activity_logs.find({'username': username}).sort('timestamp', -1).limit(limit):
-            activities.append({
-                'username': doc['username'].capitalize(),
-                'relative_time': _format_relative_time(doc['timestamp']),
-                'activity_type': doc.get('activity_type', 'Unknown Action') 
-            })
-    except Exception as e:
-        logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
-    return activities
-
+# =========================================================
 # --- Notification and Push Subscription Models ---
+# =========================================================
 
 def add_notification(username, title, message, url):
     """Adds a new notification for a user to the database."""
@@ -407,6 +471,3 @@ def save_push_subscription(username, subscription_info):
     except Exception as e:
         logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
         return False
-
-# Placeholder for add_invoice
-def add_invoice(username, branch, invoice_data): return True
