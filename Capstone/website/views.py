@@ -25,7 +25,9 @@ from .models import (
     get_invoices,
     get_invoice_by_id,
     archive_invoice,
-    add_loan
+    add_loan,
+    add_schedule, 
+    get_schedules
 )
 
 logger = logging.getLogger(__name__)
@@ -177,7 +179,6 @@ def upload_invoice():
 @main.route('/billings')
 @jwt_required()
 def billings():
-    # Pass an instance of LoanForm to the template
     form = LoanForm()
     return render_template('billings.html', show_sidebar=True, form=form)
 
@@ -310,7 +311,6 @@ def download_invoice_as_pdf(invoice_id):
 @main.route('/api/loans/add', methods=['POST'])
 @jwt_required()
 def add_loan_route():
-    """API endpoint to handle adding a new loan."""
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = LoanForm()
@@ -322,6 +322,28 @@ def add_loan_route():
             return jsonify({'success': False, 'error': 'An error occurred while saving the loan.'}), 500
     errors = {field: error[0] for field, error in form.errors.items()}
     return jsonify({'success': False, 'errors': errors}), 400
+
+@main.route('/api/schedules', methods=['GET'])
+@jwt_required()
+def get_schedules_route():
+    username = get_jwt_identity()
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if not start or not end:
+        return jsonify({"error": "Start and end date are required"}), 400
+    events = current_app.get_schedules(username, start, end)
+    return jsonify(events)
+
+@main.route('/api/schedules/add', methods=['POST'])
+@jwt_required()
+def add_schedule_route():
+    username = get_jwt_identity()
+    if not request.form:
+        return jsonify({"error": "Form data is missing"}), 400
+    if current_app.add_schedule(username, request.form):
+        current_app.log_user_activity(username, "Created a new schedule")
+        return jsonify({"success": True, "message": "Schedule created successfully!"})
+    return jsonify({"error": "Failed to create schedule"}), 500
 
 # --- Archive ---
 @main.route('/archive')
