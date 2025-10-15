@@ -33,22 +33,15 @@
                     <a href="{{ url_for('main.schedules') }}" class="text-xs text-gray-500 hover:text-[#3a4d39]">See All...</a>
                 </div>
 
+                <!-- --- MOCK DATA REMOVED --- -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {% for item in [
-                        {'time': '8:00 AM - 9:30 AM', 'task': 'Client Meeting'},
-                        {'time': '8:00 AM - 9:30 AM', 'task': 'Alcohol delivery'},
-                        {'time': '8:00 AM - 9:30 AM', 'task': 'Client Meeting'},
-                        {'time': '8:00 AM - 9:30 AM', 'task': 'Client Meeting'}
-                    ] %}
-                    <div class="rounded-md overflow-hidden border border-[#dce0d2] hover:shadow transition-all">
-                        <div class="bg-[#3a4d39] text-white text-xs font-semibold text-center py-1.5">{{ item.time }}</div>
-                        <div class="p-2 text-center">
-                            <p class="font-medium text-[#3a4d39] text-sm">{{ item.task }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">Sep 23, 2025</p>
-                        </div>
+                    <!-- The hardcoded 'for' loop for schedules has been removed. -->
+                    <!-- This section is now ready for you to load real data from your database. -->
+                    <div class="text-center text-gray-500 p-4 col-span-full">
+                        No schedules to show.
                     </div>
-                    {% endfor %}
                 </div>
+                <!-- --- END OF REMOVAL --- -->
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -88,8 +81,6 @@
                             {% for activity in recent_activities %}
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
-                                    
-                                    {# --- Dynamically set icon and color based on activity type --- #}
                                     {% if activity.activity_type == 'User Log In' %}
                                         <i class="fa-solid fa-right-to-bracket text-green-600"></i>
                                     {% elif activity.activity_type == 'Added a new transaction' %}
@@ -104,7 +95,6 @@
                                     
                                     <div>
                                         <p class="font-medium">{{ activity.username }}</p>
-                                        {# --- Dynamically set the action text --- #}
                                         <p class="text-[10px] text-gray-500">{{ activity.activity_type }}</p>
                                     </div>
 

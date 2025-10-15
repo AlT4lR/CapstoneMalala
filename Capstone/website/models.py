@@ -12,41 +12,32 @@ from bson.objectid import ObjectId
 from calendar import month_name
 import random
 import string
-# NOTE: Assumes constants are available, e.g., from a separate file or directly defined
 from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES 
 
 logger = logging.getLogger(__name__)
 
 # --- Helper function for timestamps ---
+# (This function remains unchanged)
 def _format_relative_time(dt):
     """Formats a datetime object into a relative time string."""
-    # Ensure dt (the stored timestamp) is timezone-aware
     if dt.tzinfo is None:
         dt = pytz.utc.localize(dt)
-
-    # Ensure now (current time) is also timezone-aware (using UTC)
     now = datetime.now(pytz.utc)
     diff = now - dt
-
     seconds = diff.total_seconds()
-    if seconds < 60:
-        return "just now"
+    if seconds < 60: return "just now"
     minutes = seconds / 60
-    if minutes < 60:
-        return f"{int(minutes)}m ago"
+    if minutes < 60: return f"{int(minutes)}m ago"
     hours = minutes / 60
-    if hours < 24:
-        return f"{int(hours)}h ago"
+    if hours < 24: return f"{int(hours)}h ago"
     days = hours / 24
-    if days < 7:
-        return f"{int(days)}d ago"
+    if days < 7: return f"{int(days)}d ago"
     return dt.strftime('%b %d, %Y')
-
 
 # =========================================================
 # --- User & Auth Models ---
 # =========================================================
-
+# (All your user & auth functions remain here, unchanged)
 def get_user_by_username(username):
     db = current_app.db
     if db is None: return None
@@ -98,16 +89,11 @@ def record_failed_login_attempt(username):
     if db is None: return
     user = get_user_by_username(username)
     if not user: return
-
     new_attempts = user.get('failedLoginAttempts', 0) + 1
     update_fields = {'$set': {'failedLoginAttempts': new_attempts}}
-
     if new_attempts >= LOGIN_ATTEMPT_LIMIT:
-        # Note: datetime.utcnow() is offset-naive, but using it with timedelta works.
-        # However, for consistency, we should use datetime.now(pytz.utc)
         lockout_time = datetime.now(pytz.utc) + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
         update_fields['$set']['lockoutUntil'] = lockout_time
-
     db.users.update_one({'_id': user['_id']}, update_fields)
 
 def update_user_password(email, new_password):
@@ -145,11 +131,9 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         return totp.verify(submitted_otp, valid_window=1)
     return False
 
-
 # =========================================================
 # --- Activity Models ---
 # =========================================================
-
 def log_user_activity(username, activity_type):
     db = current_app.db
     if db is None: return
@@ -174,29 +158,25 @@ def get_recent_activity(username, limit=3):
                 'activity_type': doc.get('activity_type', 'Unknown Action') 
             })
     except Exception as e:
-        # This error handling is critical for the previous TypeErrors
         logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
     return activities
 
-
 # =========================================================
-# --- Invoice Models (New) ---
+# --- Invoice Models ---
 # =========================================================
-
 def add_invoice(username, branch, invoice_data, files):
-    """Adds a new invoice record to the database."""
     db = current_app.db
     if db is None: return False
     try:
-        # Note: 'files' should be a list of file info after saving them.
         db.invoices.insert_one({
             'username': username,
             'branch': branch,
             'folder_name': invoice_data.get('folder_name'),
             'category': invoice_data.get('category'),
             'date': invoice_data.get('date'),
-            'files': files, # e.g., [{'filename': 'photo.png', 'path': '/uploads/...'}]
-            'createdAt': datetime.now(pytz.utc)
+            'files': files,
+            'createdAt': datetime.now(pytz.utc),
+            'isArchived': False
         })
         return True
     except Exception as e:
@@ -204,15 +184,16 @@ def add_invoice(username, branch, invoice_data, files):
         return False
 
 def get_invoices(username, branch):
-    """Fetches all invoices for a user and branch."""
     db = current_app.db
     if db is None: return []
     invoices = []
     try:
-        query = {'username': username, 'branch': branch}
+        query = {
+            'username': username, 
+            'branch': branch,
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }
         for doc in db.invoices.find(query).sort('date', -1):
-            # The 'date' field from the form is typically a string, 
-            # but if it was stored as a datetime object in MongoDB, the strftime will work.
             invoices.append({
                 'id': str(doc['_id']),
                 'file_name': doc.get('folder_name', 'N/A'),
@@ -223,30 +204,50 @@ def get_invoices(username, branch):
         logger.error(f"Error fetching invoices for {username}: {e}", exc_info=True)
     return invoices
 
+def get_invoice_by_id(username, invoice_id):
+    db = current_app.db
+    if db is None: return None
+    try:
+        query = {'_id': ObjectId(invoice_id), 'username': username}
+        invoice = db.invoices.find_one(query)
+        if invoice:
+            invoice['_id'] = str(invoice['_id'])
+        return invoice
+    except Exception as e:
+        logger.error(f"Error fetching invoice {invoice_id}: {e}", exc_info=True)
+        return None
+
+def archive_invoice(username, invoice_id):
+    db = current_app.db
+    if db is None: return False
+    try:
+        result = db.invoices.update_one(
+            {'_id': ObjectId(invoice_id), 'username': username},
+            {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
+        )
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error archiving invoice {invoice_id}: {e}", exc_info=True)
+        return False
 
 # =========================================================
 # --- Transaction & Other Models ---
 # =========================================================
-
 def add_transaction(username, branch, transaction_data):
     db = current_app.db
     if db is None: return False
     try:
         check_date_obj = transaction_data.get('check_date')
         doc = {
-            'username': username,
-            'branch': branch,
+            'username': username, 'branch': branch,
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
             'check_date': pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time())) if check_date_obj else datetime.now(pytz.utc),
             'countered_check': float(transaction_data.get('countered_check', 0.0)),
             'amount': float(transaction_data.get('countered_check', 0.0)),
             'ewt': float(transaction_data.get('ewt', 0.0)),
-            'status': 'Pending',
-            'sub_branch': 'San Isidro',
-            'createdAt': datetime.now(pytz.utc),
-            'isArchived': False,
-            'notes': ''
+            'status': 'Pending', 'sub_branch': 'San Isidro',
+            'createdAt': datetime.now(pytz.utc), 'isArchived': False, 'notes': ''
         }
         db.transactions.insert_one(doc)
         return True
@@ -259,18 +260,11 @@ def get_transactions_by_status(username, branch, status):
     if db is None: return []
     transactions = []
     try:
-        query = {
-            'username': username,
-            'status': status,
-            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
-        }
-        if branch:
-            query['branch'] = branch
-
+        query = {'username': username, 'status': status, '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]}
+        if branch: query['branch'] = branch
         for doc in db.transactions.find(query).sort('check_date', -1):
             transactions.append({
-                '_id': str(doc['_id']),
-                'name': doc.get('name'),
+                '_id': str(doc['_id']), 'name': doc.get('name'),
                 'check_no': f"#{doc.get('check_no')}",
                 'check_date': doc.get('check_date').strftime('%m/%d/%Y') if doc.get('check_date') else 'N/A',
                 'ewt': f"₱ {doc.get('ewt', 0.0):,.2f}",
@@ -288,15 +282,11 @@ def get_transaction_by_id(username, transaction_id):
         doc = db.transactions.find_one({'_id': ObjectId(transaction_id), 'username': username})
         if doc:
             return {
-                '_id': str(doc['_id']),
-                'name': doc.get('name'),
+                '_id': str(doc['_id']), 'name': doc.get('name'),
                 'check_no': doc.get('check_no'),
                 'check_date': doc.get('check_date').strftime('%Y-%m-%d') if doc.get('check_date') else '',
-                'ewt': doc.get('ewt', 0.0),
-                'countered_check': doc.get('countered_check', 0.0),
-                'amount': doc.get('amount', 0.0),
-                'notes': doc.get('notes', ''),
-                'status': doc.get('status')
+                'ewt': doc.get('ewt', 0.0), 'countered_check': doc.get('countered_check', 0.0),
+                'amount': doc.get('amount', 0.0), 'notes': doc.get('notes', ''), 'status': doc.get('status')
             }
     except Exception as e:
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
@@ -307,13 +297,8 @@ def mark_transaction_as_paid(username, transaction_id, notes=None):
     if db is None: return False
     try:
         update_data = {'$set': {'status': 'Paid'}}
-        if notes is not None:
-            update_data['$set']['notes'] = notes
-            
-        result = db.transactions.update_one(
-            {'_id': ObjectId(transaction_id), 'username': username},
-            update_data
-        )
+        if notes is not None: update_data['$set']['notes'] = notes
+        result = db.transactions.update_one({'_id': ObjectId(transaction_id), 'username': username}, update_data)
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error marking transaction {transaction_id} as paid: {e}", exc_info=True)
@@ -332,24 +317,63 @@ def archive_transaction(username, transaction_id):
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
 
+# --- START OF FIX: This function is completely replaced ---
 def get_archived_items(username):
+    """Fetches and combines archived items from BOTH transactions and invoices."""
     db = current_app.db
     if db is None: return []
-    items = []
+    
+    all_items_raw = []
+    query = {'username': username, 'isArchived': True}
+
     try:
-        query = {'username': username, 'isArchived': True}
-        for doc in db.transactions.find(query).sort('archivedAt', -1):
-            items.append({
+        # 1. Fetch archived transactions
+        for doc in db.transactions.find(query):
+            all_items_raw.append({
                 'id': str(doc['_id']),
                 'name': doc.get('name', 'N/A'),
+                'type': 'Transaction',
                 'details': f"Check #{doc.get('check_no', 'N/A')}",
-                'archived_at_str': doc.get('archivedAt').strftime('%b %d, %Y, %I:%M %p') if doc.get('archivedAt') else 'N/A',
-                'relative_time': _format_relative_time(doc.get('archivedAt')) if doc.get('archivedAt') else ''
+                'archivedAt': doc.get('archivedAt')
             })
-    except Exception as e:
-        logger.error(f"Error fetching archived items: {e}", exc_info=True)
-    return items
 
+        # 2. Fetch archived invoices
+        for doc in db.invoices.find(query):
+            all_items_raw.append({
+                'id': str(doc['_id']),
+                'name': doc.get('folder_name', 'N/A'),
+                'type': 'Invoice',
+                'details': f"Category: {doc.get('category', 'N/A')}",
+                'archivedAt': doc.get('archivedAt')
+            })
+
+        # 3. Sort all items together by date, most recent first
+        # Handle items that might be missing the archivedAt key
+        all_items_raw.sort(
+            key=lambda x: x.get('archivedAt', datetime.min.replace(tzinfo=pytz.utc)), 
+            reverse=True
+        )
+
+        # 4. Format the sorted list for display
+        formatted_items = []
+        for item in all_items_raw:
+            archived_at = item.get('archivedAt')
+            if archived_at:
+                item['archived_at_str'] = archived_at.strftime('%b %d, %Y, %I:%M %p')
+                item['relative_time'] = _format_relative_time(archived_at)
+            else:
+                item['archived_at_str'] = 'N/A'
+                item['relative_time'] = ''
+            formatted_items.append(item)
+
+        return formatted_items
+
+    except Exception as e:
+        logger.error(f"Error fetching all archived items: {e}", exc_info=True)
+        return []
+# --- END OF FIX ---
+
+# (The rest of your models.py file remains unchanged)
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
@@ -391,13 +415,7 @@ def get_analytics_data(username, year):
         logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
         return {}
 
-
-# =========================================================
-# --- Notification and Push Subscription Models ---
-# =========================================================
-
 def add_notification(username, title, message, url):
-    """Adds a new notification for a user to the database."""
     db = current_app.db
     if db is None: return False
     try:
@@ -415,7 +433,6 @@ def add_notification(username, title, message, url):
         return False
 
 def get_unread_notifications(username):
-    """Fetches all unread notifications for a user."""
     db = current_app.db
     if db is None: return []
     notifications = []
@@ -434,7 +451,6 @@ def get_unread_notifications(username):
     return notifications
 
 def get_unread_notification_count(username):
-    """Counts the number of unread notifications for a user."""
     db = current_app.db
     if db is None: return 0
     try:
@@ -444,7 +460,6 @@ def get_unread_notification_count(username):
         return 0
 
 def mark_notifications_as_read(username):
-    """Marks all unread notifications for a user as read."""
     db = current_app.db
     if db is None: return False
     try:
@@ -458,11 +473,9 @@ def mark_notifications_as_read(username):
         return False
 
 def save_push_subscription(username, subscription_info):
-    """Saves a web push subscription for a user."""
     db = current_app.db
     if db is None: return False
     try:
-        # Avoid duplicate subscriptions
         db.users.update_one(
             {'username': username},
             {'$addToSet': {'push_subscriptions': subscription_info}}
