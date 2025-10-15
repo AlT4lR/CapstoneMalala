@@ -14,7 +14,7 @@
         </div>
         <div class="flex items-center gap-4">
             <div class="relative">
-                <!-- --- MODIFICATION: Added id="search-input" --- -->
+                <!-- --- THIS IS THE SEARCH BAR --- -->
                 <input type="text" id="search-input" placeholder="Search Paid Transactions..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
@@ -40,10 +40,9 @@
 
         <!-- Transaction List -->
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <!-- --- MODIFICATION: Added id="transaction-list-container" --- -->
             <div id="transaction-list-container" class="space-y-2">
                 {% for t in transactions %}
-                <!-- --- MODIFICATION: Added class="transaction-item" and data-name attribute --- -->
+                <!-- Each transaction item has a class and a data-name attribute for searching -->
                 <div class="grid grid-cols-10 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors transaction-item" data-name="{{ t.name }}">
                     <div class="col-span-4 flex items-center gap-3">
                         <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
@@ -62,7 +61,7 @@
                     <p class="text-gray-500">No paid transactions found.</p>
                 </div>
                 {% endfor %}
-                <!-- --- MODIFICATION: Added "no results" message for search --- -->
+                <!-- --- THIS MESSAGE APPEARS WHEN NO RESULTS ARE FOUND --- -->
                 <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
             </div>
         </div>
@@ -71,7 +70,7 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- --- MODIFICATION: Added search functionality script --- -->
+<!-- --- THIS SCRIPT POWERS THE REAL-TIME SEARCH --- -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
