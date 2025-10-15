@@ -24,7 +24,6 @@ main = Blueprint('main', __name__)
 # --- Static Service Worker ---
 @main.route('/sw.js')
 def service_worker():
-    # Correctly serves the sw.js file from the 'website/static/js' directory.
     return send_from_directory(os.path.join(main.root_path, 'static', 'js'), 'sw.js', mimetype='application/javascript')
 
 # --- Root / Branch Selection ---
@@ -43,10 +42,8 @@ def root_route():
 def branches():
     return render_template('branches.html')
 
-# This new route serves the dedicated offline page.
 @main.route('/offline')
 def offline():
-    """Renders the offline fallback page."""
     return render_template('offline.html')
 
 @main.route('/select_branch/<branch_name>')
@@ -142,10 +139,7 @@ def add_transaction():
     if form.validate_on_submit():
         if current_app.add_transaction(username, selected_branch, form.data):
             flash('Successfully added a new transaction!', 'success')
-            # --- START OF MODIFICATION ---
-            # Log this successful action.
             current_app.log_user_activity(username, 'Added a new transaction')
-            # --- END OF MODIFICATION ---
         else:
             flash('An error occurred.', 'error')
     else:
@@ -182,16 +176,38 @@ def settings():
     return render_template('settings.html', show_sidebar=True)
 
 # --- API Routes ---
+@main.route('/api/notifications/status', methods=['GET'])
+@jwt_required()
+def notification_status():
+    """Checks for new unread notifications."""
+    username = get_jwt_identity()
+    count = current_app.get_unread_notification_count(username)
+    return jsonify({'unread_count': count})
+
+@main.route('/api/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    """Fetches all unread notifications."""
+    username = get_jwt_identity()
+    notifications = current_app.get_unread_notifications(username)
+    return jsonify(notifications)
+
+@main.route('/api/notifications/read', methods=['POST'])
+@jwt_required()
+def mark_read():
+    """Marks all notifications as read."""
+    username = get_jwt_identity()
+    if current_app.mark_notifications_as_read(username):
+        return jsonify({'success': True})
+    return jsonify({'error': 'Failed to mark notifications as read'}), 500
+
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
-    username = get_jwt_identity() # --- MODIFICATION: Get username for logging
+    username = get_jwt_identity()
     if archive_transaction(username, transaction_id):
         flash('Transaction successfully moved to archive!', 'success')
-        # --- START OF MODIFICATION ---
-        # Log this successful action.
         current_app.log_user_activity(username, 'Archived a transaction')
-        # --- END OF MODIFICATION ---
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to archive transaction.'}), 404
 
@@ -212,7 +228,6 @@ def pay_transaction(transaction_id):
     notes = data.get('notes')
 
     if current_app.mark_transaction_as_paid(username, transaction_id, notes):
-        # This was already here, but it's good to confirm it's part of our system.
         current_app.log_user_activity(username, f'Marked transaction as Paid')
         return jsonify({'success': True, 'message': 'Transaction marked as Paid.'})
 

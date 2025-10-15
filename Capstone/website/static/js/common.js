@@ -52,18 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     window.getCsrfToken = () => csrfToken;
 
-    // --- START OF MODIFICATION ---
-    // This block finds the flash message container and makes it fade out.
     const flashContainer = document.getElementById('flash-messages-overlay-container');
     if (flashContainer) {
-        // Wait 5 seconds before starting the fade-out
         setTimeout(() => {
             flashContainer.style.opacity = '0';
-            // After the CSS transition is complete, remove the element from the DOM
             flashContainer.addEventListener('transitionend', () => flashContainer.remove());
         }, 5000);
     }
-    // --- END OF MODIFICATION ---
 
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
@@ -80,10 +75,109 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'X-CSRF-Token': window.getCsrfToken() }
             });
             if (response.ok) {
-                window.location.reload(); // Reload to show flash message and updated list
+                window.location.reload();
             } else {
                 alert('Error: Could not delete the transaction.');
             }
         });
     });
+
+    // --- Notification Panel Logic ---
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationIndicator = document.getElementById('notification-indicator');
+    const notificationList = document.getElementById('notification-list');
+    const notificationLoader = document.getElementById('notification-loader');
+
+    const checkNotificationStatus = async () => {
+        try {
+            const response = await fetch('/api/notifications/status');
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.unread_count > 0) {
+                notificationIndicator.classList.remove('hidden');
+            } else {
+                notificationIndicator.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error checking notification status:', error);
+        }
+    };
+
+    const createNotificationHTML = (notification) => {
+        let iconClass = 'fa-solid fa-info-circle';
+        if (notification.title.toLowerCase().includes('transaction')) {
+            iconClass = 'fa-solid fa-truck-fast';
+        } else if (notification.title.toLowerCase().includes('meeting')) {
+            iconClass = 'fa-solid fa-calendar-days';
+        }
+
+        return `
+            <a href="${notification.url}" class="flex items-start gap-4 p-4 border-b hover:bg-gray-50 transition-colors">
+                <div class="relative">
+                    <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full">
+                        <i class="${iconClass} text-gray-500"></i>
+                    </div>
+                    <span class="absolute -top-1 -left-1 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <p class="font-bold text-gray-800">${notification.title}</p>
+                        <p class="text-xs text-gray-500">${notification.relative_time}</p>
+                    </div>
+                    <p class="text-sm text-gray-600">${notification.message}</p>
+                </div>
+            </a>
+        `;
+    };
+
+    const fetchAndDisplayNotifications = async () => {
+        notificationLoader.textContent = 'Loading...';
+        notificationLoader.style.display = 'block';
+        notificationList.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/notifications');
+            if (!response.ok) throw new Error('Failed to fetch');
+            const notifications = await response.json();
+            
+            notificationLoader.style.display = 'none';
+
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<p class="text-center text-gray-500 p-8">No new notifications.</p>';
+            } else {
+                notifications.forEach(n => {
+                    notificationList.innerHTML += createNotificationHTML(n);
+                });
+            }
+            
+            await fetch('/api/notifications/read', { 
+                method: 'POST',
+                headers: { 'X-CSRF-Token': window.getCsrfToken() } 
+            });
+            notificationIndicator.classList.add('hidden');
+
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+            notificationLoader.textContent = 'Failed to load notifications.';
+        }
+    };
+
+    if (notificationBtn && notificationPanel) {
+        notificationBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = notificationPanel.classList.toggle('hidden');
+            if (!isHidden) {
+                fetchAndDisplayNotifications();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationPanel.contains(e.target) && !notificationBtn.contains(e.target)) {
+                notificationPanel.classList.add('hidden');
+            }
+        });
+    }
+
+    checkNotificationStatus();
 });

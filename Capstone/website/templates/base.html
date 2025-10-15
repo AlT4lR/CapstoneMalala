@@ -36,6 +36,9 @@
 </head>
 
 <body class="bg-[#fafaf5] font-poppins text-gray-800 antialiased" data-vapid-public-key="{{ config.VAPID_PUBLIC_KEY }}">
+    
+    {% include "_notification_panel.html" %}
+
     <div class="flex h-screen w-screen">
         {% if show_sidebar %}
             {% include "_sidebar.html" %}
