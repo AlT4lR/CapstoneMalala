@@ -17,7 +17,6 @@ from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES
 logger = logging.getLogger(__name__)
 
 # --- Helper function for timestamps ---
-# (This function remains unchanged)
 def _format_relative_time(dt):
     """Formats a datetime object into a relative time string."""
     if dt.tzinfo is None:
@@ -37,7 +36,6 @@ def _format_relative_time(dt):
 # =========================================================
 # --- User & Auth Models ---
 # =========================================================
-# (All your user & auth functions remain here, unchanged)
 def get_user_by_username(username):
     db = current_app.db
     if db is None: return None
@@ -317,44 +315,28 @@ def archive_transaction(username, transaction_id):
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
 
-# --- START OF FIX: This function is completely replaced ---
 def get_archived_items(username):
-    """Fetches and combines archived items from BOTH transactions and invoices."""
     db = current_app.db
     if db is None: return []
-    
     all_items_raw = []
     query = {'username': username, 'isArchived': True}
-
     try:
-        # 1. Fetch archived transactions
         for doc in db.transactions.find(query):
             all_items_raw.append({
-                'id': str(doc['_id']),
-                'name': doc.get('name', 'N/A'),
-                'type': 'Transaction',
-                'details': f"Check #{doc.get('check_no', 'N/A')}",
+                'id': str(doc['_id']), 'name': doc.get('name', 'N/A'),
+                'type': 'Transaction', 'details': f"Check #{doc.get('check_no', 'N/A')}",
                 'archivedAt': doc.get('archivedAt')
             })
-
-        # 2. Fetch archived invoices
         for doc in db.invoices.find(query):
             all_items_raw.append({
-                'id': str(doc['_id']),
-                'name': doc.get('folder_name', 'N/A'),
-                'type': 'Invoice',
-                'details': f"Category: {doc.get('category', 'N/A')}",
+                'id': str(doc['_id']), 'name': doc.get('folder_name', 'N/A'),
+                'type': 'Invoice', 'details': f"Category: {doc.get('category', 'N/A')}",
                 'archivedAt': doc.get('archivedAt')
             })
-
-        # 3. Sort all items together by date, most recent first
-        # Handle items that might be missing the archivedAt key
         all_items_raw.sort(
             key=lambda x: x.get('archivedAt', datetime.min.replace(tzinfo=pytz.utc)), 
             reverse=True
         )
-
-        # 4. Format the sorted list for display
         formatted_items = []
         for item in all_items_raw:
             archived_at = item.get('archivedAt')
@@ -365,15 +347,11 @@ def get_archived_items(username):
                 item['archived_at_str'] = 'N/A'
                 item['relative_time'] = ''
             formatted_items.append(item)
-
         return formatted_items
-
     except Exception as e:
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
-# --- END OF FIX ---
 
-# (The rest of your models.py file remains unchanged)
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
@@ -397,19 +375,15 @@ def get_analytics_data(username, year):
         max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
         chart_data = [
             {
-                'month_name': month_name[i][:3],
-                'total': monthly_totals.get(i, 0),
+                'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0),
                 'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100,
                 'is_current_month': i == current_month
             } for i in range(1, 13)
         ]
         return {
-            'year': year,
-            'total_year_earning': total_year_earning,
-            'chart_data': chart_data,
-            'current_month_name': month_name[current_month].upper(),
-            'weekly_breakdown': weekly_breakdown,
-            'current_month_total': monthly_totals.get(current_month, 0)
+            'year': year, 'total_year_earning': total_year_earning,
+            'chart_data': chart_data, 'current_month_name': month_name[current_month].upper(),
+            'weekly_breakdown': weekly_breakdown, 'current_month_total': monthly_totals.get(current_month, 0)
         }
     except Exception as e:
         logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
@@ -420,12 +394,8 @@ def add_notification(username, title, message, url):
     if db is None: return False
     try:
         db.notifications.insert_one({
-            'username': username,
-            'title': title,
-            'message': message,
-            'url': url,
-            'is_read': False,
-            'timestamp': datetime.now(pytz.utc)
+            'username': username, 'title': title, 'message': message, 'url': url,
+            'is_read': False, 'timestamp': datetime.now(pytz.utc)
         })
         return True
     except Exception as e:
@@ -440,10 +410,8 @@ def get_unread_notifications(username):
         query = {'username': username, 'is_read': False}
         for doc in db.notifications.find(query).sort('timestamp', -1):
             notifications.append({
-                'id': str(doc['_id']),
-                'title': doc.get('title'),
-                'message': doc.get('message'),
-                'url': doc.get('url'),
+                'id': str(doc['_id']), 'title': doc.get('title'),
+                'message': doc.get('message'), 'url': doc.get('url'),
                 'relative_time': _format_relative_time(doc['timestamp'])
             })
     except Exception as e:
@@ -463,10 +431,7 @@ def mark_notifications_as_read(username):
     db = current_app.db
     if db is None: return False
     try:
-        db.notifications.update_many(
-            {'username': username, 'is_read': False},
-            {'$set': {'is_read': True}}
-        )
+        db.notifications.update_many({'username': username, 'is_read': False}, {'$set': {'is_read': True}})
         return True
     except Exception as e:
         logger.error(f"Error marking notifications as read for {username}: {e}", exc_info=True)
@@ -476,11 +441,33 @@ def save_push_subscription(username, subscription_info):
     db = current_app.db
     if db is None: return False
     try:
-        db.users.update_one(
-            {'username': username},
-            {'$addToSet': {'push_subscriptions': subscription_info}}
-        )
+        db.users.update_one({'username': username}, {'$addToSet': {'push_subscriptions': subscription_info}})
         return True
     except Exception as e:
         logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
+        return False
+
+def add_loan(username, branch, loan_data):
+    """Adds a new loan record to the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        date_issued_obj = loan_data.get('date_issued')
+        date_paid_obj = loan_data.get('date_paid')
+
+        doc = {
+            'username': username,
+            'branch': branch,
+            'name': loan_data.get('name_of_loan'),
+            'bank_name': loan_data.get('bank_name'),
+            'amount': float(loan_data.get('amount', 0.0)),
+            'date_issued': pytz.utc.localize(datetime.combine(date_issued_obj, datetime.min.time())) if date_issued_obj else None,
+            'date_paid': pytz.utc.localize(datetime.combine(date_paid_obj, datetime.min.time())) if date_paid_obj else None,
+            'createdAt': datetime.now(pytz.utc),
+            'isArchived': False
+        }
+        db.loans.insert_one(doc)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding loan for {username}: {e}", exc_info=True)
         return False

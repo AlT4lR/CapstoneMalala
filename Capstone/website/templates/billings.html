@@ -1,13 +1,163 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice Billings{% endblock %}
 {% block content %}
-<main class="flex-1 p-8">
-    <header class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-[#3a4d39] uppercase tracking-wide">Billings Overview</h2>
-        {% include "_notification_button.html" %}
+<main class="flex-1 p-4 sm:p-6 flex flex-col gap-4 bg-[#f6f7f1] text-[#3a4d39]">
+    
+    <header class="flex justify-between items-center border-b border-[#d4d8c4] pb-2">
+        <h1 class="text-2xl font-bold">BILLINGS</h1>
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+            {% include "_notification_button.html" %}
+        </div>
     </header>
-    <div class="bg-white rounded-xl border p-8">
-        <p class="text-gray-500">Billings content goes here.</p>
-    </div>
+
+    <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
+        <h2 class="text-lg font-bold mb-3">Summary of Billings</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-[#3a4d39] text-white rounded-lg p-3 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <button class="hover:bg-white/10 rounded-full p-1"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="font-semibold tracking-wider">OCTOBER 2025</span>
+                    <button class="hover:bg-white/10 rounded-full p-1"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 1</button>
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 4</button>
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 2</button>
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 5</button>
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 3</button>
+                    <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 6</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Check Amount</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
+                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total EWT Collected</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
+                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Countered Check</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
+                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total amt of other loans</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 flex-1 flex flex-col">
+        <h2 class="text-lg font-bold mb-3">Loans</h2>
+        <div class="flex-1 flex flex-col">
+            <div class="border-b-2 border-[#3a4d39]"><div class="bg-[#3a4d39] text-white grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold"><span class="col-span-3">Name Of Loans</span><span class="col-span-2">Bank Name</span><span class="col-span-2">Amount</span><span class="col-span-2">Date Issued</span><span class="col-span-3 flex justify-between items-center"><span>Date Paid</span><div class="relative"><input type="text" placeholder="Search loans..." class="w-32 sm:w-40 pl-8 pr-2 py-1 bg-white/20 placeholder-white/70 rounded-md text-sm focus:outline-none focus:bg-white/30"><i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70"></i></div></span></div></div>
+            <div class="flex-1 overflow-y-auto"><div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm"><span class="col-span-3 font-medium">Personal Loan</span><span class="col-span-2 text-gray-600">BDO Unibank</span><span class="col-span-2 text-gray-600">₱ 50,000.00</span><span class="col-span-2 text-gray-600">09/15/2025</span><span class="col-span-2 text-gray-600">10/15/2025</span><div class="col-span-1 text-right"><button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button></div></div><div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm"><span class="col-span-3 font-medium">Car Loan</span><span class="col-span-2 text-gray-600">Metrobank</span><span class="col-span-2 text-gray-600">₱ 850,000.00</span><span class="col-span-2 text-gray-600">07/01/2025</span><span class="col-span-2 text-gray-600">-</span><div class="col-span-1 text-right"><button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button></div></div></div>
+        </div>
+        <div class="mt-4 text-right"><button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button></div>
+    </section>
 </main>
+
+<div id="add-loan-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-lg p-8 relative text-gray-700">
+        <button id="close-loan-modal-btn" class="absolute top-4 left-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+        
+        <div id="loan-success-message" class="hidden text-center mb-6">
+            <div class="inline-block px-6 py-2 border border-gray-300 rounded-lg bg-white">
+                <span class="text-sm font-medium text-[#3a4d39] underline">Successfully loan added!</span>
+            </div>
+        </div>
+
+        <form id="add-loan-form" method="POST" class="space-y-6" novalidate>
+            {{ form.hidden_tag() }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Name Of Loans</label>
+                    <input type="text" name="name_of_loan" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Date Issued</label>
+                    <input type="date" name="date_issued" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Bank Name</label>
+                    <input type="text" name="bank_name" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Date Paid</label>
+                    <input type="date" name="date_paid" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold mb-2">Amount</label>
+                    <input type="number" step="0.01" name="amount" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
+                </div>
+            </div>
+            <div class="flex justify-end mt-8">
+                <button type="submit" class="px-10 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('add-loan-modal');
+        const openBtn = document.getElementById('create-loan-btn');
+        const closeBtn = document.getElementById('close-loan-modal-btn');
+        const loanForm = document.getElementById('add-loan-form');
+        const successMessage = document.getElementById('loan-success-message');
+
+        const openModal = () => {
+            loanForm.reset();
+            successMessage.classList.add('hidden');
+            const submitButton = loanForm.querySelector('button[type="submit"]');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Add';
+            modal.classList.remove('hidden');
+        };
+        const closeModal = () => modal.classList.add('hidden');
+
+        if (modal && openBtn && closeBtn) {
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) closeModal();
+            });
+        }
+
+        if (loanForm) {
+            loanForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(this);
+                const submitButton = this.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Adding...';
+
+                try {
+                    const response = await fetch("{{ url_for('main.add_loan_route') }}", {
+                        method: 'POST',
+                        body: new URLSearchParams(formData).toString(),
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        successMessage.classList.remove('hidden');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        const errorMsg = result.errors ? Object.values(result.errors).join('\n') : (result.error || 'An unknown error occurred.');
+                        alert('Error: ' + errorMsg);
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Add';
+                    }
+                } catch (error) {
+                    console.error('Submission failed:', error);
+                    alert('A network error occurred. Please try again.');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Add';
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

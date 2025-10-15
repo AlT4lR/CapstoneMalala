@@ -51,3 +51,12 @@ class TransactionForm(FlaskForm):
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     submit = SubmitField('Add')
+
+class LoanForm(FlaskForm):
+    """Form for the 'Create Loan' modal."""
+    name_of_loan = StringField('Name Of Loans', validators=[DataRequired(), Length(max=100)])
+    bank_name = StringField('Bank Name', validators=[DataRequired(), Length(max=100)])
+    amount = DecimalField('Amount', validators=[DataRequired()])
+    date_issued = DateField('Date Issued', format='%Y-%m-%d', validators=[DataRequired()])
+    date_paid = DateField('Date Paid', format='%Y-%m-%d', validators=[Optional()])
+    submit = SubmitField('Add')

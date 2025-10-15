@@ -5,8 +5,6 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
     
-    <!-- --- START OF FIX --- -->
-    {# The header is restructured to match the layout of other pages like Transactions. #}
     <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Archive</h2>
@@ -16,13 +14,10 @@
             </a>
         </div>
 
-        <div class="flex items-center gap-3">
-            <button class="text-gray-500 hover:text-red-600" title="Empty Archive">
-                <i class="fa-solid fa-trash-can fa-lg"></i>
-            </button>
-        </div>
+        <!-- --- THIS IS THE FIX: The div containing the button has been removed --- -->
+        
+        <!-- --- END OF FIX --- -->
     </header>
-    <!-- --- END OF FIX --- -->
 
     <p class="text-sm text-gray-600 mb-6 max-w-2xl">
         Archived items will be stored here. Items that have been in the archive for more than 30 days may be permanently deleted.

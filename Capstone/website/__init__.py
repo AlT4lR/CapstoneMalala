@@ -20,13 +20,12 @@ from .models import (
     archive_transaction, get_archived_items,
     get_analytics_data,
     log_user_activity, get_recent_activity,
-    # --- MODIFIED LINE ---
     add_invoice, get_invoices, get_invoice_by_id, archive_invoice,
-    # --- END MODIFIED LINE ---
-    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription
+    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription,
+    add_loan
 )
 
-# (Logging configuration and extension initializations remain unchanged)
+# Logging configuration
 log_config = {
     'version': 1, 'disable_existing_loggers': False,
     'formatters': {'standard': {'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'}},
@@ -38,11 +37,12 @@ log_config = {
 }
 dictConfig(log_config)
 logger = logging.getLogger(__name__)
+
+# Initialize extensions
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 csrf = CSRFProtect()
-
 
 def create_app(config_name='dev'):
     """Application factory function."""
@@ -82,9 +82,7 @@ def create_app(config_name='dev'):
     app.add_invoice = add_invoice
     app.get_invoices = get_invoices
     app.get_invoice_by_id = get_invoice_by_id
-    # --- NEW LINE ---
     app.archive_invoice = archive_invoice
-    # --- END NEW LINE ---
 
     app.add_notification = add_notification
     app.get_unread_notifications = get_unread_notifications
@@ -92,8 +90,10 @@ def create_app(config_name='dev'):
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
     app.mail = mail
+    
+    app.add_loan = add_loan
 
-    # (MongoDB Connection, Blueprint Registration, and Error Handlers remain unchanged)
+    # MongoDB Connection
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
@@ -103,11 +103,13 @@ def create_app(config_name='dev'):
         logger.error(f"MongoDB connection failed: {e}", exc_info=True)
         app.db = None
     
+    # Register Blueprints
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    # Error Handlers
     @app.errorhandler(404)
     def page_not_found(e):
         return "404 Not Found", 404

@@ -15,7 +15,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 import io
 
-from .forms import TransactionForm
+from .forms import TransactionForm, LoanForm
 from .models import (
     get_transactions_by_status,
     get_analytics_data,
@@ -24,13 +24,13 @@ from .models import (
     get_archived_items,
     get_invoices,
     get_invoice_by_id,
-    archive_invoice # ADDED: New function for archiving
+    archive_invoice,
+    add_loan
 )
 
 logger = logging.getLogger(__name__)
 main = Blueprint('main', __name__)
 
-# (All your existing routes up to the API section remain unchanged)
 # --- Static Service Worker ---
 @main.route('/sw.js')
 def service_worker():
@@ -177,7 +177,9 @@ def upload_invoice():
 @main.route('/billings')
 @jwt_required()
 def billings():
-    return render_template('billings.html', show_sidebar=True)
+    # Pass an instance of LoanForm to the template
+    form = LoanForm()
+    return render_template('billings.html', show_sidebar=True, form=form)
 
 @main.route('/schedules')
 @jwt_required()
@@ -190,7 +192,6 @@ def settings():
     return render_template('settings.html', show_sidebar=True)
 
 # --- API Routes ---
-# (Notification and Transaction API routes remain unchanged)
 @main.route('/api/notifications/status', methods=['GET'])
 @jwt_required()
 def notification_status():
@@ -243,20 +244,14 @@ def pay_transaction(transaction_id):
         return jsonify({'success': True, 'message': 'Transaction marked as Paid.'})
     return jsonify({'error': 'Failed to mark transaction as Paid.'}), 400
 
-# --- Invoice API Routes ---
-
-# --- NEW ROUTE ---
 @main.route('/api/invoices/<invoice_id>', methods=['DELETE'])
 @jwt_required()
 def delete_invoice_route(invoice_id):
-    """API endpoint to archive an invoice."""
     username = get_jwt_identity()
     if current_app.archive_invoice(username, invoice_id):
         current_app.log_user_activity(username, 'Archived an invoice')
-        # We don't need to flash a message for an API route
         return jsonify({'success': True}), 200
     return jsonify({'error': 'Failed to archive invoice.'}), 404
-# --- END NEW ROUTE ---
 
 @main.route('/api/invoices/details/<invoice_id>', methods=['GET'])
 @jwt_required()
@@ -307,11 +302,26 @@ def download_invoice_as_pdf(invoice_id):
     p.save()
     buffer.seek(0)
     return send_file(
-        buffer,
-        as_attachment=True,
+        buffer, as_attachment=True,
         download_name=f"{invoice.get('folder_name', 'invoice')}.pdf",
         mimetype='application/pdf'
     )
+
+@main.route('/api/loans/add', methods=['POST'])
+@jwt_required()
+def add_loan_route():
+    """API endpoint to handle adding a new loan."""
+    username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    form = LoanForm()
+    if form.validate_on_submit():
+        if current_app.add_loan(username, selected_branch, form.data):
+            current_app.log_user_activity(username, 'Added a new loan')
+            return jsonify({'success': True, 'message': 'Successfully loan added!'})
+        else:
+            return jsonify({'success': False, 'error': 'An error occurred while saving the loan.'}), 500
+    errors = {field: error[0] for field, error in form.errors.items()}
+    return jsonify({'success': False, 'errors': errors}), 400
 
 # --- Archive ---
 @main.route('/archive')
