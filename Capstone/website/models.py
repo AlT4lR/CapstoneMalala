@@ -162,7 +162,9 @@ def get_recent_activity(username, limit=3):
 # =========================================================
 # --- Invoice Models ---
 # =========================================================
-def add_invoice(username, branch, invoice_data, files):
+# --- START OF MODIFICATION: Added extracted_text parameter ---
+def add_invoice(username, branch, invoice_data, files, extracted_text):
+# --- END OF MODIFICATION ---
     db = current_app.db
     if db is None: return False
     try:
@@ -173,6 +175,9 @@ def add_invoice(username, branch, invoice_data, files):
             'category': invoice_data.get('category'),
             'date': invoice_data.get('date'),
             'files': files,
+            # --- START OF MODIFICATION: Save the extracted text ---
+            'extracted_text': extracted_text,
+            # --- END OF MODIFICATION ---
             'createdAt': datetime.now(pytz.utc),
             'isArchived': False
         })
@@ -408,7 +413,6 @@ def get_archived_items(username):
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
 
-# --- START OF MODIFICATION ---
 def restore_item(username, item_type, item_id):
     """Restores an archived item by setting its 'isArchived' flag to False."""
     db = current_app.db
@@ -441,7 +445,6 @@ def delete_item_permanently(username, item_type, item_id):
     except Exception as e:
         logger.error(f"Error permanently deleting {item_type} {item_id}: {e}", exc_info=True)
         return False
-# --- END OF MODIFICATION ---
 
 def get_analytics_data(username, year):
     db = current_app.db

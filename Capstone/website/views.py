@@ -1,5 +1,3 @@
-# website/views.py
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file
@@ -8,6 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_req
 from datetime import datetime
 import os
 import logging
+from werkzeug.utils import secure_filename
 import pytesseract
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -185,7 +184,10 @@ def settings():
 def archive():
     username = get_jwt_identity()
     archived_items = get_archived_items(username)
-    return render_template('_archive.html', show_sidebar=True, archived_items=archived_items)
+    # --- START OF MODIFICATION ---
+    back_url = request.args.get('back') or url_for('main.dashboard')
+    return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
+    # --- END OF MODIFICATION ---
 
 # --- API Routes ---
 
@@ -193,9 +195,48 @@ def archive():
 @jwt_required()
 def upload_invoice():
     username = get_jwt_identity()
-    current_app.log_user_activity(username, 'Uploaded an invoice')
-    flash('Successfully added an invoice!', 'success')
-    return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
+    selected_branch = session.get('selected_branch')
+    
+    if 'files' not in request.files:
+        flash('No file part in the request.', 'error')
+        return jsonify({'success': False, 'error': 'No file part'}), 400
+    
+    files = request.files.getlist('files')
+    if not files or files[0].filename == '':
+        flash('No files selected for uploading.', 'error')
+        return jsonify({'success': False, 'error': 'No selected file'}), 400
+
+    invoice_data = {
+        'folder_name': request.form.get('folder-name'),
+        'category': request.form.get('categories'),
+        'date': datetime.strptime(request.form.get('date'), '%Y-%m-%d') if request.form.get('date') else None,
+    }
+    
+    processed_files_info = []
+    extracted_text_all = []
+
+    for file in files:
+        if file:
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            extracted_text = perform_ocr_on_image(filepath)
+            extracted_text_all.append(extracted_text)
+            
+            processed_files_info.append({
+                'filename': filename,
+                'content_type': file.content_type,
+                'size': os.path.getsize(filepath)
+            })
+
+    if current_app.add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
+        current_app.log_user_activity(username, 'Uploaded an invoice')
+        flash('Successfully added and processed invoice!', 'success')
+        return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
+    else:
+        flash('Failed to save the invoice to the database.', 'error')
+        return jsonify({'success': False, 'error': 'Database error'}), 500
 
 @main.route('/api/notifications/status', methods=['GET'])
 @jwt_required()
@@ -302,7 +343,7 @@ def download_invoice_as_pdf(invoice_id):
         flash('Image file for invoice not found on server.', 'error')
         return redirect(url_for('main.all_invoices'))
         
-    extracted_text = perform_ocr_on_image(image_path)
+    extracted_text = invoice.get('extracted_text', perform_ocr_on_image(image_path))
     p.drawString(30, height - 50, f"Invoice: {invoice.get('folder_name', 'N/A')}")
     img_reader = ImageReader(image_path)
     img_width, img_height = img_reader.getSize()
@@ -366,7 +407,6 @@ def add_schedule_route():
     flash('Failed to create schedule.', 'error')
     return jsonify({"error": "Failed to create schedule"}), 500
 
-# --- START OF MODIFICATION ---
 @main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
 @jwt_required()
 def restore_item_route(item_type, item_id):
@@ -388,4 +428,3 @@ def delete_item_permanently_route(item_type, item_id):
         return jsonify({'success': True}), 200
     flash(f'Failed to permanently delete {item_type.lower()}.', 'error')
     return jsonify({'error': f'Failed to delete {item_type.lower()}.'}), 404
-# --- END OF MODIFICATION ---

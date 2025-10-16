@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
+    // --- START OF MODIFICATION: Added form and button elements ---
+    const invoiceForm = document.getElementById("invoice-form");
+    const uploadBtn = document.getElementById("upload-btn");
+    let filesToUpload = []; // Array to store the actual File objects
+    // --- END OF MODIFICATION ---
 
     if (!dropZone || !fileInput || !fileList) {
         console.error("Uploader elements not found.");
@@ -26,13 +31,22 @@ document.addEventListener("DOMContentLoaded", () => {
     fileInput.addEventListener("change", e => handleFiles(e.target.files));
 
 
-    // --- Core Functions ---
-    const handleFiles = (files) => {
-        [...files].forEach(file => {
+    // --- START OF MODIFICATION: Simplified handleFiles and added remove functionality ---
+    const handleFiles = (newFiles) => {
+        [...newFiles].forEach(file => {
+            // Prevent duplicates
+            if (filesToUpload.some(f => f.name === file.name && f.size === file.size)) {
+                return;
+            }
+            filesToUpload.push(file); // Add the actual file object to our array
             const fileId = `file-${Date.now()}-${Math.random()}`;
             const fileItemHTML = createFileItemHTML(file, fileId);
             fileList.insertAdjacentHTML('beforeend', fileItemHTML);
-            simulateUpload(fileId);
+
+            // Add event listener to the new remove button
+            document.getElementById(fileId).querySelector('.remove-btn').addEventListener('click', () => {
+                removeFile(file, fileId);
+            });
         });
     };
 
@@ -45,77 +59,78 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold truncate">${file.name}</p>
-                    <div class="status-container text-xs text-gray-500 mt-1">
-                        <div class="progress-bar-container w-full bg-gray-200 rounded-full h-1.5 hidden">
-                           <div class="progress-bar bg-[#3a4d39] h-1.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                        <span class="status-text">${fileSize} KB</span>
-                    </div>
+                    <p class="text-xs text-gray-500 mt-1">${fileSize} KB</p>
                 </div>
-                <div class="action-container">
-                    <button class="remove-btn text-gray-400 hover:text-red-600">&times;</button>
+                <div>
+                    <button class="remove-btn text-gray-400 hover:text-red-600 text-xl">&times;</button>
                 </div>
             </div>
         `;
     };
+    
+    const removeFile = (file, fileId) => {
+        // Remove from the array
+        filesToUpload = filesToUpload.filter(f => !(f.name === file.name && f.size === file.size));
+        // Remove from the DOM
+        document.getElementById(fileId).remove();
+    };
+    // --- END OF MODIFICATION ---
 
-    const simulateUpload = (fileId) => {
-        const fileItem = document.getElementById(fileId);
-        const progressBarContainer = fileItem.querySelector('.progress-bar-container');
-        const progressBar = fileItem.querySelector('.progress-bar');
-        const statusText = fileItem.querySelector('.status-text');
-        const actionContainer = fileItem.querySelector('.action-container');
-        
-        progressBarContainer.classList.remove('hidden');
-        statusText.textContent = '0% Done';
-        
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress >= 100) {
-                clearInterval(interval);
-                Math.random() > 0.3 ? setSuccessState(fileItem) : setErrorState(fileItem);
-            } else {
-                progressBar.style.width = `${progress}%`;
-                statusText.textContent = `${Math.round(progress)}% Done`;
+    // --- START OF MODIFICATION: Real form submission logic ---
+    if (invoiceForm && uploadBtn) {
+        invoiceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (filesToUpload.length === 0) {
+                alert('Please select at least one file to upload.');
+                return;
             }
-        }, 200);
 
-        actionContainer.querySelector('.remove-btn').addEventListener('click', () => {
-            clearInterval(interval);
-            fileItem.remove();
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            // Append form fields
+            formData.append('folder-name', document.getElementById('folder-name').value);
+            formData.append('categories', document.getElementById('categories').value);
+            formData.append('date', document.getElementById('date').value);
+
+            // Append files
+            filesToUpload.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch('/api/invoices/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                } else {
+                    alert(result.error || 'An unknown error occurred during upload.');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload';
+                }
+
+            } catch (error) {
+                console.error("Upload failed:", error);
+                alert("An error occurred while uploading the files. Please check the console and try again.");
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload';
+            }
         });
-    };
-
-    const setSuccessState = (fileItem) => {
-        const progressBarContainer = fileItem.querySelector('.progress-bar-container');
-        const statusText = fileItem.querySelector('.status-text');
-        const actionContainer = fileItem.querySelector('.action-container');
-
-        progressBarContainer.classList.add('hidden');
-        statusText.innerHTML = '<i class="fa-solid fa-check text-green-600"></i> Done';
-        
-        // --- START OF FIX ---
-        // Replace the simple 'X' button with the red trash can icon.
-        actionContainer.innerHTML = `<button class="remove-btn text-red-500 hover:text-red-700 transition-colors"><i class="fa-solid fa-trash-can"></i></button>`;
-        // --- END OF FIX ---
-        
-        actionContainer.querySelector('.remove-btn').addEventListener('click', () => fileItem.remove());
-    };
-
-    const setErrorState = (fileItem) => {
-        const progressBarContainer = fileItem.querySelector('.progress-bar-container');
-        const statusText = fileItem.querySelector('.status-text');
-        const actionContainer = fileItem.querySelector('.action-container');
-
-        progressBarContainer.classList.add('hidden');
-        statusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-600"></i> Error';
-        actionContainer.innerHTML = `<button class="retry-btn text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Retry</button>`;
-        
-        actionContainer.querySelector('.retry-btn').addEventListener('click', (e) => {
-             e.stopPropagation();
-             simulateUpload(fileItem.id);
-        });
-    };
+    }
+    // --- END OF MODIFICATION ---
 
 });

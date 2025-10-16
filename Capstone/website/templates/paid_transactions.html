@@ -18,9 +18,11 @@
                 <input type="text" id="search-input" placeholder="Search Paid Transactions..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+            <!-- --- START OF MODIFICATION --- -->
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
+            <!-- --- END OF MODIFICATION --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
