@@ -184,10 +184,9 @@ def settings():
 def archive():
     username = get_jwt_identity()
     archived_items = get_archived_items(username)
-    # --- START OF MODIFICATION ---
+    # Merged modification: Pass the previous page URL to the template
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
-    # --- END OF MODIFICATION ---
 
 # --- API Routes ---
 
