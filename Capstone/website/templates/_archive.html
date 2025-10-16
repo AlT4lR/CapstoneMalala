@@ -8,7 +8,9 @@
     <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Archive</h2>
-            <a href="{{ url_for('main.dashboard') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
+            <!-- --- START OF MODIFICATION --- -->
+            <a href="{{ back_url }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
+            <!-- --- END OF MODIFICATION --- -->
                 <i class="fa-solid fa-arrow-left"></i>
                 <span>Go Back...</span>
             </a>

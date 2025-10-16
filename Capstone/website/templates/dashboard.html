@@ -7,9 +7,11 @@
     <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2">
         <h1 class="text-2xl font-semibold">Home</h1>
         <div class="flex items-center gap-3">
-            <a href="{{ url_for('main.archive') }}" class="hover:text-[#3a4d39]" title="Archive">
+            <!-- --- START OF MODIFICATION --- -->
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
+            <!-- --- END OF MODIFICATION --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
