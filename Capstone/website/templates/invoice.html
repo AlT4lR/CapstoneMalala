@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Invoice{% endblock %}
+
+<!-- START OF MODIFICATION: Add custom styles for scrollable file list -->
 {% block head %}
 <style>
     #file-list {
-        max-height: 24rem; 
-        overflow-y: auto; 
+        /* Set a max-height to trigger scrolling */
+        max-height: 24rem; /* 384px, adjust as needed */
+        overflow-y: auto; /* Enable vertical scrollbar when content overflows */
+        /* Add some padding to prevent content from touching the scrollbar */
         padding-right: 8px;
     }
+    /* Custom scrollbar styling to match the theme */
     #file-list::-webkit-scrollbar {
         width: 8px;
     }
@@ -22,6 +27,7 @@
     }
 </style>
 {% endblock %}
+<!-- END OF MODIFICATION -->
 
 {% block content %}
 <main class="flex-1 p-6 sm:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
