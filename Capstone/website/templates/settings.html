@@ -3,7 +3,6 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
 
-    <!-- Header -->
     <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
         <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Settings</h2>
         <div class="flex items-center gap-3">
@@ -11,10 +10,8 @@
         </div>
     </header>
 
-    <!-- Settings Content -->
     <div class="max-w-4xl mx-auto space-y-6">
 
-        <!-- General Settings Section -->
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-5 sm:p-6">
             <h3 class="text-lg font-bold text-[#3a4d39] border-b border-gray-200 pb-3 mb-4">General</h3>
             
@@ -28,9 +25,31 @@
                     Switch
                 </a>
             </div>
+
+            <!-- --- START OF MODIFICATION: Add Install and Notification buttons --- -->
+            <div class="border-t flex flex-col sm:flex-row items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div>
+                    <p class="font-semibold text-gray-800">Install App</p>
+                    <p class="text-sm text-gray-500 mt-1 sm:mt-0">Add DecoOffice to your home screen for a better experience.</p>
+                </div>
+                <button id="custom-install-button" style="display: none;"
+                   class="w-full sm:w-auto mt-3 sm:mt-0 px-6 py-2 bg-[#3a4d39] text-white text-center font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
+                    Install
+                </button>
+            </div>
+             <div class="border-t flex flex-col sm:flex-row items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div>
+                    <p class="font-semibold text-gray-800">Enable Push Notifications</p>
+                    <p class="text-sm text-gray-500 mt-1 sm:mt-0">Get notified about important updates even when the app is closed.</p>
+                </div>
+                <button id="enable-notifications-btn"
+                   class="w-full sm:w-auto mt-3 sm:mt-0 px-6 py-2 bg-[#3a4d39] text-white text-center font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
+                    Enable
+                </button>
+            </div>
+            <!-- --- END OF MODIFICATION --- -->
         </div>
 
-        <!-- Account Settings Section -->
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-5 sm:p-6">
             <h3 class="text-lg font-bold text-[#3a4d39] border-b border-gray-200 pb-3 mb-4">Account</h3>
 

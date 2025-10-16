@@ -1,3 +1,5 @@
+# website/views.py
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file
@@ -189,6 +191,21 @@ def archive():
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
 # --- API Routes ---
+
+# --- START OF MODIFICATION: Add route for saving push subscriptions ---
+@main.route('/api/save-subscription', methods=['POST'])
+@jwt_required()
+def save_subscription():
+    subscription_data = request.get_json()
+    if not subscription_data or 'endpoint' not in subscription_data:
+        return jsonify({'error': 'Invalid subscription data provided'}), 400
+    
+    username = get_jwt_identity()
+    if current_app.save_push_subscription(username, subscription_data):
+        return jsonify({'success': True}), 201
+    
+    return jsonify({'error': 'Failed to save subscription'}), 500
+# --- END OF MODIFICATION ---
 
 @main.route('/api/invoices/upload', methods=['POST'])
 @jwt_required()
