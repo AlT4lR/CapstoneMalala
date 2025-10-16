@@ -3,6 +3,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
+    // --- START OF MODIFICATION ---
+    const MAX_FILES = 10; // Define the upload limit
+    // --- END OF MODIFICATION ---
 
     if (!dropZone || !fileInput || !fileList) {
         console.error("Uploader elements not found.");
@@ -28,7 +31,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Core Functions ---
     const handleFiles = (files) => {
-        [...files].forEach(file => {
+        // --- START OF MODIFICATION: File limit logic ---
+        const existingFilesCount = fileList.children.length;
+        const allowedNewFilesCount = MAX_FILES - existingFilesCount;
+
+        if (files.length > allowedNewFilesCount) {
+            alert(`You can only upload a maximum of 10 files in total. Please select ${allowedNewFilesCount > 0 ? `up to ${allowedNewFilesCount} more files.` : 'no more files.'}`);
+            if (allowedNewFilesCount <= 0) return; // Stop if the list is already full
+        }
+        
+        // Take only the number of files that are allowed
+        const filesToProcess = Array.from(files).slice(0, allowedNewFilesCount);
+
+        filesToProcess.forEach(file => {
+        // --- END OF MODIFICATION ---
             const fileId = `file-${Date.now()}-${Math.random()}`;
             const fileItemHTML = createFileItemHTML(file, fileId);
             fileList.insertAdjacentHTML('beforeend', fileItemHTML);
@@ -95,10 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
         progressBarContainer.classList.add('hidden');
         statusText.innerHTML = '<i class="fa-solid fa-check text-green-600"></i> Done';
         
-        // --- START OF FIX ---
         // Replace the simple 'X' button with the red trash can icon.
         actionContainer.innerHTML = `<button class="remove-btn text-red-500 hover:text-red-700 transition-colors"><i class="fa-solid fa-trash-can"></i></button>`;
-        // --- END OF FIX ---
         
         actionContainer.querySelector('.remove-btn').addEventListener('click', () => fileItem.remove());
     };
