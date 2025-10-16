@@ -2,12 +2,9 @@
 {% block title %}DecoOffice - Schedules{% endblock %}
 {% block head %}
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
-    <!-- Custom styles for the calendar -->
     <style>
-        /* Make the calendar fill the container */
-        #calendar { height: 100%; }
-        /* Style FullCalendar to match your theme */
-        .fc .fc-toolbar-title { font-size: 1.5rem; font-weight: 700; color: #3a4d39; }
+        #calendar { min-height: 600px; } /* Ensure calendar has a minimum height */
+        .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; color: #3a4d39; }
         .fc .fc-button-primary { background-color: #3a4d39; border-color: #3a4d39; }
         .fc .fc-daygrid-day.fc-day-today { background-color: #f6f7f1; }
         .fc-event { border: none !important; }
@@ -16,27 +13,30 @@
 
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
-    <header class="flex justify-between items-center mb-4">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h1 class="text-2xl font-bold">Schedules</h1>
-        <div class="bg-gray-200 p-1 rounded-lg text-sm font-semibold">
-            <button id="day-view-btn" class="px-3 py-1 rounded-md">Day</button>
-            <button id="week-view-btn" class="px-3 py-1 rounded-md bg-white shadow">Week</button>
-            <button id="month-view-btn" class="px-3 py-1 rounded-md">Month</button>
-            <button id="year-view-btn" class="px-3 py-1 rounded-md">Year</button>
+        <div class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
+            <button id="day-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
+            <button id="week-view-btn" class="px-2 sm:px-3 py-1 rounded-md bg-white shadow">Week</button>
+            <button id="month-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
+            <button id="year-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
         </div>
     </header>
 
-    <div class="flex-1 flex gap-4 overflow-hidden">
+    <!-- --- START OF MODIFICATION: Responsive layout --- -->
+    <div class="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
         <!-- Left Sidebar -->
-        <aside class="w-1/4 flex flex-col gap-4">
+        <aside class="w-full lg:w-1/4 flex flex-col gap-4">
+    <!-- --- END OF MODIFICATION --- -->
             <div class="bg-[#3a4d39] text-white rounded-2xl p-4 flex-grow flex flex-col">
                 <button id="create-schedule-btn" class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-lg mb-4 hover:bg-gray-200">
                     Create Schedule
                 </button>
-                <!-- Mini-calendar (placeholder, could be implemented with another JS library) -->
-                <div class="text-center font-semibold">JULY 2025</div>
-                <div class="text-center text-xs mt-2">S M T W T F S</div>
-                <div class="text-center text-sm">... a mini calendar would go here ...</div>
+                <div class="hidden sm:block"> <!-- Mini-calendar can be hidden on very small screens if needed -->
+                    <div class="text-center font-semibold">JULY 2025</div>
+                    <div class="text-center text-xs mt-2">S M T W T F S</div>
+                    <div class="text-center text-sm">... a mini calendar would go here ...</div>
+                </div>
                 
                 <div class="mt-auto">
                     <h3 class="font-bold mb-2">Label</h3>
@@ -55,9 +55,11 @@
         </aside>
 
         <!-- Main Calendar View -->
-        <div class="w-3/4 bg-[#3a4d39] rounded-2xl p-4">
-            <div id='calendar' class="bg-white rounded-lg p-2"></div>
+        <!-- --- START OF MODIFICATION: Responsive layout --- -->
+        <div class="w-full lg:w-3/4 bg-[#3a4d39] rounded-2xl p-2 sm:p-4">
+            <div id='calendar' class="bg-white rounded-lg p-1 sm:p-2 h-full"></div>
         </div>
+        <!-- --- END OF MODIFICATION --- -->
     </div>
 </main>
 

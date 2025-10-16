@@ -3,7 +3,9 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
-    <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- START OF MODIFICATION: Made header responsive --- -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- END OF MODIFICATION --- -->
         <div>
             <p class="text-sm font-medium text-gray-500">Transaction (pending)</p>
             <h2 class="text-3xl font-bold uppercase tracking-wide">Transactions</h2>
@@ -12,41 +14,62 @@
                 <span>Go Back...</span>
             </a>
         </div>
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <input type="text" id="search-input" placeholder="Search Transactions..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="relative flex-grow sm:flex-grow-0">
+                <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
-            <!-- --- END OF MODIFICATION --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
 
     <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
+        <!-- --- START OF MODIFICATION: Header hidden on mobile --- -->
+        <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
+        <!-- --- END OF MODIFICATION --- -->
             <span class="col-span-5">Name</span>
             <span class="col-span-2">Date</span>
             <span class="col-span-3 text-right">Actions</span>
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <div id="transaction-list-container" class="space-y-2">
+            <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
-                <!-- --- START OF MODIFICATION: Each row now links to the new detail page --- -->
-                <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="grid grid-cols-10 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
-                    <div class="col-span-5 flex items-center gap-3">
-                        <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                        <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                    </div>
-                    <span class="col-span-2 text-gray-700">{{ t.check_date }}</span>
-                    <div class="col-span-3 flex justify-end gap-5 text-gray-500">
-                        <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>
-                </a>
+                <!-- --- START OF MODIFICATION: Responsive transaction item --- -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
+                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block px-4 py-3">
+                        <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center">
+                            <!-- Mobile View -->
+                            <div class="md:hidden">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                                        <span class="font-semibold text-gray-800">{{ t.name }}</span>
+                                    </div>
+                                    <div class="delete-btn-wrapper text-gray-500 hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-600 mt-2">
+                                    <strong>Date:</strong> {{ t.check_date }}
+                                </div>
+                            </div>
+                            
+                            <!-- Desktop View -->
+                            <div class="hidden md:flex col-span-5 items-center gap-3">
+                                <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                                <span class="font-semibold text-gray-800">{{ t.name }}</span>
+                            </div>
+                            <span class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</span>
+                            <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
+                                <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                    </a>
+                </div>
                 <!-- --- END OF MODIFICATION --- -->
                 {% else %}
                 <div class="flex items-center justify-center h-40">
@@ -75,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transactionRows.forEach(row => {
                 const name = row.dataset.name.toLowerCase();
                 if (name.includes(searchTerm)) {
-                    row.style.display = 'grid';
+                    row.style.display = 'block';
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
@@ -85,13 +108,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Prevent link navigation when clicking the archive button inside the <a> tag
-    const deleteButtons = document.querySelectorAll('.delete-btn');
-    deleteButtons.forEach(button => {
+    // Prevent link navigation when clicking the archive button
+    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
             event.stopPropagation();
-            // The global delete handler in common.js will take over
+            // Manually trigger the global delete handler from common.js
+            // Create a temporary button element with the correct data attributes
+            const tempBtn = document.createElement('button');
+            tempBtn.classList.add('delete-btn');
+            tempBtn.dataset.id = this.dataset.id;
+            tempBtn.dataset.name = this.dataset.name;
+            const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+            tempBtn.dispatchEvent(clickEvent);
         });
     });
 });
