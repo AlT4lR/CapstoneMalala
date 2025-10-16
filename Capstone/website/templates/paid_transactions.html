@@ -3,8 +3,9 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
     
-    <!-- Header -->
-    <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- START OF MODIFICATION: Made header responsive --- -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- END OF MODIFICATION --- -->
         <div>
             <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
             <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
@@ -12,58 +13,75 @@
                 <span>Go Back...</span>
             </a>
         </div>
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <!-- --- THIS IS THE SEARCH BAR --- -->
-                <input type="text" id="search-input" placeholder="Search Paid Transactions..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="relative flex-grow sm:flex-grow-0">
+                <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
-            <!-- --- END OF MODIFICATION --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
         
         <h3 class="text-xl font-bold text-[#3a4d39] mb-4">October 2025</h3>
 
-        <!-- Table Header -->
-        <div class="grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
+        <!-- Table Header (hidden on mobile) -->
+        <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
             <span class="col-span-4">Name</span>
             <span class="col-span-2">Date</span>
             <span class="col-span-2">Editor</span>
             <span class="col-span-2 text-right">Actions</span>
         </div>
 
-        <!-- Transaction List -->
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <div id="transaction-list-container" class="space-y-2">
+            <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
-                <!-- Each transaction item has a class and a data-name attribute for searching -->
-                <div class="grid grid-cols-10 gap-4 items-center px-4 py-3 text-sm bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors transaction-item" data-name="{{ t.name }}">
-                    <div class="col-span-4 flex items-center gap-3">
-                        <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                        <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                    </div>
-                    <span class="col-span-2 text-gray-700">{{ t.check_date }}</span>
-                    <span class="col-span-2 text-gray-700">{{ t.editor }}</span> 
-                    <div class="col-span-2 flex justify-end gap-5 text-gray-500">
-                        <button title="Edit" class="hover:text-green-600 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                        <button title="Download" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+                <!-- --- START OF MODIFICATION: Responsive item card --- -->
+                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors p-4 md:p-0 transaction-item" data-name="{{ t.name }}">
+                    <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center md:px-4 md:py-3 text-sm">
+                        <!-- Mobile View -->
+                        <div class="md:hidden">
+                            <div class="flex justify-between items-start gap-4">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                                    <span class="font-semibold text-gray-800">{{ t.name }}</span>
+                                </div>
+                                <div class="flex gap-4 text-gray-500 text-base">
+                                    <button title="Edit" class="hover:text-green-600 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button title="Download" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </div>
+                            <div class="mt-3 space-y-1">
+                                <p><strong class="text-gray-500">Date:</strong> {{ t.check_date }}</p>
+                                <p><strong class="text-gray-500">Editor:</strong> {{ t.editor }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Desktop View -->
+                        <div class="hidden md:flex col-span-4 items-center gap-3">
+                            <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                            <span class="font-semibold text-gray-800">{{ t.name }}</span>
+                        </div>
+                        <span class="hidden md:block col-span-2 text-gray-700">{{ t.check_date }}</span>
+                        <span class="hidden md:block col-span-2 text-gray-700">{{ t.editor }}</span> 
+                        <div class="hidden md:flex col-span-2 justify-end gap-5 text-gray-500">
+                            <button title="Edit" class="hover:text-green-600 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                            <button title="Download" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+                        </div>
                     </div>
                 </div>
+                <!-- --- END OF MODIFICATION --- -->
                 {% else %}
                 <div class="flex items-center justify-center h-40">
                     <p class="text-gray-500">No paid transactions found.</p>
                 </div>
                 {% endfor %}
-                <!-- --- THIS MESSAGE APPEARS WHEN NO RESULTS ARE FOUND --- -->
                 <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
             </div>
         </div>
@@ -72,7 +90,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- --- THIS SCRIPT POWERS THE REAL-TIME SEARCH --- -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
@@ -88,14 +105,12 @@ document.addEventListener('DOMContentLoaded', function() {
             transactionRows.forEach(row => {
                 const name = row.dataset.name.toLowerCase();
                 if (name.includes(searchTerm)) {
-                    row.style.display = 'grid'; // Use 'grid' as it's the original display type
+                    row.style.display = 'block';
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
-
-            // Show or hide the "no results" message
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }

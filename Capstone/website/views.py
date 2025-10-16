@@ -100,6 +100,7 @@ def transactions_paid():
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     return render_template('paid_transactions.html', transactions=transactions, show_sidebar=True)
 
+# --- START OF MODIFICATION ---
 @main.route('/transaction/folder/<transaction_id>')
 @jwt_required()
 def transaction_folder_details(transaction_id):
@@ -111,14 +112,19 @@ def transaction_folder_details(transaction_id):
     
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     form = TransactionForm()
+
+    # Calculate the total of all countered checks
+    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     
     return render_template(
         'transaction_folder_detail.html',
         folder=folder,
         child_checks=child_checks,
         form=form,
+        total_countered_check=total_countered_check,
         show_sidebar=True
     )
+# --- END OF MODIFICATION ---
 
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()

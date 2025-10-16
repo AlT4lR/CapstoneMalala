@@ -4,61 +4,80 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-4">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
       <h2 class="text-2xl font-bold uppercase">Transactions</h2>
-      <div class="flex items-center gap-4">
-        <div class="relative">
-          <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+      <div class="flex items-center gap-4 w-full sm:w-auto">
+        <div class="relative flex-grow sm:flex-grow-0">
+          <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
-        <!-- --- START OF MODIFICATION --- -->
         <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
-        <!-- --- END OF MODIFICATION --- -->
         {% include "_notification_button.html" %}
       </div>
     </header>
 
-    <!-- "Go Back" button link is now correct -->
     <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
       <i class="fa-solid fa-arrow-left"></i>
       Go Back...
     </a>
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
 
-    <!-- Main content grid -->
-    <div class="grid grid-cols-3 gap-6 flex-grow">
+    <!-- --- START OF MODIFICATION: Main layout is now responsive --- -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+    <!-- --- END OF MODIFICATION --- -->
 
       <!-- Left side container -->
-      <div class="col-span-2 flex flex-col">
-        <!-- White box for the scrollable list -->
+      <div class="lg:col-span-2 flex flex-col">
         <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
-          <div class="grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
-            <span class="col-span-3">Name of issued Checked</span>
+          <!-- Desktop Header -->
+          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
+            <span class="col-span-3">Name</span>
             <span class="col-span-2">Check No.</span>
             <span class="col-span-2">Check Date</span>
             <span class="col-span-2">EWT</span>
             <span class="col-span-3">Countered Check</span>
           </div>
+          <!-- Mobile Header -->
+          <div class="md:hidden text-sm font-semibold text-gray-500 border-b pb-2 mb-2">
+              Issued Checks
+          </div>
 
-          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
+          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 md:space-y-0">
               {% for check in child_checks %}
-              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row cursor-pointer hover:bg-gray-50 transition-colors"
-                   data-id="{{ check._id }}"
-                   data-notes="{{ check.notes or folder.notes or '' }}"
-                   data-amount="{{ check.countered_check }}">
-                <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
-                <span class="col-span-2">{{ check.check_no }}</span>
-                <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
-                <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
-                <div class="col-span-3 flex justify-between items-center">
-                  <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
-                  <div class="flex gap-3 text-gray-400">
-                    <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
-                    <button title="Delete" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
-                  </div>
+              <!-- --- START OF MODIFICATION: Responsive check item --- -->
+              <div class="p-2 md:p-0 border-b last:border-b-0 check-row hover:bg-gray-50 transition-colors">
+                <div class="md:grid md:grid-cols-12 md:gap-4 md:px-3 md:py-3 md:items-center text-sm">
+                    <!-- Mobile View -->
+                    <div class="md:hidden">
+                        <div class="flex justify-between items-start">
+                            <p class="font-medium truncate">{{ check.name }}</p>
+                            <div class="flex gap-3 text-gray-400">
+                                <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                                <button title="Delete" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
+                            <p><strong>Check No:</strong> {{ check.check_no }}</p>
+                            <p><strong>Date:</strong> {{ check.check_date.strftime('%m/%d/%Y') }}</p>
+                            <p><strong>EWT:</strong> ₱{{ "{:,.2f}".format(check.ewt) }}</p>
+                            <p><strong>Amount:</strong> ₱{{ "{:,.2f}".format(check.countered_check) }}</p>
+                        </div>
+                    </div>
+                    <!-- Desktop View -->
+                    <span class="hidden md:block col-span-3 font-medium truncate">{{ check.name }}</span>
+                    <span class="hidden md:block col-span-2">{{ check.check_no }}</span>
+                    <span class="hidden md:block col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
+                    <span class="hidden md:block col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
+                    <div class="hidden md:flex col-span-3 justify-between items-center">
+                      <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
+                      <div class="flex gap-3 text-gray-400">
+                        <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                        <button title="Delete" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                      </div>
+                    </div>
                 </div>
               </div>
+              <!-- --- END OF MODIFICATION --- -->
               {% else %}
               <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
               {% endfor %}
@@ -74,28 +93,22 @@
 
       <!-- Right side -->
       <div class="flex flex-col space-y-4">
-        <div id="select-prompt" class="flex-grow flex items-center justify-center bg-white rounded-md border border-gray-200 shadow-sm p-4 text-gray-400">
-            <p>Select a check to view details.</p>
-        </div>
-
-        <div id="details-panel" class="hidden flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex-col space-y-3">
+        <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
           <label class="font-medium text-sm">Notes</label>
-          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none"></textarea>
+          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none min-h-[120px]">{{ folder.notes or '' }}</textarea>
           
           <label class="font-medium text-sm">Countered Checks</label>
-          <input type="text" id="countered-checks-display" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
           
           <label class="font-medium text-sm">Check Amount</label>
-          <input type="text" id="check-amount-display" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
         </div>
 
-        <!-- --- START OF MODIFICATION --- -->
         <div class="flex justify-end">
-            <button id="paid-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
+            <button id="paid-btn" class="w-full lg:w-auto px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
               Paid
             </button>
         </div>
-        <!-- --- END OF MODIFICATION --- -->
       </div>
 
     </div>
@@ -107,7 +120,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Modal for creating a new check ---
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
@@ -117,52 +129,9 @@ document.addEventListener('DOMContentLoaded', function() {
         createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) createCheckModal.classList.add('hidden'); });
     }
 
-    // --- Interactive Right Panel Logic ---
-    const checkRows = document.querySelectorAll('.check-row');
-    const selectPrompt = document.getElementById('select-prompt');
-    const detailsPanel = document.getElementById('details-panel');
-    const notesTextarea = document.getElementById('notes-textarea');
-    const counteredDisplay = document.getElementById('countered-checks-display');
-    const amountDisplay = document.getElementById('check-amount-display');
-
-    const formatCurrency = (amount) => {
-        return '₱ ' + (parseFloat(amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const resetDetailsPanel = () => {
-        detailsPanel.classList.add('hidden');
-        selectPrompt.classList.remove('hidden');
-        checkRows.forEach(r => r.classList.remove('bg-green-50', 'border-green-300'));
-    };
-
-    checkRows.forEach(row => {
-        row.addEventListener('click', (event) => {
-            event.stopPropagation();
-
-            checkRows.forEach(r => r.classList.remove('bg-green-50', 'border-green-300'));
-            row.classList.add('bg-green-50', 'border-green-300');
-
-            selectPrompt.classList.add('hidden');
-            detailsPanel.classList.remove('hidden');
-            detailsPanel.classList.add('flex');
-
-            const amount = row.dataset.amount;
-            const notes = row.dataset.notes;
-            
-            notesTextarea.value = notes;
-            counteredDisplay.value = formatCurrency(amount);
-            amountDisplay.value = formatCurrency(amount);
-        });
-    });
-    
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.check-row') && !event.target.closest('#details-panel')) {
-            resetDetailsPanel();
-        }
-    });
-
-    // --- Paid Button Logic ---
     const paidBtn = document.getElementById('paid-btn');
+    const notesTextarea = document.getElementById('notes-textarea');
+
     paidBtn.addEventListener('click', async () => {
         const folderId = "{{ folder._id }}";
         const finalNotes = notesTextarea.value; 

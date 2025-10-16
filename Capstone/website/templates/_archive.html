@@ -5,18 +5,16 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
     
-    <header class="flex justify-between items-end mb-6 border-b border-[#d4d8c4] pb-3">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-6 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Archive</h2>
-            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ back_url }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
-            <!-- --- END OF MODIFICATION --- -->
                 <i class="fa-solid fa-arrow-left"></i>
                 <span>Go Back...</span>
             </a>
         </div>
         
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 self-end sm:self-center">
              {% include "_notification_button.html" %}
         </div>
     </header>
@@ -25,50 +23,51 @@
         Archived items will be stored here. Items that have been in the archive for more than 30 days may be permanently deleted.
     </p>
 
-    <!-- Archived Items List -->
     <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
         <div class="space-y-2 p-4">
             {% for item in archived_items %}
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center bg-gray-50/50 p-3 rounded-lg border border-gray-200">
-                <!-- Item Info -->
-                <div class="md:col-span-2">
-                    <p class="font-semibold text-gray-800">{{ item.name }}</p>
-                    <p class="text-xs text-gray-500">{{ item.details }}</p>
-                </div>
+            <!-- --- START OF MODIFICATION: Responsive archived item card --- -->
+            <div class="bg-gray-50/50 p-3 rounded-lg border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                    <!-- Item Info (spans more on desktop) -->
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-gray-800">{{ item.name }}</p>
+                        <p class="text-xs text-gray-500">{{ item.details }}</p>
+                    </div>
 
-                <!-- Type Badge -->
-                <div class="text-left">
-                    {% if item.type == 'Transaction' %}
-                        <span class="px-2 py-0.5 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
-                            {{ item.type }}
-                        </span>
-                    {% elif item.type == 'Invoice' %}
-                        <span class="px-2 py-0.5 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                            {{ item.type }}
-                        </span>
-                    {% endif %}
-                </div>
-                
-                <!-- Archived Date -->
-                <div class="text-left md:text-right">
-                    <p class="text-sm font-medium text-gray-700">{{ item.archived_at_str }}</p>
-                    <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
-                </div>
+                    <!-- Type Badge -->
+                    <div class="text-left mt-2 md:mt-0">
+                        {% if item.type == 'Transaction' %}
+                            <span class="px-2 py-0.5 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
+                                {{ item.type }}
+                            </span>
+                        {% elif item.type == 'Invoice' %}
+                            <span class="px-2 py-0.5 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+                                {{ item.type }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Archived Date -->
+                    <div class="text-left md:text-right mt-2 md:mt-0">
+                        <p class="text-sm font-medium text-gray-700">{{ item.archived_at_str }}</p>
+                        <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
+                    </div>
 
-                <!-- Actions -->
-                <div class="flex items-center justify-start md:justify-end gap-3 mt-2 md:mt-0">
-                    <!-- --- START OF MODIFICATION: Added data attributes and classes --- -->
-                    <button class="restore-btn px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                            data-id="{{ item.id }}" data-type="{{ item.type }}">
-                        Restore
-                    </button>
-                    <button class="perm-delete-btn px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
-                            data-id="{{ item.id }}" data-type="{{ item.type }}" data-name="{{ item.name }}">
-                        Delete
-                    </button>
-                    <!-- --- END OF MODIFICATION --- -->
+                    <!-- Actions -->
+                    <div class="flex items-center justify-start md:justify-end gap-3 mt-3 md:mt-0">
+                        <button class="restore-btn px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                                data-id="{{ item.id }}" data-type="{{ item.type }}">
+                            Restore
+                        </button>
+                        <button class="perm-delete-btn px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+                                data-id="{{ item.id }}" data-type="{{ item.type }}" data-name="{{ item.name }}">
+                            Delete
+                        </button>
+                    </div>
                 </div>
             </div>
+            <!-- --- END OF MODIFICATION --- -->
             {% else %}
             <div class="flex items-center justify-center h-40">
                 <p class="text-gray-500">The archive is empty.</p>
@@ -80,12 +79,9 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- --- START OF MODIFICATION: Added script for Restore and Permanently Delete --- -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = window.getCsrfToken ? window.getCsrfToken() : '';
-
-    // --- Handle Restore ---
     document.querySelectorAll('.restore-btn').forEach(button => {
         button.addEventListener('click', async function() {
             const id = this.dataset.id;
@@ -98,16 +94,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: { 'X-CSRF-Token': csrfToken }
                 });
-                // Reload page to show flash message and update list
                 window.location.reload();
             } catch (error) {
                 console.error('Error restoring item:', error);
-                window.location.reload(); // Reload to show error flash message
+                window.location.reload();
             }
         });
     });
 
-    // --- Handle Permanent Delete ---
     document.querySelectorAll('.perm-delete-btn').forEach(button => {
         button.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -115,12 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = this.dataset.name;
             const btn = this;
 
-            // Use the custom confirmation dialog from common.js
             if (typeof window.showCustomConfirm === 'function') {
-                // Customize the message for permanent deletion
                 const message = `Are you sure you want to PERMANENTLY delete "${name}"? This action cannot be undone.`;
-                
-                // We need to temporarily change the icon in the custom dialog to a warning
                 const dialogIconContainer = document.getElementById('custom-dialog-icon-container');
                 const originalIcon = dialogIconContainer.innerHTML;
                 dialogIconContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-5xl text-red-600"></i>`;
@@ -138,18 +128,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('Error deleting item:', error);
                         window.location.reload();
                     }
-                    // Restore original icon (though page reload makes this redundant, it's good practice)
                     dialogIconContainer.innerHTML = originalIcon;
                 });
             } else {
-                // Fallback if custom dialog is not loaded
                 if (confirm(`Are you sure you want to PERMANENTLY delete "${name}"? This cannot be undone.`)) {
-                    // ... (perform fetch as above)
+                    // Fallback logic
                 }
             }
         });
     });
 });
 </script>
-<!-- --- END OF MODIFICATION --- -->
 {% endblock %}

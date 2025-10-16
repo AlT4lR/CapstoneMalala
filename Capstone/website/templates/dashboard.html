@@ -2,16 +2,15 @@
 {% block title %}DecoOffice - Dashboard{% endblock %}
 
 {% block content %}
-<main class="flex flex-col flex-1 bg-[#f6f7f1] min-h-screen px-3 sm:px-4 lg:px-6 py-4 text-[#3a4d39]">
+<!-- --- START OF MODIFICATION: Removed main container to allow content to flow within the new layout --- -->
+<div class="flex-1 p-4 sm:p-6 text-[#3a4d39]">
 
     <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2">
         <h1 class="text-2xl font-semibold">Home</h1>
         <div class="flex items-center gap-3">
-            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ url_for('main.archive', back=request.path) }}" class="hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
-            <!-- --- END OF MODIFICATION --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -25,25 +24,23 @@
         </p>
     </section>
 
+    <!-- --- START OF MODIFICATION: Responsive main grid --- -->
     <section class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 
-        <div class="lg:col-span-2 xl:col-span-3 flex flex-col gap-4">
+        <!-- This column now stacks on top for mobile -->
+        <div class="order-2 lg:order-1 lg:col-span-2 xl:col-span-3 flex flex-col gap-4">
+    <!-- --- END OF MODIFICATION --- -->
 
             <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="font-semibold text-base">Schedules</h3>
                     <a href="{{ url_for('main.schedules') }}" class="text-xs text-gray-500 hover:text-[#3a4d39]">See All...</a>
                 </div>
-
-                <!-- --- MOCK DATA REMOVED --- -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                    <!-- The hardcoded 'for' loop for schedules has been removed. -->
-                    <!-- This section is now ready for you to load real data from your database. -->
                     <div class="text-center text-gray-500 p-4 col-span-full">
                         No schedules to show.
                     </div>
                 </div>
-                <!-- --- END OF REMOVAL --- -->
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -114,18 +111,19 @@
             </div>
         </div>
 
-        <div class="flex flex-col gap-4">
+        <!-- --- START OF MODIFICATION: Responsive stat cards --- -->
+        <!-- This column is now first on mobile, and becomes a sidebar on desktop -->
+        <div class="order-1 lg:order-2 grid grid-cols-2 lg:flex lg:flex-col gap-4">
+        <!-- --- END OF MODIFICATION --- -->
             <a href="{{ url_for('main.transactions_pending') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
                 <h4 class="font-semibold text-base text-[#3a4d39]">Pendings</h4>
                 <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ pending_count }}</p>
             </a>
-            <!-- --- START OF MODIFICATION --- -->
             <a href="{{ url_for('main.transactions_paid') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
                 <h4 class="font-semibold text-base text-[#3a4d39]">Paid</h4>
                 <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ paid_count }}</p>
             </a>
-            <!-- --- END OF MODIFICATION --- -->
         </div>
     </section>
-</main>
+</div>
 {% endblock %}
