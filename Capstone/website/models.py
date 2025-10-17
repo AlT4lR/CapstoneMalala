@@ -12,7 +12,7 @@ from bson.objectid import ObjectId
 from calendar import month_name
 import random
 import string
-from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES 
+from .constants import LOGIN_ATTEMPT_LIMIT, LOCKOUT_DURATION_MINUTES
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ def get_recent_activity(username, limit=3):
             activities.append({
                 'username': doc['username'].capitalize(),
                 'relative_time': _format_relative_time(doc['timestamp']),
-                'activity_type': doc.get('activity_type', 'Unknown Action') 
+                'activity_type': doc.get('activity_type', 'Unknown Action')
             })
     except Exception as e:
         logger.error(f"Error fetching recent activity for {username}: {e}", exc_info=True)
@@ -205,7 +205,7 @@ def get_invoices(username, branch):
     invoices = []
     try:
         query = {
-            'username': username, 
+            'username': username,
             'branch': branch,
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }
@@ -256,7 +256,7 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
         check_date_obj = transaction_data.get('check_date')
         countered_check_val = transaction_data.get('countered_check')
         ewt_val = transaction_data.get('ewt')
-        
+
         doc = {
             'username': username, 'branch': branch,
             'name': transaction_data.get('name_of_issued_check'),
@@ -271,7 +271,7 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
             'notes': '',
             'parent_id': ObjectId(parent_id) if parent_id else None
         }
-        
+
         db.transactions.insert_one(doc)
         return True
     except Exception as e:
@@ -284,13 +284,13 @@ def get_transactions_by_status(username, branch, status):
     transactions = []
     try:
         query = {
-            'username': username, 
+            'username': username,
             'status': status,
             'parent_id': None,
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }
         if branch: query['branch'] = branch
-        
+
         for doc in db.transactions.find(query).sort('check_date', -1):
             transactions.append({
                 '_id': str(doc['_id']),
@@ -325,7 +325,7 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         doc = db.transactions.find_one({'_id': ObjectId(transaction_id), 'username': username})
         if not doc: return None
         if full_document: return doc
-        
+
         return {
             '_id': str(doc['_id']), 'name': doc.get('name'),
             'check_no': doc.get('check_no'),
@@ -350,7 +350,7 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
         }
         if notes is not None:
             update_data['$set']['notes'] = notes
-            
+
         result = db.transactions.update_one(
             {'id': ObjectId(folder_id), 'username': username},
             update_data
@@ -364,7 +364,7 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
             {'parent_id': ObjectId(folder_id), 'username': username},
             {'$set': {'status': 'Paid'}}
         )
-        
+
         return True
     except Exception as e:
         logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
@@ -402,7 +402,7 @@ def get_archived_items(username):
                 'archivedAt': doc.get('archivedAt')
             })
         all_items_raw.sort(
-            key=lambda x: x.get('archivedAt', datetime.min.replace(tzinfo=pytz.utc)), 
+            key=lambda x: x.get('archivedAt', datetime.min.replace(tzinfo=pytz.utc)),
             reverse=True
         )
         formatted_items = []
@@ -577,10 +577,10 @@ def restore_item(username, item_type, item_id):
     """Restores an archived item by setting its 'isArchived' flag to False."""
     db = current_app.db
     if db is None: return False
-    
+
     collection_name = 'transactions' if item_type == 'Transaction' else 'invoices'
     collection = db[collection_name]
-    
+
     try:
         result = collection.update_one(
             {'_id': ObjectId(item_id), 'username': username},
