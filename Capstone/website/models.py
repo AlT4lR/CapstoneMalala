@@ -179,9 +179,7 @@ def get_recent_activity(username, limit=3):
 # =========================================================
 # --- Invoice Models ---
 # =========================================================
-# --- START OF MODIFICATION: Added extracted_text parameter ---
 def add_invoice(username, branch, invoice_data, files, extracted_text):
-# --- END OF MODIFICATION ---
     db = current_app.db
     if db is None: return False
     try:
@@ -192,9 +190,7 @@ def add_invoice(username, branch, invoice_data, files, extracted_text):
             'category': invoice_data.get('category'),
             'date': invoice_data.get('date'),
             'files': files,
-            # --- START OF MODIFICATION: Save the extracted text ---
             'extracted_text': extracted_text,
-            # --- END OF MODIFICATION ---
             'createdAt': datetime.now(pytz.utc),
             'isArchived': False
         })
@@ -341,17 +337,14 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
 
-# --- START OF MODIFICATION: Update function to accept the final amount ---
 def mark_folder_as_paid(username, folder_id, notes, amount):
     db = current_app.db
     if db is None: return False
     try:
-        # The total amount is now passed directly from the user input
-        # No need to calculate it from child checks anymore
         update_data = {
             '$set': {
                 'status': 'Paid',
-                'amount': float(amount), # Use the user-provided amount
+                'amount': float(amount),
                 'paidAt': datetime.now(pytz.utc)
             }
         }
@@ -367,7 +360,6 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
             logger.warning(f"No document found or updated for folder {folder_id} for user {username}.")
             return False
 
-        # Also update all child checks to 'Paid' status
         db.transactions.update_many(
             {'parent_id': ObjectId(folder_id), 'username': username},
             {'$set': {'status': 'Paid'}}
@@ -383,16 +375,10 @@ def archive_transaction(username, transaction_id):
     if db is None: return False
     try:
         result = db.transactions.update_one(
-            {'parent_id': ObjectId(transaction_id), 'username': username},
+            {'id': ObjectId(transaction_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
-        # Also archive the parent transaction (folder)
-        result_parent = db.transactions.update_one(
-            {'_id': ObjectId(transaction_id), 'username': username},
-            {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
-        )
-        # Return true if either the parent or children were modified.
-        return result.modified_count >= 1 or result_parent.modified_count == 1
+        return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
@@ -403,10 +389,10 @@ def get_archived_items(username):
     all_items_raw = []
     query = {'username': username, 'isArchived': True}
     try:
-        for doc in db.transactions.find({**query, 'parent_id': None}): # Only show archived folders/parent transactions
+        for doc in db.transactions.find(query):
             all_items_raw.append({
                 'id': str(doc['_id']), 'name': doc.get('name', 'N/A'),
-                'type': 'Transaction', 'details': f"Check Folder", # Changed to Check Folder for clarity
+                'type': 'Transaction', 'details': f"Check #{doc.get('check_no', 'N/A')}",
                 'archivedAt': doc.get('archivedAt')
             })
         for doc in db.invoices.find(query):
@@ -434,6 +420,159 @@ def get_archived_items(username):
         logger.error(f"Error fetching all archived items: {e}", exc_info=True)
         return []
 
+# =========================================================
+# --- Loan Models ---
+# =========================================================
+def add_loan(username, branch, loan_data):
+    db = current_app.db
+    if db is None: return False
+    try:
+        date_issued_obj = loan_data.get('date_issued')
+        date_paid_obj = loan_data.get('date_paid')
+        doc = {
+            'username': username, 'branch': branch,
+            'name': loan_data.get('name_of_loan'),
+            'bank_name': loan_data.get('bank_name'),
+            'amount': float(loan_data.get('amount', 0.0)),
+            'date_issued': pytz.utc.localize(datetime.combine(date_issued_obj, datetime.min.time())) if date_issued_obj else None,
+            'date_paid': pytz.utc.localize(datetime.combine(date_paid_obj, datetime.min.time())) if date_paid_obj else None,
+            'createdAt': datetime.now(pytz.utc), 'isArchived': False
+        }
+        db.loans.insert_one(doc)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding loan for {username}: {e}", exc_info=True)
+        return False
+
+# =========================================================
+# --- Schedule Models ---
+# =========================================================
+
+def add_schedule(username, schedule_data):
+    db = current_app.db
+    if db is None: return False
+    try:
+        date_str = schedule_data.get('date')
+        start_time_str = schedule_data.get('start_time')
+        end_time_str = schedule_data.get('end_time')
+        is_all_day = schedule_data.get('all_day') in ['on', 'true', True, 'True'] or 'all_day' in schedule_data
+
+        if not date_str:
+            return False
+
+        # If all-day: store start at midnight and end = next day midnight
+        if is_all_day:
+            start_dt = datetime.strptime(date_str, '%Y-%m-%d')
+            end_dt = start_dt + timedelta(days=1)
+        else:
+            if not start_time_str or not end_time_str:
+                return False
+            start_dt = datetime.strptime(f"{date_str} {start_time_str}", '%Y-%m-%d %H:%M')
+            end_dt = datetime.strptime(f"{date_str} {end_time_str}", '%Y-%m-%d %H:%M')
+
+        doc = {
+            'username': username,
+            'title': schedule_data.get('title'),
+            'description': schedule_data.get('description'),
+            'start': pytz.utc.localize(start_dt),
+            'end': pytz.utc.localize(end_dt),
+            'allDay': bool(is_all_day),
+            'location': schedule_data.get('location'),
+            'createdAt': datetime.now(pytz.utc)
+        }
+        db.schedules.insert_one(doc)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding schedule for {username}: {e}", exc_info=True)
+        return False
+
+def get_schedules(username, start, end):
+    db = current_app.db
+    if db is None: return []
+
+    schedules_list = []
+    try:
+        # Accept ISO strings with or without trailing Z
+        start_dt = datetime.fromisoformat(start.replace('Z', ''))
+        end_dt = datetime.fromisoformat(end.replace('Z', ''))
+        # localize to UTC if naive
+        if start_dt.tzinfo is None:
+            start_dt = pytz.utc.localize(start_dt)
+        if end_dt.tzinfo is None:
+            end_dt = pytz.utc.localize(end_dt)
+
+        query = {
+            'username': username,
+            'start': {'$lt': end_dt},
+            'end': {'$gt': start_dt}
+        }
+
+        for doc in db.schedules.find(query):
+            schedules_list.append({
+                'id': str(doc['_id']),
+                'title': doc.get('title'),
+                'start': doc.get('start').isoformat(),
+                'end': doc.get('end').isoformat(),
+                'allDay': doc.get('allDay'),
+                'extendedProps': {
+                    'description': doc.get('description'),
+                    'location': doc.get('location')
+                }
+            })
+    except Exception as e:
+        logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
+
+    return schedules_list
+
+def update_schedule(username, schedule_id, update_data):
+    """
+    update_data should accept keys: title, description, start (iso), end (iso), allDay, location
+    """
+    db = current_app.db
+    if db is None: return False
+    try:
+        _id = ObjectId(schedule_id)
+        update_fields = {}
+        # Parse and set times to UTC-aware datetimes
+        if 'start' in update_data and update_data['start']:
+            s = datetime.fromisoformat(update_data['start'].replace('Z', ''))
+            if s.tzinfo is None: s = pytz.utc.localize(s)
+            update_fields['start'] = s
+        if 'end' in update_data and update_data['end']:
+            e = datetime.fromisoformat(update_data['end'].replace('Z', ''))
+            if e.tzinfo is None: e = pytz.utc.localize(e)
+            update_fields['end'] = e
+        if 'title' in update_data:
+            update_fields['title'] = update_data['title']
+        if 'description' in update_data:
+            update_fields['description'] = update_data['description']
+        if 'location' in update_data:
+            update_fields['location'] = update_data['location']
+        if 'allDay' in update_data:
+            update_fields['allDay'] = bool(update_data['allDay'])
+        if not update_fields:
+            return False
+
+        result = db.schedules.update_one({'_id': _id, 'username': username}, {'$set': update_fields})
+        return result.modified_count == 1
+    except Exception as e:
+        logger.error(f"Error updating schedule {schedule_id} for {username}: {e}", exc_info=True)
+        return False
+
+def delete_schedule(username, schedule_id):
+    db = current_app.db
+    if db is None: return False
+    try:
+        result = db.schedules.delete_one({'_id': ObjectId(schedule_id), 'username': username})
+        return result.deleted_count == 1
+    except Exception as e:
+        logger.error(f"Error deleting schedule {schedule_id} for {username}: {e}", exc_info=True)
+        return False
+
+# =========================================================
+# --- Item Archive/Restore/Delete Models ---
+# =========================================================
+
 def restore_item(username, item_type, item_id):
     """Restores an archived item by setting its 'isArchived' flag to False."""
     db = current_app.db
@@ -447,12 +586,6 @@ def restore_item(username, item_type, item_id):
             {'_id': ObjectId(item_id), 'username': username},
             {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
         )
-        # If it's a Transaction folder, restore all child checks too.
-        if item_type == 'Transaction':
-             db.transactions.update_many(
-                {'parent_id': ObjectId(item_id), 'username': username},
-                {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
-            )
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error restoring {item_type} {item_id}: {e}", exc_info=True)
@@ -467,47 +600,38 @@ def delete_item_permanently(username, item_type, item_id):
     collection = db[collection_name]
 
     try:
-        if item_type == 'Transaction':
-            # Delete children first
-            db.transactions.delete_many({'parent_id': ObjectId(item_id), 'username': username})
-        # Delete the parent item/invoice
         result = collection.delete_one({'_id': ObjectId(item_id), 'username': username})
         return result.deleted_count == 1
     except Exception as e:
         logger.error(f"Error permanently deleting {item_type} {item_id}: {e}", exc_info=True)
         return False
 
+
+# =========================================================
+# --- Analytics, Notification, and Push Models ---
+# =========================================================
+
 def get_analytics_data(username, year):
     db = current_app.db
     if db is None: return {}
     try:
         pipeline_monthly = [
-            # Filter for paid transaction folders in the specified year
             {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
-            # Group by month and sum the final 'amount' saved on the folder
-            {'$group': {'_id': {'$month': '$paidAt'}, 'total': {'$sum': '$amount'}}}
+            {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
         ]
-        
-        # We now group by 'paidAt' instead of 'check_date' for the monthly chart
         monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
-        
         current_month = datetime.now(pytz.utc).month
         start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
         start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)
-        
         pipeline_weekly = [
-            # Filter for paid transaction folders in the current month
-            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'paidAt': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
-            # Group by week and sum the final 'amount' saved on the folder
-            {'$group': {'_id': {'$week': '$paidAt'}, 'total': {'$sum': '$amount'}}},
+            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
+            {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
         weekly_agg = list(db.transactions.aggregate(pipeline_weekly))
-        
         weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(weekly_agg)]
         total_year_earning = sum(monthly_totals.values())
         max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
-        
         chart_data = [
             {
                 'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0),
@@ -515,7 +639,6 @@ def get_analytics_data(username, year):
                 'is_current_month': i == current_month
             } for i in range(1, 13)
         ]
-        
         return {
             'year': year, 'total_year_earning': total_year_earning,
             'chart_data': chart_data, 'current_month_name': month_name[current_month].upper(),
