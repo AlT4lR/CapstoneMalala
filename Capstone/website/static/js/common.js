@@ -46,21 +46,108 @@ function setupCustomDialog() {
     };
 }
 
+// --- START OF MODIFICATION: PWA Enhancements (Install Prompt & Notifications) ---
+let deferredPrompt;
+const installButton = document.getElementById('custom-install-button');
+const notificationButton = document.getElementById('enable-notifications-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installButton) {
+        installButton.style.display = 'block';
+        installButton.disabled = false;
+    }
+});
+
+if (installButton) {
+    installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        installButton.disabled = true;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+        setTimeout(() => installButton.style.display = 'none', 1000);
+    });
+}
+
+window.addEventListener('appinstalled', () => {
+    if (installButton) installButton.style.display = 'none';
+    deferredPrompt = null;
+    console.log('PWA was installed');
+});
+
+async function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function subscribeToPushNotifications() {
+    try {
+        const sw = await navigator.serviceWorker.ready;
+        const vapidPublicKey = document.body.dataset.vapidPublicKey;
+
+        if (!vapidPublicKey) {
+            return console.error('VAPID public key not found on body data attribute.');
+        }
+
+        const subscription = await sw.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: await urlBase64ToUint8Array(vapidPublicKey)
+        });
+
+        await fetch('/api/save-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.getCsrfToken()
+            },
+            body: JSON.stringify(subscription)
+        });
+        alert('Successfully subscribed to push notifications!');
+    } catch (err) {
+        console.error('Failed to subscribe to push notifications:', err);
+        alert('Failed to subscribe. Please ensure notifications are not blocked for this site.');
+    }
+}
+
+function askForNotificationPermission() {
+    Notification.requestPermission().then(result => {
+        if (result === 'granted') {
+            subscribeToPushNotifications();
+        } else {
+            console.log('User did not grant notification permission.');
+        }
+    });
+}
+
+if (notificationButton) {
+    notificationButton.addEventListener('click', askForNotificationPermission);
+}
+// --- END OF MODIFICATION: PWA Enhancements (Install Prompt & Notifications) ---
+
+
 document.addEventListener('DOMContentLoaded', function() {
     setupCustomDialog();
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     window.getCsrfToken = () => csrfToken;
 
-    // --- START OF MODIFICATION: Auto-hiding logic for flash messages ---
+    // --- Auto-hiding logic for flash messages ---
     const flashContainer = document.getElementById('flash-messages-overlay-container');
     if (flashContainer) {
         setTimeout(() => {
             flashContainer.style.opacity = '0';
             flashContainer.addEventListener('transitionend', () => flashContainer.remove());
-        }, 5000); // Messages disappear after 5 seconds
+        }, 5000);
     }
-    // --- END OF MODIFICATION ---
 
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
@@ -72,25 +159,52 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!transactionId) return;
 
         window.showCustomConfirm(`Are you sure you want to delete ${transactionName}?`, async () => {
-            // --- START OF MODIFICATION: Removed alert(), now just reloads to show flash message ---
-            try {
-                const response = await fetch(`/api/transactions/${transactionId}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-Token': window.getCsrfToken() }
-                });
-                // Always reload the page. The backend will have flashed the correct
-                // success or error message, which will be displayed upon reload.
-                window.location.reload();
-            } catch (error) {
-                console.error("Deletion failed:", error);
-                // Reload even on network error to potentially show an offline page or let user retry.
-                window.location.reload();
+            // --- START OF MODIFICATION: Background Sync for Deletes ---
+            const deleteUrl = `/api/transactions/${transactionId}`;
+            const csrfToken = window.getCsrfToken();
+
+            if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
+                try {
+                    // Save the request to IndexedDB
+                    await window.db.writeData('transaction-outbox', {
+                        url: deleteUrl,
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-Token': csrfToken },
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Register the sync event with the service worker
+                    const swRegistration = await navigator.serviceWorker.ready;
+                    await swRegistration.sync.register('sync-deleted-items');
+                    
+                    // Optimistic UI update: remove the element from the DOM
+                    alert("You're offline. This item will be deleted when you reconnect.");
+                    const itemElement = deleteButton.closest('.transaction-row, .transaction-item');
+                    if(itemElement) itemElement.remove();
+
+                } catch (error) {
+                    console.error('Failed to schedule sync for deletion:', error);
+                    alert('Could not schedule deletion. Please try again when online.');
+                }
+            } else {
+                // Online or no sync support: perform fetch directly
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-Token': csrfToken }
+                    });
+                    // Reload is the desired online behavior
+                    window.location.reload(); 
+                } catch (error) {
+                    console.error("Deletion failed:", error);
+                    window.location.reload();
+                }
             }
             // --- END OF MODIFICATION ---
         });
     });
 
-    // --- Notification Panel Logic (remains unchanged) ---
+    // --- Notification Panel Logic (Integrated) ---
     const notificationBtn = document.getElementById('notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
     const notificationIndicator = document.getElementById('notification-indicator');
@@ -120,13 +234,17 @@ document.addEventListener('DOMContentLoaded', function() {
             iconClass = 'fa-solid fa-calendar-days';
         }
 
+        // NOTE: The unread indicator logic in the original HTML template might need server-side rendering or more complex client-side logic to fully work.
+        // For simplicity and matching the provided merge logic, the red dot is kept *visible* in the template but the *outer* indicator is controlled by checkNotificationStatus.
+        const unreadIndicator = '<span class="absolute -top-1 -left-1 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>';
+
         return `
             <a href="${notification.url}" class="flex items-start gap-4 p-4 border-b hover:bg-gray-50 transition-colors">
                 <div class="relative">
                     <div class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full">
                         <i class="${iconClass} text-gray-500"></i>
                     </div>
-                    <span class="absolute -top-1 -left-1 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    ${unreadIndicator}
                 </div>
                 <div class="flex-1">
                     <div class="flex justify-between items-center mb-1">

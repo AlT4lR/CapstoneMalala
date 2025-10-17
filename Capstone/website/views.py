@@ -105,6 +105,7 @@ def transactions_paid():
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     return render_template('paid_transactions.html', transactions=transactions, show_sidebar=True)
 
+# --- START OF MODIFICATION ---
 @main.route('/transaction/folder/<transaction_id>')
 @jwt_required()
 def transaction_folder_details(transaction_id):
@@ -117,6 +118,7 @@ def transaction_folder_details(transaction_id):
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     form = TransactionForm()
 
+    # Calculate the total of all countered checks
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     
     return render_template(
@@ -127,6 +129,7 @@ def transaction_folder_details(transaction_id):
         total_countered_check=total_countered_check,
         show_sidebar=True
     )
+# --- END OF MODIFICATION ---
 
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
@@ -192,11 +195,13 @@ def settings():
 def archive():
     username = get_jwt_identity()
     archived_items = get_archived_items(username)
+    # Merged modification: Pass the previous page URL to the template
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
 # --- API Routes ---
 
+# --- START OF MODIFICATION: Add route for saving push subscriptions ---
 @main.route('/api/save-subscription', methods=['POST'])
 @jwt_required()
 def save_subscription():
@@ -209,6 +214,7 @@ def save_subscription():
         return jsonify({'success': True}), 201
     
     return jsonify({'error': 'Failed to save subscription'}), 500
+# --- END OF MODIFICATION ---
 
 @main.route('/api/invoices/upload', methods=['POST'])
 @jwt_required()
@@ -217,10 +223,12 @@ def upload_invoice():
     selected_branch = session.get('selected_branch')
     
     if 'files' not in request.files:
+        flash('No file part in the request.', 'error')
         return jsonify({'success': False, 'error': 'No file part'}), 400
     
     files = request.files.getlist('files')
     if not files or files[0].filename == '':
+        flash('No files selected for uploading.', 'error')
         return jsonify({'success': False, 'error': 'No selected file'}), 400
 
     invoice_data = {
@@ -303,12 +311,14 @@ def pay_transaction_folder(folder_id):
     username = get_jwt_identity()
     data = request.get_json()
     if not data:
+        flash('Invalid request.', 'error')
         return jsonify({'error': 'Invalid request.'}), 400
 
     notes = data.get('notes')
     amount = data.get('amount')
 
     if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
+        flash('A valid amount is required.', 'error')
         return jsonify({'error': 'A valid amount is required.'}), 400
 
     if mark_folder_as_paid(username, folder_id, notes, amount):
@@ -422,33 +432,8 @@ def add_schedule_route():
         current_app.log_user_activity(username, "Created a new schedule")
         return jsonify({"success": True})
     
-    return jsonify({"success": False, "error": "Failed to create schedule"}), 500
-
-@main.route('/api/schedules/update/<schedule_id>', methods=['POST'])
-@jwt_required()
-def update_schedule_route(schedule_id):
-    username = get_jwt_identity()
-    # Expect JSON body or form-encoded - support both
-    if request.is_json:
-        payload = request.get_json()
-    else:
-        payload = request.form.to_dict()
-
-    # Accept front-end values: start, end, title, description, location, allDay
-    success = current_app.update_schedule(username, schedule_id, payload)
-    if success:
-        current_app.log_user_activity(username, 'Updated a schedule')
-        return jsonify({"success": True})
-    return jsonify({"success": False, "error": "Failed to update schedule"}), 400
-
-@main.route('/api/schedules/<schedule_id>', methods=['DELETE'])
-@jwt_required()
-def delete_schedule_route(schedule_id):
-    username = get_jwt_identity()
-    if current_app.delete_schedule(username, schedule_id):
-        current_app.log_user_activity(username, 'Deleted a schedule')
-        return jsonify({"success": True})
-    return jsonify({"success": False, "error": "Failed to delete schedule"}), 404
+    flash('Failed to create schedule.', 'error')
+    return jsonify({"error": "Failed to create schedule"}), 500
 
 @main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
 @jwt_required()
@@ -458,6 +443,7 @@ def restore_item_route(item_type, item_id):
         flash(f'{item_type} successfully restored!', 'success')
         current_app.log_user_activity(username, f'Restored a {item_type.lower()}')
         return jsonify({'success': True}), 200
+    flash(f'Failed to restore {item_type.lower()}.', 'error')
     return jsonify({'error': f'Failed to restore {item_type.lower()}.'}), 404
 
 @main.route('/api/archive/delete/<item_type>/<item_id>', methods=['DELETE'])
@@ -468,4 +454,5 @@ def delete_item_permanently_route(item_type, item_id):
         flash(f'{item_type} permanently deleted!', 'success')
         current_app.log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
         return jsonify({'success': True}), 200
+    flash(f'Failed to permanently delete {item_type.lower()}.', 'error')
     return jsonify({'error': f'Failed to delete {item_type.lower()}.'}), 404

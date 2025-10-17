@@ -1,22 +1,20 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - All Invoices{% endblock %}
 {% block content %}
-<main class="flex-1 p-6 sm:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
     
-    <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- START OF MODIFICATION: Made header responsive --- -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- END OF MODIFICATION --- -->
         <h2 class="text-2xl font-semibold uppercase tracking-wide">Invoice</h2>
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <input type="text" id="search-input" placeholder="Search Invoices..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="relative flex-grow sm:flex-grow-0">
+                <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            
-            <!-- --- THIS IS THE FIX --- -->
-            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
-            <!-- --- END OF FIX --- -->
-
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -28,35 +26,40 @@
         </a>
     </div>
 
+    <!-- --- START OF MODIFICATION: Replaced table with responsive div structure --- -->
     <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-[#3a4d39] text-white">
-                <tr>
-                    <th class="p-3 text-left font-semibold">File Name</th>
-                    <th class="p-3 text-left font-semibold">Dates</th>
-                    <th class="p-3 text-left font-semibold">Categories</th>
-                </tr>
-            </thead>
-            <tbody id="invoice-table-body">
-                {% for invoice in invoices %}
-                <tr class="border-t border-gray-200 hover:bg-gray-50 invoice-row cursor-pointer" 
-                    data-name="{{ invoice.file_name | lower }}" 
-                    data-id="{{ invoice.id }}">
-                    <td class="p-3 font-medium">{{ invoice.file_name }}</td>
-                    <td class="p-3">{{ invoice.date }}</td>
-                    <td class="p-3">{{ invoice.category }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="3" class="p-8 text-center text-gray-500">No invoices found.</td>
-                </tr>
-                {% endfor %}
-                <tr id="no-results-row" class="hidden">
-                     <td colspan="3" class="p-8 text-center text-gray-500">No results found.</td>
-                </tr>
-            </tbody>
-        </table>
+        <!-- Header -->
+        <div class="hidden md:grid grid-cols-3 p-3 bg-[#3a4d39] text-white font-semibold text-sm">
+            <div class="col-span-1">File Name</div>
+            <div class="col-span-1">Dates</div>
+            <div class="col-span-1">Categories</div>
+        </div>
+        <!-- Body -->
+        <div id="invoice-table-body" class="flex flex-col">
+            {% for invoice in invoices %}
+            <div class="w-full border-t border-gray-200 hover:bg-gray-50 invoice-row cursor-pointer" 
+                data-name="{{ invoice.file_name | lower }}" 
+                data-id="{{ invoice.id }}">
+                <div class="p-3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                    <div class="col-span-2 md:col-span-1 font-medium text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-alt text-gray-400 hidden md:block"></i>
+                        <span>{{ invoice.file_name }}</span>
+                    </div>
+                    <div class="col-span-1 text-gray-600">
+                        <span class="md:hidden font-semibold text-gray-500">Date: </span>{{ invoice.date }}
+                    </div>
+                    <div class="col-span-1 text-gray-600">
+                        <span class="md:hidden font-semibold text-gray-500">Category: </span>{{ invoice.category }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-500">No invoices found.</div>
+            {% endfor %}
+            <div id="no-results-row" class="hidden p-8 text-center text-gray-500">No results found.</div>
+        </div>
     </div>
+    <!-- --- END OF MODIFICATION --- -->
 </main>
 
 {% include "_invoice_details_modal.html" %}
@@ -66,7 +69,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Search Logic (remains the same) ---
     const searchInput = document.getElementById('search-input');
     const tableBody = document.getElementById('invoice-table-body');
     const invoiceRows = tableBody.querySelectorAll('.invoice-row');
@@ -79,21 +81,21 @@ document.addEventListener('DOMContentLoaded', function() {
             invoiceRows.forEach(row => {
                 const name = row.dataset.name;
                 if (name.includes(searchTerm)) {
-                    row.style.display = 'table-row';
+                    row.style.display = 'block';
                     visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
             });
-            noResultsRow.style.display = visibleCount === 0 ? 'table-row' : 'none';
+            noResultsRow.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
 
-    // --- Modal Logic ---
     const modal = document.getElementById('invoice-details-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const modalTitle = document.getElementById('modal-invoice-title');
     const modalImage = document.getElementById('modal-invoice-image');
+    const modalOcrText = document.getElementById('modal-ocr-text');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
     const modalDeleteBtn = document.getElementById('modal-delete-btn');
 
@@ -117,6 +119,8 @@ document.addEventListener('DOMContentLoaded', function() {
                      modalImage.src = '';
                      modalImage.classList.add('hidden');
                 }
+                
+                modalOcrText.textContent = data.extracted_text || 'No text could be extracted from this image.';
                 modalDownloadBtn.href = `/api/invoices/${invoiceId}/download`;
                 modalDeleteBtn.dataset.id = data._id;
                 modalDeleteBtn.dataset.name = data.folder_name || 'this invoice';

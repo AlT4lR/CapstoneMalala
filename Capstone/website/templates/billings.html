@@ -3,17 +3,21 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 flex flex-col gap-4 bg-[#f6f7f1] text-[#3a4d39]">
     
+    <!-- Header -->
     <header class="flex justify-between items-center border-b border-[#d4d8c4] pb-2">
-        <h1 class="text-2xl font-bold">BILLINGS</h1>
+        <h1 class="text-2xl font-bold">Billings</h1>
         <div class="flex items-center gap-4">
-            <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
             {% include "_notification_button.html" %}
         </div>
     </header>
 
+    <!-- START OF MODIFICATION: Redesigned the entire Billings summary and loans section -->
+    <!-- Summary of Billings Section -->
     <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
         <h2 class="text-lg font-bold mb-3">Summary of Billings</h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Left Side: Month/Week Selector -->
             <div class="bg-[#3a4d39] text-white rounded-lg p-3 flex flex-col gap-3">
                 <div class="flex justify-between items-center">
                     <button class="hover:bg-white/10 rounded-full p-1"><i class="fa-solid fa-chevron-left"></i></button>
@@ -29,25 +33,82 @@
                     <button class="bg-[#6f8a6e] hover:bg-opacity-80 text-white font-semibold py-2 rounded-md transition-colors">WEEK 6</button>
                 </div>
             </div>
+            <!-- Right Side: Summary Cards -->
             <div class="grid grid-cols-2 gap-3">
-                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Check Amount</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
-                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total EWT Collected</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
-                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Countered Check</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
-                <div class="flex flex-col gap-2"><div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total amt of other loans</div><div class="bg-[#3a4d39] rounded-lg flex-1"></div></div>
+                <div class="flex flex-col gap-2">
+                    <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Check Amount</div>
+                    <div class="bg-[#3a4d39] rounded-lg flex-1"></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total EWT Collected</div>
+                    <div class="bg-[#3a4d39] rounded-lg flex-1"></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Countered Check</div>
+                    <div class="bg-[#3a4d39] rounded-lg flex-1"></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total amt of other loans</div>
+                    <div class="bg-[#3a4d39] rounded-lg flex-1"></div>
+                </div>
             </div>
         </div>
     </section>
 
+    <!-- Loans Section -->
     <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 flex-1 flex flex-col">
         <h2 class="text-lg font-bold mb-3">Loans</h2>
-        <div class="flex-1 flex flex-col">
-            <div class="border-b-2 border-[#3a4d39]"><div class="bg-[#3a4d39] text-white grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold"><span class="col-span-3">Name Of Loans</span><span class="col-span-2">Bank Name</span><span class="col-span-2">Amount</span><span class="col-span-2">Date Issued</span><span class="col-span-3 flex justify-between items-center"><span>Date Paid</span><div class="relative"><input type="text" placeholder="Search loans..." class="w-32 sm:w-40 pl-8 pr-2 py-1 bg-white/20 placeholder-white/70 rounded-md text-sm focus:outline-none focus:bg-white/30"><i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70"></i></div></span></div></div>
-            <div class="flex-1 overflow-y-auto"><div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm"><span class="col-span-3 font-medium">Personal Loan</span><span class="col-span-2 text-gray-600">BDO Unibank</span><span class="col-span-2 text-gray-600">₱ 50,000.00</span><span class="col-span-2 text-gray-600">09/15/2025</span><span class="col-span-2 text-gray-600">10/15/2025</span><div class="col-span-1 text-right"><button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button></div></div><div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm"><span class="col-span-3 font-medium">Car Loan</span><span class="col-span-2 text-gray-600">Metrobank</span><span class="col-span-2 text-gray-600">₱ 850,000.00</span><span class="col-span-2 text-gray-600">07/01/2025</span><span class="col-span-2 text-gray-600">-</span><div class="col-span-1 text-right"><button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button></div></div></div>
+        <div class="flex-1 flex flex-col min-h-0">
+            <!-- Table Header -->
+            <div class="border-b-2 border-[#3a4d39]">
+                <div class="bg-[#3a4d39] text-white grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold">
+                    <span class="col-span-3">Name Of Loans</span>
+                    <span class="col-span-2">Bank Name</span>
+                    <span class="col-span-2">Amount</span>
+                    <span class="col-span-2">Date Issued</span>
+                    <span class="col-span-3 flex justify-between items-center">
+                        <span>Date Paid</span>
+                        <div class="relative">
+                            <input type="text" placeholder="Search loans..." class="w-32 sm:w-40 pl-8 pr-2 py-1 bg-white/20 placeholder-white/70 rounded-md text-sm focus:outline-none focus:bg-white/30">
+                            <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70"></i>
+                        </div>
+                    </span>
+                </div>
+            </div>
+            <!-- Table Body -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- Example Row 1 -->
+                <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm">
+                    <span class="col-span-3 font-medium">Personal Loan</span>
+                    <span class="col-span-2 text-gray-600">BDO Unibank</span>
+                    <span class="col-span-2 text-gray-600">₱ 50,000.00</span>
+                    <span class="col-span-2 text-gray-600">09/15/2025</span>
+                    <div class="col-span-3 flex justify-between items-center">
+                        <span class="text-gray-600">10/15/2025</span>
+                        <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
+                    </div>
+                </div>
+                <!-- Example Row 2 -->
+                 <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm">
+                    <span class="col-span-3 font-medium">Car Loan</span>
+                    <span class="col-span-2 text-gray-600">Metrobank</span>
+                    <span class="col-span-2 text-gray-600">₱ 850,000.00</span>
+                    <span class="col-span-2 text-gray-600">07/01/2025</span>
+                    <div class="col-span-3 flex justify-between items-center">
+                        <span class="text-gray-600">-</span>
+                        <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="mt-4 text-right"><button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button></div>
+        <div class="mt-4 text-right">
+            <button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button>
+        </div>
     </section>
+    <!-- END OF MODIFICATION -->
 </main>
 
+<!-- Create Loan Modal (remains the same) -->
 <div id="add-loan-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
     <div class="bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-lg p-8 relative text-gray-700">
         <button id="close-loan-modal-btn" class="absolute top-4 left-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
@@ -92,6 +153,7 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- The existing Javascript for the modal remains unchanged as it is still functional -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('add-loan-modal');
