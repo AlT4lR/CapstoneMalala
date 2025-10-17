@@ -291,9 +291,18 @@ def get_transaction_details(transaction_id):
 def pay_transaction_folder(folder_id):
     username = get_jwt_identity()
     data = request.get_json()
-    notes = data.get('notes')
+    if not data:
+        flash('Invalid request.', 'error')
+        return jsonify({'error': 'Invalid request.'}), 400
 
-    if mark_folder_as_paid(username, folder_id, notes):
+    notes = data.get('notes')
+    amount = data.get('amount')
+
+    if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
+        flash('A valid amount is required.', 'error')
+        return jsonify({'error': 'A valid amount is required.'}), 400
+
+    if mark_folder_as_paid(username, folder_id, notes, amount):
         current_app.log_user_activity(username, f'Marked transaction folder as Paid')
         flash('Transaction successfully marked as paid!', 'success')
         return jsonify({'success': True})

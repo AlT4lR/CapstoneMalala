@@ -324,21 +324,17 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
 
-def mark_folder_as_paid(username, folder_id, notes=None):
+# --- START OF MODIFICATION: Update function to accept the final amount ---
+def mark_folder_as_paid(username, folder_id, notes, amount):
     db = current_app.db
     if db is None: return False
     try:
-        child_checks = list(db.transactions.find({
-            'username': username,
-            'parent_id': ObjectId(folder_id)
-        }))
-        
-        total_amount = sum(check.get('amount', 0.0) for check in child_checks)
-
+        # The total amount is now passed directly from the user input
+        # No need to calculate it from child checks anymore
         update_data = {
             '$set': {
                 'status': 'Paid',
-                'amount': total_amount,
+                'amount': float(amount), # Use the user-provided amount
                 'paidAt': datetime.now(pytz.utc)
             }
         }
@@ -351,8 +347,10 @@ def mark_folder_as_paid(username, folder_id, notes=None):
         )
 
         if result.modified_count == 0:
+            logger.warning(f"No document found or updated for folder {folder_id} for user {username}.")
             return False
 
+        # Also update all child checks to 'Paid' status
         db.transactions.update_many(
             {'parent_id': ObjectId(folder_id), 'username': username},
             {'$set': {'status': 'Paid'}}
@@ -362,16 +360,23 @@ def mark_folder_as_paid(username, folder_id, notes=None):
     except Exception as e:
         logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
         return False
+# --- END OF MODIFICATION ---
 
 def archive_transaction(username, transaction_id):
     db = current_app.db
     if db is None: return False
     try:
         result = db.transactions.update_one(
+            {'parent_id': ObjectId(transaction_id), 'username': username},
+            {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
+        )
+        # Also archive the parent transaction (folder)
+        result_parent = db.transactions.update_one(
             {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
-        return result.modified_count == 1
+        # Return true if either the parent or children were modified.
+        return result.modified_count >= 1 or result_parent.modified_count == 1
     except Exception as e:
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
@@ -382,10 +387,10 @@ def get_archived_items(username):
     all_items_raw = []
     query = {'username': username, 'isArchived': True}
     try:
-        for doc in db.transactions.find(query):
+        for doc in db.transactions.find({**query, 'parent_id': None}): # Only show archived folders/parent transactions
             all_items_raw.append({
                 'id': str(doc['_id']), 'name': doc.get('name', 'N/A'),
-                'type': 'Transaction', 'details': f"Check #{doc.get('check_no', 'N/A')}",
+                'type': 'Transaction', 'details': f"Check Folder", # Changed to Check Folder for clarity
                 'archivedAt': doc.get('archivedAt')
             })
         for doc in db.invoices.find(query):
@@ -426,6 +431,12 @@ def restore_item(username, item_type, item_id):
             {'_id': ObjectId(item_id), 'username': username},
             {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
         )
+        # If it's a Transaction folder, restore all child checks too.
+        if item_type == 'Transaction':
+             db.transactions.update_many(
+                {'parent_id': ObjectId(item_id), 'username': username},
+                {'$set': {'isArchived': False}, '$unset': {'archivedAt': ""}}
+            )
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error restoring {item_type} {item_id}: {e}", exc_info=True)
@@ -440,6 +451,10 @@ def delete_item_permanently(username, item_type, item_id):
     collection = db[collection_name]
 
     try:
+        if item_type == 'Transaction':
+            # Delete children first
+            db.transactions.delete_many({'parent_id': ObjectId(item_id), 'username': username})
+        # Delete the parent item/invoice
         result = collection.delete_one({'_id': ObjectId(item_id), 'username': username})
         return result.deleted_count == 1
     except Exception as e:
@@ -451,22 +466,32 @@ def get_analytics_data(username, year):
     if db is None: return {}
     try:
         pipeline_monthly = [
+            # Filter for paid transaction folders in the specified year
             {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
-            {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
+            # Group by month and sum the final 'amount' saved on the folder
+            {'$group': {'_id': {'$month': '$paidAt'}, 'total': {'$sum': '$amount'}}}
         ]
+        
+        # We now group by 'paidAt' instead of 'check_date' for the monthly chart
         monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
+        
         current_month = datetime.now(pytz.utc).month
         start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
         start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)
+        
         pipeline_weekly = [
-            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
-            {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
+            # Filter for paid transaction folders in the current month
+            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'paidAt': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
+            # Group by week and sum the final 'amount' saved on the folder
+            {'$group': {'_id': {'$week': '$paidAt'}, 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
         weekly_agg = list(db.transactions.aggregate(pipeline_weekly))
+        
         weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(weekly_agg)]
         total_year_earning = sum(monthly_totals.values())
         max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
+        
         chart_data = [
             {
                 'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0),
@@ -474,6 +499,7 @@ def get_analytics_data(username, year):
                 'is_current_month': i == current_month
             } for i in range(1, 13)
         ]
+        
         return {
             'year': year, 'total_year_earning': total_year_earning,
             'chart_data': chart_data, 'current_month_name': month_name[current_month].upper(),

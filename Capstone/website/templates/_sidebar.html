@@ -1,10 +1,16 @@
 <!-- website/templates/_sidebar.html -->
-<!-- --- START OF MODIFICATION: Make sidebar responsive --- -->
-<!-- Mobile Overlay -->
+<!-- --- START OF MODIFICATION: Added smooth hover animations --- -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
 
-<!-- Sidebar -->
-<aside id="sidebar" class="bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 transition-transform duration-300 ease-in-out
+<!-- 
+    CHANGES MADE:
+    1. Added `transition-all duration-300 ease-in-out` to the <aside> tag.
+       - `transition-all`: Animate all animatable properties (like width).
+       - `duration-300`: Make the animation last 300 milliseconds.
+       - `ease-in-out`: A smooth acceleration and deceleration curve for the animation.
+-->
+<aside id="sidebar" class="bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 
+           transition-all duration-300 ease-in-out
            fixed lg:relative inset-y-0 left-0 z-40
            w-72 -translate-x-full lg:translate-x-0
            lg:w-20 lg:hover:w-72 group lg:overflow-hidden">
@@ -13,9 +19,13 @@
     <div class="flex items-center justify-between lg:justify-start gap-4 h-16 shrink-0 px-2 mb-8">
         <div class="flex items-center gap-4">
             <i class="fa-solid fa-table-cells-large fa-lg w-12 text-center"></i>
-            <span class="text-xl font-bold opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">DecoOffice</span>
+            <!-- 
+                CHANGES MADE:
+                1. Added `duration-300` to match the parent's transition speed.
+                2. Added `whitespace-nowrap` to prevent the text from wrapping to a new line during the animation.
+            -->
+            <span class="text-xl font-bold opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">DecoOffice</span>
         </div>
-        <!-- Close button for mobile -->
         <button id="sidebar-close-btn" class="lg:hidden text-2xl">&times;</button>
     </div>
     
@@ -35,7 +45,7 @@
            class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors
            {% if request.path.startswith(url_for(route)) %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
             <i class="w-6 text-center fa-solid {{ icon }} fa-lg"></i>
-            <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">{{ name }}</span>
+            <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">{{ name }}</span>
         </a>
         {% endfor %}
     </nav>
@@ -43,7 +53,7 @@
     <!-- User Profile -->
     <div class="mt-auto shrink-0 flex items-center gap-4 w-full h-12 px-3">
         <div class="w-10 h-10 bg-white rounded-full"></div>
-        <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity font-semibold">Admin</span>
+        <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Admin</span>
     </div>
 </aside>
 <!-- --- END OF MODIFICATION --- -->
