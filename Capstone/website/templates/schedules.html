@@ -5,18 +5,51 @@
 
 <!-- --- START OF MODIFICATION --- -->
 <style>
-    /* --- Main Container & Theme --- */
-    .dynamic-calendar-container {
-        background-color: #3a4d39;
-        color: #ffffff;
-        border-radius: 1.5rem; /* 24px */
-        padding: 1.5rem; /* 24px */
-        display: flex;
-        flex-direction: column;
+    /* --- Layout Base --- */
+    html, body {
         height: 100%;
     }
 
-    /* --- Calendar Header (Title & Prev/Next) --- */
+    main {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 100vh;
+    }
+
+    .main-content-layout {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        min-height: 0;
+        height: 100%;
+    }
+
+    .calendar-wrapper {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        height: 100%;
+    }
+
+    /* --- Main Calendar Container --- */
+    .dynamic-calendar-container {
+        background-color: #3a4d39;
+        color: #ffffff;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        height: 100%;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    /* --- Calendar Header --- */
     .calendar-header {
         display: flex;
         justify-content: space-between;
@@ -46,23 +79,26 @@
     #view-switcher button.active-view {
         background-color: #ffffff;
         color: #3a4d39;
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1),
+                    0 1px 2px -1px rgb(0 0 0 / 0.1);
     }
 
-    /* --- Calendar Grid (General) --- */
+    /* --- Calendar Grid --- */
     .calendar-grid {
         display: grid;
         flex: 1;
         gap: 1px;
-        background-color: rgba(255, 255, 255, 0.2); /* Grid lines color */
+        background-color: rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: auto;
+        min-height: 0;
     }
     .calendar-grid > div {
         background-color: #3a4d39;
         padding: 0.5rem;
     }
 
-    /* --- Month View Specific --- */
+    /* --- Month View --- */
     .month-view {
         grid-template-columns: repeat(7, 1fr);
         grid-template-rows: auto repeat(5, 1fr);
@@ -85,11 +121,10 @@
         background-color: rgba(255, 255, 255, 0.1);
     }
 
-    /* --- Week View Specific --- */
+    /* --- Week View --- */
     .week-view {
-        grid-template-columns: 60px repeat(7, 1fr); /* Time column + 7 days */
+        grid-template-columns: 60px repeat(7, 1fr);
     }
-    /* Removed empty ruleset for .week-view .corner-cell */
     .week-view .day-header {
         text-align: center;
         font-weight: 600;
@@ -103,10 +138,7 @@
         justify-content: center;
         color: #e5e7eb;
     }
-    .week-view .hour-cell {
-        position: relative;
-    }
-    /* Example event for styling reference */
+
     .event-placeholder {
         position: absolute;
         background-color: #E9D5FF;
@@ -116,10 +148,9 @@
         font-size: 12px;
         left: 2px;
         right: 2px;
-        top: 0; /* 4 PM */
-        height: 120px; /* 2 hours */
+        top: 0;
+        height: 120px;
     }
-
 </style>
 <!-- --- END OF MODIFICATION --- -->
 
@@ -142,9 +173,8 @@
     </header>
 
     <!-- Main Layout -->
-    <div class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-
-        <!-- Left Sidebar (Unchanged) -->
+    <div class="main-content-layout">
+        <!-- Left Sidebar -->
         <aside class="w-full lg:max-w-xs bg-[#3a4d39] text-white rounded-2xl p-4 flex flex-col space-y-4">
             <button id="create-schedule-btn"
                 class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
@@ -159,7 +189,13 @@
                     </div>
                 </div>
                 <div id="mini-cal-grid" class="grid grid-cols-7 text-center text-sm gap-y-2">
-                    <span class="font-medium text-gray-400">S</span><span class="font-medium text-gray-400">M</span><span class="font-medium text-gray-400">T</span><span class="font-medium text-gray-400">W</span><span class="font-medium text-gray-400">T</span><span class="font-medium text-gray-400">F</span><span class="font-medium text-gray-400">S</span>
+                    <span class="font-medium text-gray-400">S</span>
+                    <span class="font-medium text-gray-400">M</span>
+                    <span class="font-medium text-gray-400">T</span>
+                    <span class="font-medium text-gray-400">W</span>
+                    <span class="font-medium text-gray-400">T</span>
+                    <span class="font-medium text-gray-400">F</span>
+                    <span class="font-medium text-gray-400">S</span>
                 </div>
             </div>
             <div id="label-filter">
@@ -175,15 +211,12 @@
             </div>
         </aside>
 
-        <!-- --- START OF MODIFICATION --- -->
-        <!-- Right: NEW Dynamic Calendar Container -->
-        <div class="flex-1 flex h-full">
+        <!-- Right: Dynamic Calendar -->
+        <div class="calendar-wrapper">
             <div id="main-calendar-container" class="dynamic-calendar-container">
-                <!-- Calendar content will be generated by dynamic_calendar.js -->
+                <!-- Calendar content generated by dynamic_calendar.js -->
             </div>
         </div>
-        <!-- --- END OF MODIFICATION --- -->
-
     </div>
 </main>
 
@@ -191,12 +224,9 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Removed FullCalendar scripts -->
 <script src="{{ url_for('static', filename='js/dynamic_calendar.js') }}"></script>
     
 <script>
-// This script block now only controls the sidebar mini-calendar.
-// The main calendar logic is moved to dynamic_calendar.js
 document.addEventListener('DOMContentLoaded', function() {
     const miniCalTitle = document.getElementById('mini-cal-title');
     const miniCalGrid = document.getElementById('mini-cal-grid');
@@ -234,8 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             dayEl.addEventListener('click', () => {
                 const selectedDate = new Date(year, month, day);
-                // Removed window.calendar.gotoDate(selectedDate) as it no longer exists
-                // If you want mini-calendar to control main calendar, a custom event system would be needed.
                 const currentlySelected = miniCalGrid.querySelector('.bg-white');
                 if (currentlySelected) removeSelectedStyle(currentlySelected);
                 applySelectedStyle(dayEl);
