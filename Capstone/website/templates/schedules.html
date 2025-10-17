@@ -1,57 +1,128 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Schedules{% endblock %}
 {% block head %}
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
 <meta name="csrf-token" content="{{ csrf_token() }}">
+
+<!-- --- START OF MODIFICATION --- -->
 <style>
-    /* --- General Layout & Calendar Container --- */
-    #calendar {
-        --fc-border-color: #e5e7eb;
-        --fc-day-bg-color: transparent;
-        --fc-today-bg-color: rgba(111, 138, 110, 0.05);
+    /* --- Main Container & Theme --- */
+    .dynamic-calendar-container {
+        background-color: #3a4d39;
+        color: #ffffff;
+        border-radius: 1.5rem; /* 24px */
+        padding: 1.5rem; /* 24px */
+        display: flex;
+        flex-direction: column;
         height: 100%;
     }
 
-    /* --- FullCalendar Component Styling (Scaled Down) --- */
-    .fc .fc-toolbar-title {
+    /* --- Calendar Header (Title & Prev/Next) --- */
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .calendar-title {
         font-size: 1.5rem;
         font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+    .calendar-nav button {
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0 0.5rem;
+    }
+
+    /* --- View Switcher Buttons --- */
+    #view-switcher {
+        background-color: #f6f7f1;
+        border: 1px solid #d4d8c4;
         color: #3a4d39;
     }
-    .fc .fc-button {
-        font-size: 0.9em;
-        padding: 0.4em 0.65em;
+    #view-switcher button.active-view {
+        background-color: #ffffff;
+        color: #3a4d39;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     }
 
-    .fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number, .fc .fc-timegrid-slot-label-cushion {
-        font-size: 0.875rem;
-        color: #6b7280;
-        text-decoration: none;
+    /* --- Calendar Grid (General) --- */
+    .calendar-grid {
+        display: grid;
+        flex: 1;
+        gap: 1px;
+        background-color: rgba(255, 255, 255, 0.2); /* Grid lines color */
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .fc .fc-col-header-cell-cushion {
+    .calendar-grid > div {
+        background-color: #3a4d39;
+        padding: 0.5rem;
+    }
+
+    /* --- Month View Specific --- */
+    .month-view {
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: auto repeat(5, 1fr);
+    }
+    .month-view .day-header {
+        text-align: center;
         font-weight: 600;
-        color: #4b5563;
+        padding: 0.75rem 0.5rem;
     }
-    .fc .fc-timegrid-axis-frame {
-        align-items: flex-start;
-        padding-top: 4px;
+    .month-view .date-cell {
+        padding: 0.5rem;
+    }
+    .month-view .date-cell.empty {
+        background-color: #3a4d39;
+    }
+    .month-view .date-number {
+        font-weight: 500;
+    }
+    .month-view .is-today {
+        background-color: rgba(255, 255, 255, 0.1);
     }
 
-    .fc-event {
-        border: none !important;
-        background-color: white !important;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    /* --- Week View Specific --- */
+    .week-view {
+        grid-template-columns: 60px repeat(7, 1fr); /* Time column + 7 days */
     }
-    .fc-event-main { color: #374151; font-weight: 600; }
-    .event-label-dot {
-        width: 8px; height: 8px;
-        border-radius: 9999px;
-        margin-right: 6px;
-        display: inline-block;
+    /* Removed empty ruleset for .week-view .corner-cell */
+    .week-view .day-header {
+        text-align: center;
+        font-weight: 600;
+        padding: 0.75rem 0.5rem;
     }
+    .week-view .time-slot {
+        font-size: 0.875rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #e5e7eb;
+    }
+    .week-view .hour-cell {
+        position: relative;
+    }
+    /* Example event for styling reference */
+    .event-placeholder {
+        position: absolute;
+        background-color: #E9D5FF;
+        color: #37304A;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        left: 2px;
+        right: 2px;
+        top: 0; /* 4 PM */
+        height: 120px; /* 2 hours */
+    }
+
 </style>
+<!-- --- END OF MODIFICATION --- -->
+
 {% endblock %}
 
 {% block content %}
@@ -59,26 +130,26 @@
 
     <!-- Header -->
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h1 class="text-2xl font-bold">Schedules</h1>
-        <div class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
-            <button id="day-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
-            <button id="week-view-btn" class="px-2 sm:px-3 py-1 rounded-md bg-white shadow">Week</button>
-            <button id="month-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
-            <button id="year-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
+        <div>
+            <h1 class="text-2xl font-bold">Schedules</h1>
+        </div>
+        <div id="view-switcher" class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
+            <button data-view="day" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
+            <button data-view="week" class="px-2 sm:px-3 py-1 rounded-md active-view">Week</button>
+            <button data-view="month" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
+            <button data-view="year" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
         </div>
     </header>
 
     <!-- Main Layout -->
     <div class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
 
-        <!-- Left Sidebar -->
+        <!-- Left Sidebar (Unchanged) -->
         <aside class="w-full lg:max-w-xs bg-[#3a4d39] text-white rounded-2xl p-4 flex flex-col space-y-4">
             <button id="create-schedule-btn"
                 class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
                 Create Schedule
             </button>
-
-            <!-- Mini Calendar -->
             <div>
                 <div class="flex justify-between items-center mb-2">
                     <span id="mini-cal-title" class="font-bold text-base tracking-wider">OCTOBER 2025</span>
@@ -91,8 +162,6 @@
                     <span class="font-medium text-gray-400">S</span><span class="font-medium text-gray-400">M</span><span class="font-medium text-gray-400">T</span><span class="font-medium text-gray-400">W</span><span class="font-medium text-gray-400">T</span><span class="font-medium text-gray-400">F</span><span class="font-medium text-gray-400">S</span>
                 </div>
             </div>
-
-            <!-- Labels -->
             <div id="label-filter">
                 <h3 class="font-bold text-base mb-3">Label</h3>
                 <div class="space-y-3 text-sm">
@@ -106,10 +175,15 @@
             </div>
         </aside>
 
-        <!-- Right: Calendar -->
+        <!-- --- START OF MODIFICATION --- -->
+        <!-- Right: NEW Dynamic Calendar Container -->
         <div class="flex-1 flex h-full">
-            <div id='calendar' class="bg-white rounded-2xl p-4 flex-1"></div>
+            <div id="main-calendar-container" class="dynamic-calendar-container">
+                <!-- Calendar content will be generated by dynamic_calendar.js -->
+            </div>
         </div>
+        <!-- --- END OF MODIFICATION --- -->
+
     </div>
 </main>
 
@@ -117,16 +191,17 @@
 {% endblock %}
 
 {% block scripts %}
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
-<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<!-- Removed FullCalendar scripts -->
+<script src="{{ url_for('static', filename='js/dynamic_calendar.js') }}"></script>
     
 <script>
+// This script block now only controls the sidebar mini-calendar.
+// The main calendar logic is moved to dynamic_calendar.js
 document.addEventListener('DOMContentLoaded', function() {
     const miniCalTitle = document.getElementById('mini-cal-title');
     const miniCalGrid = document.getElementById('mini-cal-grid');
     const prevBtn = document.getElementById('mini-cal-prev');
     const nextBtn = document.getElementById('mini-cal-next');
-    const mainCalendar = window.calendar; 
 
     if (!miniCalTitle || !miniCalGrid || !prevBtn || !nextBtn) return;
 
@@ -136,21 +211,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderMiniCalendar() {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        const today = new Date(); // Get the latest date every time we render
-
+        const today = new Date();
         miniCalTitle.textContent = `${monthNames[month]} ${year}`;
         while (miniCalGrid.children.length > 7) miniCalGrid.removeChild(miniCalGrid.lastChild);
-
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-
         for (let i = 0; i < firstDayOfMonth; i++) miniCalGrid.insertAdjacentHTML('beforeend', '<span></span>');
-
         for (let day = 1; day <= daysInMonth; day++) {
             const dayEl = document.createElement('span');
             dayEl.textContent = day;
             dayEl.className = 'py-0.5 px-2 text-white cursor-pointer hover:bg-white/20 rounded-full transition-colors';
-
             const applySelectedStyle = (el) => {
                 el.classList.add('bg-white', 'text-[#3a4d39]', 'font-bold');
                 el.classList.remove('text-white');
@@ -159,51 +229,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.classList.remove('bg-white', 'text-[#3a4d39]', 'font-bold');
                 el.classList.add('text-white');
             };
-
-            // This condition now correctly re-evaluates 'today' on every render
             if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                 applySelectedStyle(dayEl);
             }
-
             dayEl.addEventListener('click', () => {
                 const selectedDate = new Date(year, month, day);
-                if (mainCalendar) mainCalendar.gotoDate(selectedDate);
-                
+                // Removed window.calendar.gotoDate(selectedDate) as it no longer exists
+                // If you want mini-calendar to control main calendar, a custom event system would be needed.
                 const currentlySelected = miniCalGrid.querySelector('.bg-white');
                 if (currentlySelected) removeSelectedStyle(currentlySelected);
-                
                 applySelectedStyle(dayEl);
             });
-
             miniCalGrid.appendChild(dayEl);
         }
     }
-
-    prevBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderMiniCalendar();
-    });
-
-    nextBtn.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderMiniCalendar();
-    });
-    
-    // --- NEW: Function to handle auto-updating at midnight ---
+    prevBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderMiniCalendar(); });
+    nextBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderMiniCalendar(); });
     function scheduleMidnightRefresh() {
         const now = new Date();
         const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
         const msUntilMidnight = midnight.getTime() - now.getTime();
-
-        setTimeout(() => {
-            // Rerender the calendar to update the 'today' highlight
-            renderMiniCalendar();
-            // Schedule the next refresh for the *next* midnight
-            scheduleMidnightRefresh();
-        }, msUntilMidnight + 1000); // Add a 1-second buffer
+        setTimeout(() => { renderMiniCalendar(); scheduleMidnightRefresh(); }, msUntilMidnight + 1000);
     }
-
-    // Initial render and schedule the first midnight refresh
     renderMiniCalendar();
     scheduleMidnightRefresh();
 });
