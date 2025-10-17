@@ -1,6 +1,13 @@
+<div align="center">
+<a href="#">
+<img src="[https://placehold.co/600x200/3a4d39/white?text=DecoOffice&font=poppins](https://cdn.fbsbx.com/v/t59.2708-21/566830432_1300610981342858_6398788332550162213_n.ico/logo.ico?_nc_cat=111&ccb=1-7&_nc_sid=2b0e22&_nc_eui2=AeFzBHmvs1h-Koq_oC-wRbtLfSeawEwXnDZ9J5rATBecNhMt8wgYXJ8tc8CN5LdgkFkA3t96Fnq-l-EWUkRLqg8V&_nc_ohc=bKvm4FdmgoQQ7kNvwFZu4Xa&_nc_oc=Adn4RWugzP4ADAJ2x-Vw5y6KACRjcdroSAdE4tfi_35Eol7C-bK4WSAlMNwk01Geois&_nc_zt=7&_nc_ht=cdn.fbsbx.com&_nc_gid=kGoGsDHRjS8gO8oZl96vSw&oh=03_Q7cD3gGk_Cah49M1IO8pBaTa3HEuFKA3fy1QJETh8KIHyXarkw&oe=68F43C46&dl=1)" alt="DecoOffice Logo">
+</a>
+<br />
+<br />
+</div>
 # DecoOffice Capstone Project
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-2.8.2-blue) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-blue)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-2.8.2-yellow) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-blue)
 
 A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches. This PWA-ready platform offers a seamless, responsive experience on both desktop and mobile devices.
 
