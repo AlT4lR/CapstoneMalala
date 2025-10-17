@@ -1,51 +1,40 @@
 <!-- website/templates/_invoice_details_modal.html -->
 <div id="invoice-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
     
-    <!-- Modal Content -->
-    <div id="modal-content" class="bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden">
+    <div id="modal-content" class="bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
         
-        <!-- --- START OF MODIFICATION: Header color changed to cream --- -->
         <header class="bg-[#f6f7f1] text-[#3a4d39] flex justify-between items-center p-2 pl-4 flex-shrink-0 border-b border-gray-300">
             <div class="flex items-center gap-3">
                 <button id="close-modal-btn" class="hover:bg-gray-200 rounded-full p-1 transition-colors"><i class="fas fa-times fa-lg"></i></button>
                 <i class="fa-solid fa-image text-lg"></i>
-                <h2 id="modal-invoice-title" class="text-lg font-semibold">Salary for workers</h2>
+                <h2 id="modal-invoice-title" class="text-lg font-semibold truncate">Salary for workers</h2>
             </div>
             <button id="modal-delete-btn" class="text-red-500 hover:bg-red-100 rounded-full p-2 transition-colors" title="Delete">
                 <i class="fa-solid fa-trash-can"></i>
             </button>
         </header>
-        <!-- --- END OF MODIFICATION --- -->
 
-        <!-- Main Body -->
-        <main class="flex-1 flex items-center justify-center overflow-hidden relative bg-[#fafaf5]">
-            <!-- Left Arrow -->
-            <button class="absolute left-4 text-xl text-gray-700 bg-white/50 rounded-full p-2 h-10 w-10 flex items-center justify-center hover:bg-white/80 z-10 transition-colors">
-                <i class="fa-solid fa-chevron-left"></i>
-            </button>
+        <!-- --- START OF MODIFICATION: Main body now stacks vertically on mobile --- -->
+        <main class="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden bg-[#eef2e9]">
             
-            <!-- Image Container -->
-            <div id="modal-image-container" class="h-full w-full flex items-center justify-center p-4">
-                 <!-- The image will be loaded here. The dark green is a placeholder color -->
-                 <div class="w-1/2 h-4/5 bg-[#3a4d39] flex items-center justify-center">
-                    <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain hidden">
-                 </div>
+            <!-- Image Container (takes full width on mobile, 2/3 on desktop) -->
+            <div id="modal-image-container" class="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center p-4 relative bg-[#fafaf5]">
+                 <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain hidden">
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-[#3a4d39] rounded-md text-white shadow-lg">
+                    <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-l-md">+</button>
+                    <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-r-md border-l border-white/20">-</button>
+                </div>
             </div>
 
-            <!-- Right Arrow -->
-            <button class="absolute right-4 text-xl text-gray-700 bg-white/50 rounded-full p-2 h-10 w-10 flex items-center justify-center hover:bg-white/80 z-10 transition-colors">
-                <i class="fa-solid fa-chevron-right"></i>
-            </button>
-            
-            <!-- Zoom Controls -->
-            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-[#3a4d39] rounded-md text-white shadow-lg">
-                <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-l-md">+</button>
-                <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-r-md border-l border-white/20">-</button>
+            <!-- Extracted Text Container (takes full width on mobile, 1/3 on desktop) -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-white">
+                <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-50 flex-shrink-0">Extracted Text (OCR)</h3>
+                <pre id="modal-ocr-text" class="flex-1 p-3 overflow-y-auto text-xs text-gray-700 whitespace-pre-wrap font-sans"></pre>
             </div>
         </main>
+        <!-- --- END OF MODIFICATION --- -->
 
-        <!-- Footer Actions -->
-        <footer class="p-4 flex justify-end gap-3 flex-shrink-0 bg-[#fafaf5]">
+        <footer class="p-4 flex justify-end gap-3 flex-shrink-0 bg-[#fafaf5] border-t">
             <button id="modal-edit-btn" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Edit</button>
             <a id="modal-download-btn" href="#" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Download</a>
         </footer>

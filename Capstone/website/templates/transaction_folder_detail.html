@@ -12,7 +12,7 @@
           <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
-        <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
         {% include "_notification_button.html" %}
       </div>
     </header>
@@ -25,13 +25,13 @@
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
 
     <!-- Main content grid -->
-    <div class="grid grid-cols-3 gap-6 flex-grow">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
 
       <!-- Left side container -->
-      <div class="col-span-2 flex flex-col">
+      <div class="lg:col-span-2 flex flex-col">
         <!-- White box for the scrollable list -->
         <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
-          <div class="grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
+          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
             <span class="col-span-3">Name of issued Checked</span>
             <span class="col-span-2">Check No.</span>
             <span class="col-span-2">Check Date</span>
@@ -41,10 +41,7 @@
 
           <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
               {% for check in child_checks %}
-              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row cursor-pointer hover:bg-gray-50 transition-colors"
-                   data-id="{{ check._id }}"
-                   data-notes="{{ check.notes or folder.notes or '' }}"
-                   data-amount="{{ check.countered_check }}">
+              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row hover:bg-gray-50 transition-colors">
                 <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
                 <span class="col-span-2">{{ check.check_no }}</span>
                 <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
@@ -72,28 +69,24 @@
 
       <!-- Right side -->
       <div class="flex flex-col space-y-4">
-        <div id="select-prompt" class="flex-grow flex items-center justify-center bg-white rounded-md border border-gray-200 shadow-sm p-4 text-gray-400">
-            <p>Select a check to view details.</p>
-        </div>
-
-        <div id="details-panel" class="hidden flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex-col space-y-3">
+        <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
           <label class="font-medium text-sm">Notes</label>
-          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none"></textarea>
+          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
           
-          <label class="font-medium text-sm">Countered Checks</label>
-          <input type="text" id="countered-checks-display" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <label class="font-medium text-sm">Total Countered Checks</label>
+          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
           
-          <label class="font-medium text-sm">Check Amount</label>
-          <input type="text" id="check-amount-display" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <!-- --- START OF MODIFICATION --- -->
+          <label for="check-amount-input" class="font-medium text-sm">Final Check Amount</label>
+          <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
+          <!-- --- END OF MODIFICATION --- -->
         </div>
 
-        <!-- --- START OF MODIFICATION --- -->
         <div class="flex justify-end">
             <button id="paid-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
               Paid
             </button>
         </div>
-        <!-- --- END OF MODIFICATION --- -->
       </div>
 
     </div>
@@ -105,7 +98,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Modal for creating a new check ---
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
@@ -115,55 +107,24 @@ document.addEventListener('DOMContentLoaded', function() {
         createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) createCheckModal.classList.add('hidden'); });
     }
 
-    // --- Interactive Right Panel Logic ---
-    const checkRows = document.querySelectorAll('.check-row');
-    const selectPrompt = document.getElementById('select-prompt');
-    const detailsPanel = document.getElementById('details-panel');
-    const notesTextarea = document.getElementById('notes-textarea');
-    const counteredDisplay = document.getElementById('countered-checks-display');
-    const amountDisplay = document.getElementById('check-amount-display');
-
-    const formatCurrency = (amount) => {
-        return '₱ ' + (parseFloat(amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const resetDetailsPanel = () => {
-        detailsPanel.classList.add('hidden');
-        selectPrompt.classList.remove('hidden');
-        checkRows.forEach(r => r.classList.remove('bg-green-50', 'border-green-300'));
-    };
-
-    checkRows.forEach(row => {
-        row.addEventListener('click', (event) => {
-            event.stopPropagation();
-
-            checkRows.forEach(r => r.classList.remove('bg-green-50', 'border-green-300'));
-            row.classList.add('bg-green-50', 'border-green-300');
-
-            selectPrompt.classList.add('hidden');
-            detailsPanel.classList.remove('hidden');
-            detailsPanel.classList.add('flex');
-
-            const amount = row.dataset.amount;
-            const notes = row.dataset.notes;
-            
-            notesTextarea.value = notes;
-            counteredDisplay.value = formatCurrency(amount);
-            amountDisplay.value = formatCurrency(amount);
-        });
-    });
-    
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.check-row') && !event.target.closest('#details-panel')) {
-            resetDetailsPanel();
-        }
-    });
-
-    // --- Paid Button Logic ---
     const paidBtn = document.getElementById('paid-btn');
+    const notesTextarea = document.getElementById('notes-textarea');
+    // --- START OF MODIFICATION: Get the new editable input ---
+    const checkAmountInput = document.getElementById('check-amount-input');
+    // --- END OF MODIFICATION ---
+
     paidBtn.addEventListener('click', async () => {
         const folderId = "{{ folder._id }}";
-        const finalNotes = notesTextarea.value; 
+        const finalNotes = notesTextarea.value;
+        // --- START OF MODIFICATION: Get and validate the amount ---
+        const finalAmount = parseFloat(checkAmountInput.value);
+
+        if (isNaN(finalAmount) || finalAmount <= 0) {
+            alert('Please enter a valid check amount.');
+            checkAmountInput.focus();
+            return;
+        }
+        // --- END OF MODIFICATION ---
 
         paidBtn.disabled = true;
         paidBtn.textContent = 'Processing...';
@@ -173,11 +134,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
-                body: JSON.stringify({ notes: finalNotes })
+                // --- START OF MODIFICATION: Send notes AND amount in the body ---
+                body: JSON.stringify({ 
+                    notes: finalNotes,
+                    amount: finalAmount 
+                })
+                // --- END OF MODIFICATION ---
             });
-            window.location.href = "{{ url_for('main.transactions_paid') }}";
+
+            if (response.ok) {
+                 window.location.href = "{{ url_for('main.transactions_paid') }}";
+            } else {
+                // If backend sends an error, reload to show the flash message
+                window.location.reload();
+            }
+           
         } catch (error) {
             console.error('Error:', error);
             window.location.reload();
