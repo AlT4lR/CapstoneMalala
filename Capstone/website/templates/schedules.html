@@ -1,63 +1,165 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Schedules{% endblock %}
 {% block head %}
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
-    <!-- Custom styles for the calendar -->
-    <style>
-        /* Make the calendar fill the container */
-        #calendar { height: 100%; }
-        /* Style FullCalendar to match your theme */
-        .fc .fc-toolbar-title { font-size: 1.5rem; font-weight: 700; color: #3a4d39; }
-        .fc .fc-button-primary { background-color: #3a4d39; border-color: #3a4d39; }
-        .fc .fc-daygrid-day.fc-day-today { background-color: #f6f7f1; }
-        .fc-event { border: none !important; }
-    </style>
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    /* --- General Layout & Calendar Container --- */
+    #calendar {
+        /* FullCalendar Theme Variables for a cleaner look */
+        --fc-border-color: #e5e7eb; /* gray-200 */
+        --fc-day-bg-color: transparent;
+        --fc-today-bg-color: rgba(111, 138, 110, 0.05); /* very light green */
+        height: 100%;
+        min-height: 600px; /* fallback */
+    }
+
+    /* --- FullCalendar Component Styling --- */
+    .fc .fc-toolbar-title {
+        font-size: 1.875rem; /* text-3xl */
+        font-weight: 700;
+        color: #3a4d39; /* Primary text color */
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4b5563; /* gray-600 */
+        text-decoration: none;
+    }
+
+    .fc .fc-daygrid-day-number {
+        font-size: 0.875rem;
+        color: #6b7280; /* gray-500 */
+        text-decoration: none;
+    }
+
+    .fc .fc-timegrid-slot-label-cushion {
+        color: #6b7280; /* gray-500 */
+    }
+
+    .fc .fc-timegrid-axis-frame {
+        align-items: flex-start;
+        padding-top: 4px;
+    }
+
+    .fc-event {
+        /* Event style: white background, shadow, rounded */
+        border: none !important;
+        background-color: white !important;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1),
+            0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .fc-event-main {
+        color: #374151; /* gray-700 */
+        font-weight: 600;
+    }
+
+    .event-label-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        margin-right: 6px;
+        display: inline-block;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<main class="flex-1 p-4 sm:p-6 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
-    <header class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Schedules</h1>
-        <div class="bg-gray-200 p-1 rounded-lg text-sm font-semibold">
-            <button id="day-view-btn" class="px-3 py-1 rounded-md">Day</button>
-            <button id="week-view-btn" class="px-3 py-1 rounded-md bg-white shadow">Week</button>
-            <button id="month-view-btn" class="px-3 py-1 rounded-md">Month</button>
-            <button id="year-view-btn" class="px-3 py-1 rounded-md">Year</button>
+<main class="flex-1 min-h-screen p-4 sm:p-6 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
+
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h1 class="text-2xl font-bold">Schedules</h1>
+        </div>
+        <div class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
+            <button id="day-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
+            <button id="week-view-btn" class="px-2 sm:px-3 py-1 rounded-md bg-white shadow">Week</button>
+            <button id="month-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
+            <button id="year-view-btn" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
         </div>
     </header>
 
-    <div class="flex-1 flex gap-4 overflow-hidden">
+    <!-- Main Layout -->
+    <div class="flex-1 flex flex-col lg:flex-row gap-6 h-full min-h-0">
+
         <!-- Left Sidebar -->
-        <aside class="w-1/4 flex flex-col gap-4">
-            <div class="bg-[#3a4d39] text-white rounded-2xl p-4 flex-grow flex flex-col">
-                <button id="create-schedule-btn" class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-lg mb-4 hover:bg-gray-200">
-                    Create Schedule
-                </button>
-                <!-- Mini-calendar (placeholder, could be implemented with another JS library) -->
-                <div class="text-center font-semibold">JULY 2025</div>
-                <div class="text-center text-xs mt-2">S M T W T F S</div>
-                <div class="text-center text-sm">... a mini calendar would go here ...</div>
-                
-                <div class="mt-auto">
-                    <h3 class="font-bold mb-2">Label</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-500"></div><span>Office</span></div>
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-purple-500"></div><span>Meetings</span></div>
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-pink-500"></div><span>Events</span></div>
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-yellow-500"></div><span>Personal</span></div>
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-gray-400"></div><span>Others</span></div>
+        <aside class="w-full lg:w-1/3 bg-[#3a4d39] text-white rounded-3xl p-6 flex flex-col space-y-6">
+            <button id="create-schedule-btn"
+                class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
+                Create Schedule
+            </button>
+
+            <!-- Mini Calendar -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-semibold">JULY 2025</span>
+                    <div>
+                        <button class="px-2">&lt;</button>
+                        <button class="px-2">&gt;</button>
                     </div>
-                    <button class="w-full mt-4 bg-white/20 text-white font-semibold py-2 rounded-lg text-sm hover:bg-white/30">
-                        + Add Label
-                    </button>
                 </div>
+                <div class="grid grid-cols-7 text-center text-sm gap-y-2 text-gray-300">
+                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                    <span class="text-white"></span><span class="text-white"></span><span class="text-white">1</span><span
+                        class="text-white">2</span><span class="text-white">3</span><span
+                        class="text-white">4</span><span class="text-white">5</span>
+                    <span class="text-white">6</span><span class="text-white">7</span><span class="text-white">8</span><span
+                        class="text-white">9</span><span class="text-white">10</span><span
+                        class="text-white">11</span><span class="text-white">12</span>
+                    <span class="text-white">13</span><span class="text-white">14</span><span class="text-white">15</span><span
+                        class="text-white">16</span><span class="text-white">17</span><span
+                        class="text-white">18</span><span class="text-white">19</span>
+                    <span class="text-white">20</span><span class="text-white">21</span><span class="text-white">22</span><span
+                        class="text-white">23</span><span class="text-white">24</span><span
+                        class="text-white">25</span><span
+                        class="bg-white text-[#3a4d39] rounded-full">26</span>
+                    <span class="text-white">27</span><span class="text-white">28</span><span class="text-white">29</span><span
+                        class="text-white">30</span><span class="text-white">31</span>
+                </div>
+            </div>
+
+            <!-- Labels -->
+            <div id="label-filter">
+                <h3 class="font-semibold mb-3">Label</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Office" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #3b82f6;"></div><span>Office</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Meetings" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #8b5cf6;"></div><span>Meetings</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Events" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #ec4899;"></div><span>Events</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Personal" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #f59e0b;"></div><span>Personal</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Others" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #6b7280;"></div><span>Others</span>
+                    </label>
+                </div>
+                <button
+                    class="w-full mt-4 bg-white/20 text-white font-semibold py-2 rounded-xl text-sm hover:bg-white/30 transition-colors">
+                    + Add Label
+                </button>
             </div>
         </aside>
 
-        <!-- Main Calendar View -->
-        <div class="w-3/4 bg-[#3a4d39] rounded-2xl p-4">
-            <div id='calendar' class="bg-white rounded-lg p-2"></div>
+        <!-- Right: Calendar -->
+        <div class="flex-1 flex h-full">
+            <div id='calendar' class="bg-white rounded-3xl p-6 flex-1"></div>
         </div>
+
     </div>
 </main>
 
@@ -65,6 +167,14 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
-    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+    window.addEventListener('load', () => {
+        if (typeof calendar !== 'undefined' && calendar.render) {
+            calendar.render();
+            calendar.updateSize();
+        }
+    });
+</script>
 {% endblock %}
