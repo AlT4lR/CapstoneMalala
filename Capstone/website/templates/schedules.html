@@ -92,10 +92,18 @@
         border: 1px solid rgba(255, 255, 255, 0.2);
         overflow: auto;
         min-height: 0;
+        position: relative;
     }
     .calendar-grid > div {
         background-color: #3a4d39;
         padding: 0.5rem;
+        position: relative;
+    }
+
+    .event-container {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
     }
 
     /* --- Month View --- */
@@ -120,10 +128,27 @@
     .month-view .is-today {
         background-color: rgba(255, 255, 255, 0.1);
     }
+    .month-view .event {
+        background-color: #8b5cf6;
+        color: white;
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        pointer-events: all;
+    }
 
     /* --- Week View --- */
     .week-view {
         grid-template-columns: 60px repeat(7, 1fr);
+    }
+    .week-view .day-header, .week-view .corner-cell {
+        position: sticky; top: 0; z-index: 10;
+        background-color: #3a4d39;
     }
     .week-view .day-header {
         text-align: center;
@@ -138,8 +163,7 @@
         justify-content: center;
         color: #e5e7eb;
     }
-
-    .event-placeholder {
+    .week-view .event {
         position: absolute;
         background-color: #E9D5FF;
         color: #37304A;
@@ -148,8 +172,30 @@
         font-size: 12px;
         left: 2px;
         right: 2px;
-        top: 0;
-        height: 120px;
+        overflow: hidden;
+        cursor: pointer;
+        pointer-events: all;
+        z-index: 5;
+    }
+
+    /* --- Modal Animation --- */
+    #schedule-modal-backdrop {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    #schedule-modal-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    #schedule-modal-backdrop .modal-container {
+        transform: scale(0.95) translateY(10px);
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    #schedule-modal-backdrop.active .modal-container {
+        transform: scale(1) translateY(0);
+        opacity: 1;
     }
 </style>
 <!-- --- END OF MODIFICATION --- -->
@@ -220,14 +266,71 @@
     </div>
 </main>
 
-{% include "_create_schedule_modal.html" %}
+<!-- === Create Schedule Modal (New Inline Version) === -->
+<div id="schedule-modal-backdrop" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    <div class="modal-container bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
+        <form id="schedule-form" method="POST" class="space-y-4">
+            <input type="hidden" id="schedule-id" name="schedule_id" value="">
+
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Discard</button>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <input type="text" id="schedule-title" name="title" placeholder="Create title here" class="w-full px-3 py-2 text-lg font-semibold border-b focus:outline-none focus:border-[#6f8a6e]" required>
+
+            <!-- Date & Time -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div>
+                    <label for="schedule-date" class="text-sm font-semibold">Date</label>
+                    <input type="date" id="schedule-date" name="date" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]" required>
+                </div>
+                <div class="flex items-center justify-end pt-5 gap-2">
+                    <input type="checkbox" id="all-day-toggle" name="all_day" class="h-4 w-4 rounded">
+                    <label for="all-day-toggle" class="text-sm font-medium">All Day</label>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="schedule-start-time" class="text-sm font-semibold">Start Time</label>
+                    <input type="time" id="schedule-start-time" name="start_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                </div>
+                <div>
+                    <label for="schedule-end-time" class="text-sm font-semibold">End Time</label>
+                    <input type="time" id="schedule-end-time" name="end_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                </div>
+            </div>
+
+            <!-- Description -->
+            <textarea id="schedule-description" name="description" placeholder="About schedule..." rows="3" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
+
+            <!-- Location -->
+            <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+
+            <!-- Footer -->
+            <div class="flex justify-between items-center pt-4">
+                <div>
+                    <button type="button" id="delete-schedule-btn" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" id="cancel-schedule-btn" class="px-6 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/dynamic_calendar.js') }}"></script>
-    
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Mini Calendar Logic (Unchanged) ---
     const miniCalTitle = document.getElementById('mini-cal-title');
     const miniCalGrid = document.getElementById('mini-cal-grid');
     const prevBtn = document.getElementById('mini-cal-prev');
@@ -264,6 +367,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             dayEl.addEventListener('click', () => {
                 const selectedDate = new Date(year, month, day);
+                if (window.mainCalendar && typeof window.mainCalendar.goToDate === 'function') {
+                    window.mainCalendar.goToDate(selectedDate);
+                }
                 const currentlySelected = miniCalGrid.querySelector('.bg-white');
                 if (currentlySelected) removeSelectedStyle(currentlySelected);
                 applySelectedStyle(dayEl);
