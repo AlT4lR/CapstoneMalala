@@ -47,10 +47,56 @@
                         <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-yellow-500"></div><span>Personal</span></div>
                         <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-gray-400"></div><span>Others</span></div>
                     </div>
-                    <button class="w-full mt-4 bg-white/20 text-white font-semibold py-2 rounded-lg text-sm hover:bg-white/30">
-                        + Add Label
-                    </button>
                 </div>
+                <div class="grid grid-cols-7 text-center text-sm gap-y-2 text-gray-300">
+                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                    <span class="text-white"></span><span class="text-white"></span><span class="text-white">1</span><span
+                        class="text-white">2</span><span class="text-white">3</span><span
+                        class="text-white">4</span><span class="text-white">5</span>
+                    <span class="text-white">6</span><span class="text-white">7</span><span class="text-white">8</span><span
+                        class="text-white">9</span><span class="text-white">10</span><span
+                        class="text-white">11</span><span class="text-white">12</span>
+                    <span class="text-white">13</span><span class="text-white">14</span><span class="text-white">15</span><span
+                        class="text-white">16</span><span class="text-white">17</span><span
+                        class="text-white">18</span><span class="text-white">19</span>
+                    <span class="text-white">20</span><span class="text-white">21</span><span class="text-white">22</span><span
+                        class="text-white">23</span><span class="text-white">24</span><span
+                        class="text-white">25</span><span
+                        class="bg-white text-[#3a4d39] rounded-full">26</span>
+                    <span class="text-white">27</span><span class="text-white">28</span><span class="text-white">29</span><span
+                        class="text-white">30</span><span class="text-white">31</span>
+                </div>
+            </div>
+
+            <!-- Labels -->
+            <div id="label-filter">
+                <h3 class="font-semibold mb-3">Label</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Office" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #3b82f6;"></div><span>Office</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Meetings" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #8b5cf6;"></div><span>Meetings</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Events" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #ec4899;"></div><span>Events</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Personal" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #f59e0b;"></div><span>Personal</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" value="Others" class="hidden label-checkbox" checked>
+                        <div class="w-4 h-4 rounded-full" style="background-color: #6b7280;"></div><span>Others</span>
+                    </label>
+                </div>
+                <button
+                    class="w-full mt-4 bg-white/20 text-white font-semibold py-2 rounded-xl text-sm hover:bg-white/30 transition-colors">
+                    + Add Label
+                </button>
             </div>
         </aside>
 
@@ -67,6 +113,14 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
-    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+    window.addEventListener('load', () => {
+        if (typeof calendar !== 'undefined' && calendar.render) {
+            calendar.render();
+            calendar.updateSize();
+        }
+    });
+</script>
 {% endblock %}

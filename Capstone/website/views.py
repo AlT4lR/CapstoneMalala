@@ -1,4 +1,5 @@
-# website/views.py
+# Add the following imports at top of file if not already present
+from flask import abort
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
@@ -20,7 +21,7 @@ from .forms import TransactionForm, LoanForm
 from .models import (
     get_transactions_by_status,
     get_transaction_by_id,
-    get_child_transactions_by_parent_id, # This import is now correct
+    get_child_transactions_by_parent_id,
     get_analytics_data,
     get_recent_activity,
     archive_transaction,
@@ -31,7 +32,9 @@ from .models import (
     add_loan,
     add_schedule, 
     get_schedules,
-    mark_folder_as_paid # This import is now correct
+    mark_folder_as_paid,
+    restore_item, 
+    delete_item_permanently
 )
 
 logger = logging.getLogger(__name__)
@@ -130,7 +133,7 @@ def transaction_folder_details(transaction_id):
 
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
-def add_transaction():
+def add_transaction_route():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
@@ -300,7 +303,6 @@ def get_transaction_details(transaction_id):
     transaction_data = current_app.get_transaction_by_id(username, transaction_id)
     if transaction_data:
         return jsonify(transaction_data)
-    flash('Could not find the requested transaction.', 'error')
     return jsonify({'error': 'Transaction not found'}), 404
 
 @main.route('/api/transactions/folder/<folder_id>/pay', methods=['POST'])
@@ -345,7 +347,6 @@ def get_invoice_details(invoice_id):
     invoice_data = current_app.get_invoice_by_id(username, invoice_id)
     if invoice_data:
         return jsonify(invoice_data)
-    flash('Could not load invoice details.', 'error')
     return jsonify({'error': 'Invoice not found'}), 404
 
 def perform_ocr_on_image(image_path):
@@ -362,7 +363,6 @@ def download_invoice_as_pdf(invoice_id):
     username = get_jwt_identity()
     invoice = current_app.get_invoice_by_id(username, invoice_id)
     if not invoice or not invoice.get('files'):
-        flash('Invoice or files not found.', 'error')
         return redirect(url_for('main.all_invoices'))
     
     buffer = io.BytesIO()
@@ -371,7 +371,6 @@ def download_invoice_as_pdf(invoice_id):
     image_file_info = invoice['files'][0]
     image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], image_file_info['filename'])
     if not os.path.exists(image_path):
-        flash('Image file for invoice not found on server.', 'error')
         return redirect(url_for('main.all_invoices'))
         
     extracted_text = invoice.get('extracted_text', perform_ocr_on_image(image_path))
@@ -409,7 +408,6 @@ def add_loan_route():
             flash('Successfully added a new loan!', 'success')
             return jsonify({'success': True})
     
-    flash('Failed to add the new loan. Please check the details.', 'error')
     errors = {field: error[0] for field, error in form.errors.items()}
     return jsonify({'success': False, 'errors': errors}), 400
 
@@ -432,7 +430,6 @@ def add_schedule_route():
         return jsonify({"error": "Form data is missing"}), 400
     if current_app.add_schedule(username, request.form):
         current_app.log_user_activity(username, "Created a new schedule")
-        flash('Schedule created successfully!', 'success')
         return jsonify({"success": True})
     
     flash('Failed to create schedule.', 'error')

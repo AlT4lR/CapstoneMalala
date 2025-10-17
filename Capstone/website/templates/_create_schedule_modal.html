@@ -1,78 +1,91 @@
 <!-- website/templates/_create_schedule_modal.html -->
 <div id="create-schedule-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
-        
         <form id="schedule-form" method="POST" class="space-y-4">
-            <input type="hidden" id="schedule-id" name="schedule_id">
+            <input type="hidden" id="schedule-id" name="schedule_id" value="">
 
             <!-- Header -->
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
-                <div class="space-x-2">
+                <div class="flex items-center gap-2">
                     <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Discard</button>
                 </div>
             </div>
 
             <!-- Title -->
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-square-check text-gray-400"></i>
-                <input type="text" id="schedule-title" name="title" placeholder="Create title here" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-                <button type="button" class="px-4 py-2 bg-[#3a4d39] text-white font-semibold rounded-md text-sm">Add Label</button>
-            </div>
+            <input type="text" id="schedule-title" name="title" placeholder="Create title here" class="w-full px-3 py-2 text-lg font-semibold border-b focus:outline-none focus:border-[#6f8a6e]" required>
 
-            <!-- About -->
-            <div class="flex items-center gap-2">
-                 <i class="fa-solid fa-align-left text-gray-400"></i>
-                <textarea id="schedule-description" name="description" placeholder="About schedule" rows="2" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
-            </div>
-
-            <!-- Date -->
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-calendar-alt text-gray-400"></i>
-                <input type="date" id="schedule-date" name="date" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-            </div>
-
-            <!-- Time -->
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-clock text-gray-400"></i>
-                    <input type="time" id="schedule-start-time" name="start_time" class="px-3 py-2 bg-white border border-gray-300 rounded-md">
-                    <span>→</span>
-                    <input type="time" id="schedule-end-time" name="end_time" class="px-3 py-2 bg-white border border-gray-300 rounded-md">
+            <!-- Date & Time -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div>
+                    <label for="schedule-date" class="text-sm font-semibold">Date</label>
+                    <input type="date" id="schedule-date" name="date" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]" required>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label for="all-day-toggle" class="text-sm font-medium">All Day</label>
+                <div class="flex items-center justify-end pt-5 gap-2">
                     <input type="checkbox" id="all-day-toggle" name="all_day" class="h-4 w-4 rounded">
+                    <label for="all-day-toggle" class="text-sm font-medium">All Day</label>
                 </div>
             </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="schedule-start-time" class="text-sm font-semibold">Start Time</label>
+                    <input type="time" id="schedule-start-time" name="start_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                </div>
+                <div>
+                    <label for="schedule-end-time" class="text-sm font-semibold">End Time</label>
+                    <input type="time" id="schedule-end-time" name="end_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                </div>
+            </div>
+
+            <!-- Description -->
+            <textarea id="schedule-description" name="description" placeholder="About schedule..." rows="3" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
 
             <!-- Location -->
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-map-marker-alt text-gray-400"></i>
-                <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-            </div>
-
-            <!-- Notifications -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col">
-                    <label class="text-sm font-semibold mb-1">Notification</label>
-                    <input type="text" value="Email" readonly class="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md">
-                </div>
-                <div class="flex flex-col">
-                    <label class="text-sm font-semibold mb-1">Set Reminder</label>
-                    <select name="reminder" class="px-3 py-2 bg-white border border-gray-300 rounded-md">
-                        <option value="none">None</option>
-                        <option value="15_minutes">15 minutes before</option>
-                        <option value="1_hour">1 hour before</option>
-                        <option value="1_day">1 day before</option>
-                    </select>
-                </div>
-            </div>
+            <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
 
             <!-- Footer -->
-            <div class="flex justify-end pt-4">
-                <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Save</button>
+            <div class="flex justify-between items-center pt-4">
+                <div>
+                    <!-- Delete button only shown when editing (text controlled by JS) -->
+                    <button type="button" id="delete-schedule-btn" onclick="if(document.getElementById('schedule-id').value){ window.deleteSchedule(document.getElementById('schedule-id').value); }" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" id="cancel-schedule-btn" class="px-6 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Save</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    // Small UI wiring for show/hide delete & cancel wiring
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('create-schedule-modal');
+        const deleteBtn = document.getElementById('delete-schedule-btn');
+        const cancelBtn = document.getElementById('cancel-schedule-btn');
+        const discardBtn = document.getElementById('discard-schedule-btn');
+        const scheduleIdInput = document.getElementById('schedule-id');
+
+        const showModal = () => modal.classList.remove('hidden');
+        const hideModal = () => {
+            modal.classList.add('hidden');
+            // hide delete
+            if (deleteBtn) deleteBtn.classList.add('hidden');
+        };
+
+        // When an event is opened for edit, calendar.js sets schedule-id and shows modal.
+        // This tiny helper toggles delete button visibility on ID change:
+        const observer = new MutationObserver(() => {
+            if (scheduleIdInput.value) {
+                deleteBtn.classList.remove('hidden');
+            } else {
+                deleteBtn.classList.add('hidden');
+            }
+        });
+        observer.observe(scheduleIdInput, { attributes: true, childList: false, subtree: false });
+
+        if (cancelBtn) cancelBtn.addEventListener('click', hideModal);
+        if (discardBtn) discardBtn.addEventListener('click', hideModal);
+    });
+</script>

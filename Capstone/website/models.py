@@ -62,7 +62,8 @@ def add_user(username, email, password):
             'failedLoginAttempts': 0,
             'lockoutUntil': None,
             'lastLogin': None,
-            'notes': ''
+            'notes': '',
+            'push_subscriptions': []
         })
         return True
     except DuplicateKeyError:
@@ -128,6 +129,22 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
         totp = pyotp.TOTP(user['otpSecret'])
         return totp.verify(submitted_otp, valid_window=1)
     return False
+
+def save_push_subscription(username, subscription_info):
+    db = current_app.db
+    if db is None: return False
+    try:
+        db.users.update_one({'username': username}, {'$addToSet': {'push_subscriptions': subscription_info}})
+        return True
+    except Exception as e:
+        logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
+        return False
+
+def get_user_push_subscriptions(username):
+    db = current_app.db
+    if db is None: return []
+    user = get_user_by_username(username)
+    return user.get('push_subscriptions', []) if user else []
 
 # =========================================================
 # --- Activity Models ---
@@ -225,7 +242,7 @@ def archive_invoice(username, invoice_id):
     if db is None: return False
     try:
         result = db.invoices.update_one(
-            {'_id': ObjectId(invoice_id), 'username': username},
+            {'id': ObjectId(invoice_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
         return result.modified_count == 1
@@ -234,7 +251,7 @@ def archive_invoice(username, invoice_id):
         return False
 
 # =========================================================
-# --- Transaction & Other Models ---
+# --- Transaction Models ---
 # =========================================================
 def add_transaction(username, branch, transaction_data, parent_id=None):
     db = current_app.db
@@ -342,7 +359,7 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
             update_data['$set']['notes'] = notes
             
         result = db.transactions.update_one(
-            {'_id': ObjectId(folder_id), 'username': username},
+            {'id': ObjectId(folder_id), 'username': username},
             update_data
         )
 
@@ -360,7 +377,6 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
     except Exception as e:
         logger.error(f"Error marking folder {folder_id} as paid: {e}", exc_info=True)
         return False
-# --- END OF MODIFICATION ---
 
 def archive_transaction(username, transaction_id):
     db = current_app.db
@@ -556,98 +572,3 @@ def mark_notifications_as_read(username):
     except Exception as e:
         logger.error(f"Error marking notifications as read for {username}: {e}", exc_info=True)
         return False
-
-def save_push_subscription(username, subscription_info):
-    db = current_app.db
-    if db is None: return False
-    try:
-        db.users.update_one({'username': username}, {'$addToSet': {'push_subscriptions': subscription_info}})
-        return True
-    except Exception as e:
-        logger.error(f"Error saving push subscription for {username}: {e}", exc_info=True)
-        return False
-
-def add_loan(username, branch, loan_data):
-    db = current_app.db
-    if db is None: return False
-    try:
-        date_issued_obj = loan_data.get('date_issued')
-        date_paid_obj = loan_data.get('date_paid')
-        doc = {
-            'username': username, 'branch': branch,
-            'name': loan_data.get('name_of_loan'),
-            'bank_name': loan_data.get('bank_name'),
-            'amount': float(loan_data.get('amount', 0.0)),
-            'date_issued': pytz.utc.localize(datetime.combine(date_issued_obj, datetime.min.time())) if date_issued_obj else None,
-            'date_paid': pytz.utc.localize(datetime.combine(date_paid_obj, datetime.min.time())) if date_paid_obj else None,
-            'createdAt': datetime.now(pytz.utc), 'isArchived': False
-        }
-        db.loans.insert_one(doc)
-        return True
-    except Exception as e:
-        logger.error(f"Error adding loan for {username}: {e}", exc_info=True)
-        return False
-
-def add_schedule(username, schedule_data):
-    db = current_app.db
-    if db is None: return False
-    try:
-        date_str = schedule_data.get('date')
-        start_time_str = schedule_data.get('start_time')
-        end_time_str = schedule_data.get('end_time')
-        is_all_day = 'all_day' in schedule_data
-        if is_all_day:
-            start_dt = datetime.strptime(date_str, '%Y-%m-%d')
-            end_dt = start_dt + timedelta(days=1)
-        else:
-            start_dt = datetime.strptime(f"{date_str} {start_time_str}", '%Y-%m-%d %H:%M')
-            end_dt = datetime.strptime(f"{date_str} {end_time_str}", '%Y-%m-%d %H:%M')
-        doc = {
-            'username': username,
-            'title': schedule_data.get('title'),
-            'description': schedule_data.get('description'),
-            'start': pytz.utc.localize(start_dt),
-            'end': pytz.utc.localize(end_dt),
-            'allDay': is_all_day,
-            'location': schedule_data.get('location'),
-            'label': schedule_data.get('label', 'Others'),
-            'reminder': schedule_data.get('reminder'),
-            'reminderSent': False,
-            'createdAt': datetime.now(pytz.utc)
-        }
-        db.schedules.insert_one(doc)
-        return True
-    except Exception as e:
-        logger.error(f"Error adding schedule for {username}: {e}", exc_info=True)
-        return False
-
-def get_schedules(username, start, end):
-    db = current_app.db
-    if db is None: return []
-    label_colors = {
-        "Office": "#3b82f6", "Meetings": "#8b5cf6",
-        "Events": "#ec4899", "Personal": "#f59e0b", "Others": "#6b7280"
-    }
-    schedules_list = []
-    try:
-        start_dt = pytz.utc.localize(datetime.fromisoformat(start.replace('Z', '')))
-        end_dt = pytz.utc.localize(datetime.fromisoformat(end.replace('Z', '')))
-        query = {'username': username, 'start': {'$gte': start_dt}, 'end': {'$lte': end_dt}}
-        for doc in db.schedules.find(query):
-            label = doc.get('label', 'Others')
-            schedules_list.append({
-                'id': str(doc['_id']),
-                'title': doc.get('title'),
-                'start': doc.get('start').isoformat(),
-                'end': doc.get('end').isoformat(),
-                'allDay': doc.get('allDay'),
-                'backgroundColor': label_colors.get(label),
-                'extendedProps': {
-                    'description': doc.get('description'),
-                    'location': doc.get('location'),
-                    'label': label
-                }
-            })
-    except Exception as e:
-        logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
-    return schedules_list
