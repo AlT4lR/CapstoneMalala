@@ -25,14 +25,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper: get CSRF token from meta
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    // Build FullCalendar
-    const calendar = new FullCalendar.Calendar(calendarEl, {
+    // MODIFICATION: Expose the calendar instance to the window object
+    // 'const calendar' is changed to 'const calendar = window.calendar ='
+    const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
-        headerToolbar: false,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: '' // Right is empty because we use custom buttons
+        },
         selectable: true,
         editable: true,
         eventResizableFromStart: true,
-        // Use a function to fetch events so we can pass query params + credentials
+        height: '100%',
+        
         events: function(fetchInfo, successCallback, failureCallback) {
             const params = new URLSearchParams({
                 start: fetchInfo.startStr,
@@ -54,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
 
-        // --- START OF FIX: Custom render function to add colored dots ---
         eventContent: function(arg) {
             const title = arg.event.title.toLowerCase();
             let dotColor = '#6b7280'; // Default to 'Others'
@@ -71,10 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             return { html: eventHtml };
         },
-        // --- END OF FIX ---
 
         select: function(info) {
-            // New event
             form.reset();
             scheduleIdInput.value = '';
             scheduleTitleInput.value = '';
@@ -82,7 +85,6 @@ document.addEventListener('DOMContentLoaded', function() {
             locationInput.value = '';
             allDayToggle.checked = info.allDay || false;
 
-            // ISO date for input date
             scheduleDateInput.value = info.startStr.slice(0,10);
             if (!info.allDay) {
                 startTimeInput.value = info.startStr.slice(11,16);
@@ -91,12 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimeInput.value = '';
                 endTimeInput.value = '';
             }
-
             modal.classList.remove('hidden');
         },
 
         eventClick: function(info) {
-            // Edit existing event: populate modal
             const event = info.event;
             form.reset();
             scheduleIdInput.value = event.id;
@@ -113,13 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimeInput.value = '';
                 endTimeInput.value = '';
             }
-
-            // Show modal
             modal.classList.remove('hidden');
         },
 
         eventDrop: function(info) {
-            // After drag, update event on server
             const e = info.event;
             const payload = {
                 start: e.start.toISOString(),
@@ -198,13 +195,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const data = new FormData(this);
         const id = scheduleIdInput.value;
-        // Normalize all-day
         if (allDayToggle.checked) data.set('all_day', 'on');
         else data.delete('all_day');
 
         try {
             if (!id) {
-                // Create
                 const body = new URLSearchParams(data).toString();
                 const resp = await fetch('/api/schedules/add', {
                     method: 'POST',
@@ -223,22 +218,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Failed to create schedule: ' + (result.error || 'Unknown error'));
                 }
             } else {
-                // Update existing schedule
-                // Build start/end as ISO strings
                 const date = data.get('date');
                 const isAllDay = data.get('all_day') === 'on';
-
                 let startIso = null, endIso = null;
+
                 if (isAllDay) {
-                    // For all-day, treat start as date 00:00 and end as next day 00:00
                     const s = new Date(date + 'T00:00:00Z');
-                    const e = new Date(s.getTime() + 24*60*60*1000);
+                    const e = new Date(s.getTime() + 24 * 60 * 60 * 1000);
                     startIso = s.toISOString();
                     endIso = e.toISOString();
                 } else {
                     const sTime = data.get('start_time') || '00:00';
                     const eTime = data.get('end_time') || '23:59';
-                    // Assume local times — convert to ISO by appending timezone offset handled by backend when parsing
                     startIso = new Date(date + 'T' + sTime + ':00').toISOString();
                     endIso = new Date(date + 'T' + eTime + ':00').toISOString();
                 }
@@ -275,7 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Delete schedule function (called from modal's Delete button if present)
     function deleteSchedule(id) {
         if (!id) return;
         if (!confirm('Are you sure you want to delete this schedule?')) return;
@@ -299,10 +289,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // optionally expose deleteSchedule to window for a delete button in modal
     window.deleteSchedule = deleteSchedule;
 
-    // --- View switching logic ---
     function setActiveView(activeBtn) {
         [dayViewBtn, weekViewBtn, monthViewBtn, yearViewBtn].forEach(btn => {
             btn.classList.remove('bg-white', 'shadow');
@@ -314,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     weekViewBtn.addEventListener('click', () => { calendar.changeView('timeGridWeek'); setActiveView(weekViewBtn); });
     monthViewBtn.addEventListener('click', () => { calendar.changeView('dayGridMonth'); setActiveView(monthViewBtn); });
     yearViewBtn.addEventListener('click', () => {
-        // FullCalendar doesn't have a built-in 'year' view by default; you can approximate by switching to month view
         calendar.changeView('dayGridMonth');
         setActiveView(yearViewBtn);
     });
