@@ -13,9 +13,10 @@ function setupCustomDialog() {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'custom-dialog-modal';
-        modal.className = 'hidden fixed inset-0 z-[9999] bg-gray-900 bg-opacity-75 flex items-center justify-center p-4';
+        // --- START OF MODIFICATION: Add animation classes ---
+        modal.className = 'modal-backdrop hidden fixed inset-0 z-[9999] bg-gray-900 bg-opacity-75 flex items-center justify-center p-4';
         modal.innerHTML = `
-            <div class="bg-[#fafaf5] rounded-xl shadow-2xl p-8 w-full max-w-sm text-center relative">
+            <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl p-8 w-full max-w-sm text-center relative">
                 <div id="custom-dialog-icon-container" class="mb-4"></div>
                 <p id="custom-dialog-message" class="text-gray-800 text-lg mb-8 font-semibold"></p>
                 <div id="custom-dialog-actions" class="flex justify-center space-x-4">
@@ -33,7 +34,13 @@ function setupCustomDialog() {
     const iconContainer = document.getElementById('custom-dialog-icon-container');
     const dialogModal = document.getElementById('custom-dialog-modal');
 
-    const hideDialog = () => dialogModal.classList.add('hidden');
+    // --- START OF MODIFICATION: Update show/hide logic ---
+    const hideDialog = () => {
+        dialogModal.classList.remove('active');
+        dialogModal.addEventListener('transitionend', () => {
+            dialogModal.classList.add('hidden');
+        }, { once: true });
+    };
 
     window.showCustomConfirm = (message, onConfirm) => {
         messageEl.textContent = message;
@@ -43,7 +50,9 @@ function setupCustomDialog() {
         cancelBtn.onclick = hideDialog;
 
         dialogModal.classList.remove('hidden');
+        setTimeout(() => dialogModal.classList.add('active'), 10);
     };
+    // --- END OF MODIFICATION ---
 }
 
 // --- START OF MODIFICATION: PWA Enhancements (Install Prompt & Notifications) ---

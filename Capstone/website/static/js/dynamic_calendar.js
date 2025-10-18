@@ -22,7 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE MANAGEMENT ---
     let currentDate = new Date();
+    // --- START OF MODIFICATION: Default view is now week ---
     let currentView = 'week';
+    // --- END OF MODIFICATION ---
     let events = [ // Sample data
         {
             id: 1,
@@ -41,6 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
             description: 'Weekly sync up',
             location: 'Conference Room 1',
             allDay: false
+        },
+        {
+            id: 3,
+            title: 'Project Deadline',
+            start: new Date(2025, 9, 15),
+            end: new Date(2025, 9, 15),
+            description: 'Final submission for Q3 report',
+            location: 'Online',
+            allDay: true
         }
     ];
 
@@ -67,11 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show/hide delete button
         deleteBtn.classList.toggle('hidden', !data.id);
 
-        modalBackdrop.classList.add('active');
+        modalBackdrop.classList.remove('hidden');
+        setTimeout(() => modalBackdrop.classList.add('active'), 10);
     }
     
     function closeModal() {
         modalBackdrop.classList.remove('active');
+        modalBackdrop.addEventListener('transitionend', () => {
+            modalBackdrop.classList.add('hidden');
+        }, { once: true });
     }
     
     function saveEvent(e) {
@@ -117,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarContainer.appendChild(header);
         
         const grid = document.createElement('div');
-        grid.className = 'calendar-grid';
         
         if (currentView === 'month') renderMonthView(grid);
         else if (currentView === 'week') renderWeekView(grid);
@@ -130,88 +144,156 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderMonthView(grid) {
-        // ... (month view rendering) ...
-        grid.innerHTML = '<div class="p-8 text-center col-span-7">Month view not fully implemented.</div>';
-        document.getElementById('calendar-title').textContent = 'MONTH VIEW';
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        document.getElementById('calendar-title').textContent = `${monthNames[month]} ${year}`;
+        grid.className = 'calendar-grid month-view';
+
+        // 1. Add day headers
+        dayNames.forEach(day => {
+            const headerCell = document.createElement('div');
+            headerCell.className = 'day-header';
+            headerCell.textContent = day;
+            grid.appendChild(headerCell);
+        });
+
+        // 2. Calculate dates
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+
+        // 3. Add padding cells for days before the 1st
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        // 4. Add a cell for each day of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+            const cell = document.createElement('div');
+            cell.className = 'date-cell';
+            if (isToday) cell.classList.add('is-today');
+            
+            // Store date for easy event placement
+            cell.dataset.date = new Date(year, month, day).toISOString().slice(0, 10);
+
+            cell.innerHTML = `
+                <div class="date-number">${day}</div>
+                <div class="events-container custom-scrollbar"></div>
+            `;
+            grid.appendChild(cell);
+        }
+
+        // 5. Render events for the current month
+        const monthStart = new Date(year, month, 1, 0, 0, 0);
+        const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59);
+
+        const eventsForMonth = events.filter(ev => {
+            const evStart = new Date(ev.start);
+            return evStart >= monthStart && evStart <= monthEnd;
+        });
+
+        eventsForMonth.forEach(event => {
+            const eventDateStr = new Date(event.start).toISOString().slice(0, 10);
+            const cell = grid.querySelector(`.date-cell[data-date="${eventDateStr}"]`);
+            if (cell) {
+                const eventsContainer = cell.querySelector('.events-container');
+                const eventEl = document.createElement('div');
+                eventEl.className = 'event';
+                eventEl.textContent = event.title;
+                eventEl.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent opening a new event modal
+                    openModal(event);
+                });
+                eventsContainer.appendChild(eventEl);
+            }
+        });
     }
 
+    // --- START OF MODIFICATION: Implemented Week View ---
     function renderWeekView(grid) {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
         document.getElementById('calendar-title').textContent = `${monthNames[month]} ${year}`;
-        grid.className += ' week-view';
+        grid.className = 'calendar-grid week-view';
 
+        const HOUR_HEIGHT_REM = 4; // Height of one hour slot in rem
+        const START_HOUR = 8;
+        const END_HOUR = 18; // 6 PM
+
+        // 1. Calculate week dates
         const weekStart = new Date(currentDate);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        weekStart.setHours(0,0,0,0);
-
+        weekStart.setHours(0, 0, 0, 0);
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 7);
 
-        grid.innerHTML += '<div class="corner-cell"></div>';
+        // 2. Set grid row structure
+        grid.style.gridTemplateRows = `auto repeat(${END_HOUR - START_HOUR + 1}, ${HOUR_HEIGHT_REM}rem)`;
+
+        // 3. Create headers and grid cells
+        grid.appendChild(document.createElement('div')).className = 'corner-cell'; // Top-left corner
         for (let i = 0; i < 7; i++) {
             const dayDate = new Date(weekStart);
             dayDate.setDate(weekStart.getDate() + i);
             const headerCell = document.createElement('div');
             headerCell.className = 'day-header';
-            headerCell.innerHTML = `<span>${dayNames[dayDate.getDay()]}</span> <span class="text-lg">${dayDate.getDate()}</span>`;
+            headerCell.innerHTML = `<div>${dayNames[dayDate.getDay()]}</div><div class="text-lg">${dayDate.getDate()}</div>`;
             grid.appendChild(headerCell);
         }
 
-        const START_HOUR = 8, END_HOUR = 18;
-        const totalRows = (END_HOUR - START_HOUR) + 1;
-        grid.style.gridTemplateRows = `auto repeat(${totalRows}, 1fr)`;
-        
+        // 4. Create time slots and the background grid cells
         for (let hour = START_HOUR; hour <= END_HOUR; hour++) {
             const timeSlot = document.createElement('div');
             timeSlot.className = 'time-slot';
             timeSlot.textContent = `${hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`;
             grid.appendChild(timeSlot);
-            
             for (let day = 0; day < 7; day++) {
-                const hourCell = document.createElement('div');
-                hourCell.className = 'hour-cell';
-                grid.appendChild(hourCell);
+                grid.appendChild(document.createElement('div')); // These are the empty cells for grid lines
             }
         }
-        
-        const eventsForWeek = events.filter(ev => ev.start < weekEnd && ev.end > weekStart);
+
+        // 5. Filter and render events
+        const eventsForWeek = events.filter(ev => ev.start < weekEnd && ev.end > weekStart && !ev.allDay);
         
         eventsForWeek.forEach(event => {
-            if (event.allDay) return; // All-day events would be handled separately
-            
-            const eventDay = event.start.getDay();
-            const startHour = event.start.getHours();
-            const startMinutes = event.start.getMinutes();
-            const endHour = event.end.getHours();
-            const endMinutes = event.end.getMinutes();
+            const start = new Date(event.start);
+            const end = new Date(event.end);
 
-            // Calculate grid row positions
-            const startRow = (startHour - START_HOUR) * 2 + (startMinutes >= 30 ? 2 : 1) + 1; // +1 for header row
-            const endRow = (endHour - START_HOUR) * 2 + (endMinutes > 0 ? (endMinutes > 30 ? 2 : 1) : 0) + 1;
-
-            const gridColumn = eventDay + 2; // +1 for time col, +1 for 1-based index
+            // Skip events outside the displayed time range
+            if (start.getHours() > END_HOUR || end.getHours() < START_HOUR) return;
             
+            const eventDay = start.getDay();
+            const startMinutes = (start.getHours() * 60) + start.getMinutes();
+            const endMinutes = (end.getHours() * 60) + end.getMinutes();
+            const durationMinutes = endMinutes - startMinutes;
+
+            const topOffsetMinutes = startMinutes - (START_HOUR * 60);
+            
+            const top = (topOffsetMinutes / 60) * HOUR_HEIGHT_REM;
+            const height = (durationMinutes / 60) * HOUR_HEIGHT_REM;
+
             const eventEl = document.createElement('div');
             eventEl.className = 'event';
-            eventEl.style.gridColumn = `${gridColumn}`;
-            eventEl.style.gridRow = `${startRow} / ${endRow}`;
-            
-            const topOffset = (startMinutes / 60) * 100;
-            const bottomOffset = ( (60 - endMinutes) / 60) * 100;
-            
-            eventEl.style.top = `calc(${(startMinutes / 60) * 100}%)`;
-            eventEl.style.bottom = `calc(${((60 - endMinutes) / 60) * 100}%)`;
+            eventEl.style.gridColumn = `${eventDay + 2}`;
+            // --- START OF FIX: Removed the conflicting gridRow style ---
+            eventEl.style.top = `${top}rem`;
+            eventEl.style.height = `${height}rem`;
+            // --- END OF FIX ---
+
+            const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
             eventEl.innerHTML = `
-                &bull; ${event.title}
-                <div class="text-xs opacity-75">${event.start.toTimeString().slice(0,5)} - ${event.end.toTimeString().slice(0,5)}</div>
+                <div class="font-bold">&bull; ${event.title}</div>
+                <div class="text-xs opacity-75">${formatTime(start)} - ${formatTime(end)}</div>
+                <div class="text-xs opacity-75">${event.description || ''}</div>
             `;
             eventEl.addEventListener('click', () => openModal(event));
 
             grid.appendChild(eventEl);
         });
     }
+    // --- END OF MODIFICATION ---
 
     // --- NAVIGATION & EVENT LISTENERS ---
     function navigatePrev() {
@@ -230,15 +312,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.tagName === 'BUTTON') {
             const selectedView = e.target.dataset.view;
             if (selectedView === currentView) return;
-            viewSwitcher.querySelector('.active-view').classList.remove('active-view');
+            const currentActive = viewSwitcher.querySelector('.active-view');
+            if (currentActive) currentActive.classList.remove('active-view');
             e.target.classList.add('active-view');
             currentView = selectedView;
-            currentDate = new Date();
+            currentDate = new Date(); // Reset to today when switching view
             render();
         }
     });
 
     // --- INITIALIZATION ---
+    // Set default active view button
+    const defaultActiveButton = viewSwitcher.querySelector(`[data-view="${currentView}"]`);
+    if(defaultActiveButton) defaultActiveButton.classList.add('active-view');
+
     form.addEventListener('submit', saveEvent);
     createScheduleBtn.addEventListener('click', () => openModal());
     document.getElementById('discard-schedule-btn').addEventListener('click', closeModal);
