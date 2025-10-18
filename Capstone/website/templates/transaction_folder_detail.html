@@ -50,7 +50,9 @@
                   <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
                   <div class="flex gap-3 text-gray-400">
                     <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
-                    <button title="Delete" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                    <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -76,10 +78,8 @@
           <label class="font-medium text-sm">Total Countered Checks</label>
           <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
           
-          <!-- --- START OF MODIFICATION --- -->
           <label for="check-amount-input" class="font-medium text-sm">Final Check Amount</label>
           <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
-          <!-- --- END OF MODIFICATION --- -->
         </div>
 
         <div class="flex justify-end">
@@ -101,29 +101,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
+    
     if (createCheckModal && openCreateBtn && closeCreateBtn) {
-        openCreateBtn.addEventListener('click', () => createCheckModal.classList.remove('hidden'));
-        closeCreateBtn.addEventListener('click', () => createCheckModal.classList.add('hidden'));
-        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) createCheckModal.classList.add('hidden'); });
+        const openModal = () => {
+            createCheckModal.classList.remove('hidden');
+            setTimeout(() => createCheckModal.classList.add('active'), 10);
+        };
+        const closeModal = () => {
+            createCheckModal.classList.remove('active');
+            createCheckModal.addEventListener('transitionend', () => {
+                createCheckModal.classList.add('hidden');
+            }, { once: true });
+        };
+
+        openCreateBtn.addEventListener('click', openModal);
+        closeCreateBtn.addEventListener('click', closeModal);
+        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
     }
 
     const paidBtn = document.getElementById('paid-btn');
     const notesTextarea = document.getElementById('notes-textarea');
-    // --- START OF MODIFICATION: Get the new editable input ---
     const checkAmountInput = document.getElementById('check-amount-input');
-    // --- END OF MODIFICATION ---
 
     paidBtn.addEventListener('click', async () => {
         const folderId = "{{ folder._id }}";
         const finalNotes = notesTextarea.value;
-        // --- START OF MODIFICATION: Get and validate the amount ---
         const finalAmount = parseFloat(checkAmountInput.value);
 
-        if (isNaN(finalAmount) || finalAmount <= 0) {
-            alert('Please enter a valid check amount.');
-            checkAmountInput.focus();
-            return;
-        }
+        // --- START OF MODIFICATION: Removed client-side alert. Validation is now server-side. ---
+        // if (isNaN(finalAmount) || finalAmount <= 0) {
+        //     alert('Please enter a valid check amount.');
+        //     checkAmountInput.focus();
+        //     return;
+        // }
         // --- END OF MODIFICATION ---
 
         paidBtn.disabled = true;
@@ -136,23 +146,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
-                // --- START OF MODIFICATION: Send notes AND amount in the body ---
                 body: JSON.stringify({ 
                     notes: finalNotes,
                     amount: finalAmount 
                 })
-                // --- END OF MODIFICATION ---
             });
 
             if (response.ok) {
+                 // Server will have flashed a success message. Reload to display it and redirect.
                  window.location.href = "{{ url_for('main.transactions_paid') }}";
             } else {
-                // If backend sends an error, reload to show the flash message
+                // Server will have flashed an error message. Reload to display it.
                 window.location.reload();
             }
            
         } catch (error) {
             console.error('Error:', error);
+            // On network error, also reload to let the user see what happened.
             window.location.reload();
         }
     });

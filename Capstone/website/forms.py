@@ -1,16 +1,28 @@
 # website/forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, DecimalField, DateField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, Optional, ValidationError
+from wtforms import (
+    StringField, PasswordField, SubmitField,
+    DecimalField, DateField, TextAreaField
+)
+from wtforms.validators import (
+    DataRequired, Length, Email, EqualTo,
+    Optional, ValidationError
+)
 from flask import current_app
 import re
+
+
+# -------------------------
+# AUTHENTICATION FORMS
+# -------------------------
 
 class LoginForm(FlaskForm):
     """Form for user login."""
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
 
 class RegistrationForm(FlaskForm):
     """Form for user registration."""
@@ -28,14 +40,17 @@ class RegistrationForm(FlaskForm):
         if current_app.get_user_by_email(email.data):
             raise ValidationError('That email is already registered.')
 
+
 class OTPForm(FlaskForm):
     """Form for OTP and 2FA verification."""
     submit = SubmitField('Verify')
+
 
 class ForgotPasswordForm(FlaskForm):
     """Form for requesting a password reset link."""
     email = StringField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Send Reset Link')
+
 
 class ResetPasswordForm(FlaskForm):
     """Form for setting a new password after a reset request."""
@@ -43,16 +58,34 @@ class ResetPasswordForm(FlaskForm):
     confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Reset Password')
 
+
+# -------------------------
+# BILLINGS / TRANSACTIONS FORMS
+# -------------------------
+
 class TransactionForm(FlaskForm):
     """Form for the 'Create Issued Checked' modal."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
-    # --- START OF MODIFICATION: Make check_no optional for the initial folder creation ---
-    check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
-    # --- END OF MODIFICATION ---
+    check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])  # Optional for folder creation
     check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     submit = SubmitField('Add')
+
+
+class EditTransactionForm(FlaskForm):
+    """Form for editing a transaction."""
+    name = StringField('Recipient Name', validators=[DataRequired(), Length(max=100)])
+    check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
+    ewt = DecimalField('EWT', validators=[Optional()])
+    countered_check = DecimalField('Countered Check', validators=[Optional()])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
+    submit = SubmitField('Save Changes')
+
+
+# -------------------------
+# LOAN FORMS
+# -------------------------
 
 class LoanForm(FlaskForm):
     """Form for the 'Create Loan' modal."""
