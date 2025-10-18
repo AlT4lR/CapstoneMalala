@@ -3,9 +3,7 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
     
-    <!-- --- START OF MODIFICATION: Made header responsive --- -->
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
-    <!-- --- END OF MODIFICATION --- -->
         <div>
             <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
             <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
@@ -25,20 +23,6 @@
         </div>
     </header>
 
-    <!-- --- START OF MODIFICATION: Analytics Summary Card --- -->
-    <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 mb-6">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div>
-                <h3 class="font-semibold text-lg">Analytics Summary</h3>
-                <p class="text-sm text-gray-500">Monitor trends and summaries of your paid transactions.</p>
-            </div>
-            <a href="{{ url_for('main.analytics') }}" class="w-full sm:w-auto px-4 py-2 bg-[#3a4d39] text-white text-center font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
-                View Detailed Analytics &rarr;
-            </a>
-        </div>
-    </div>
-    <!-- --- END OF MODIFICATION --- -->
-
     <div class="flex-1 flex flex-col overflow-hidden">
         
         <h3 class="text-xl font-bold text-[#3a4d39] mb-4">October 2025</h3>
@@ -54,8 +38,9 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
-                <!-- --- START OF MODIFICATION: Responsive item card --- -->
-                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors p-4 md:p-0 transaction-item" data-name="{{ t.name }}">
+                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors p-4 md:p-0 transaction-item cursor-pointer" 
+                     data-name="{{ t.name }}" 
+                     data-id="{{ t._id }}">
                     <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center md:px-4 md:py-3 text-sm">
                         <!-- Mobile View -->
                         <div class="md:hidden">
@@ -65,14 +50,16 @@
                                     <span class="font-semibold text-gray-800">{{ t.name }}</span>
                                 </div>
                                 <div class="flex gap-4 text-gray-500 text-base">
-                                    <button title="Edit" class="hover:text-green-600 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                                    <button title="Download" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+                                    <button title="Edit" class="hover:text-green-600 transition-colors action-btn"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button title="Archive" class="delete-btn hover:text-red-600 transition-colors action-btn" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                                    <button title="Download" class="hover:text-blue-600 transition-colors action-btn"><i class="fa-solid fa-download"></i></button>
                                 </div>
                             </div>
                             <div class="mt-3 space-y-1">
                                 <p><strong class="text-gray-500">Date:</strong> {{ t.check_date }}</p>
+                                <!-- --- START OF MODIFICATION --- -->
                                 <p><strong class="text-gray-500">Editor:</strong> {{ t.editor }}</p>
+                                <!-- --- END OF MODIFICATION --- -->
                             </div>
                         </div>
 
@@ -82,15 +69,16 @@
                             <span class="font-semibold text-gray-800">{{ t.name }}</span>
                         </div>
                         <span class="hidden md:block col-span-2 text-gray-700">{{ t.check_date }}</span>
+                        <!-- --- START OF MODIFICATION --- -->
                         <span class="hidden md:block col-span-2 text-gray-700">{{ t.editor }}</span> 
+                        <!-- --- END OF MODIFICATION --- -->
                         <div class="hidden md:flex col-span-2 justify-end gap-5 text-gray-500">
-                            <button title="Edit" class="hover:text-green-600 transition-colors"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                            <button title="Download" class="hover:text-blue-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+                            <button title="Edit" class="hover:text-green-600 transition-colors action-btn"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors action-btn" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                            <button title="Download" class="hover:text-blue-600 transition-colors action-btn"><i class="fa-solid fa-download"></i></button>
                         </div>
                     </div>
                 </div>
-                <!-- --- END OF MODIFICATION --- -->
                 {% else %}
                 <div class="flex items-center justify-center h-40">
                     <p class="text-gray-500">No paid transactions found.</p>
@@ -101,14 +89,68 @@
         </div>
     </div>
 </main>
+
+{% include "_transaction_details_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Modal Logic
+    const modal = document.getElementById('transaction-details-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const transactionRows = document.querySelectorAll('.transaction-item');
+
+    const modalAmountHeader = document.getElementById('modal-amount-header');
+    const modalRecipient = document.getElementById('modal-recipient');
+    const modalCheckDate = document.getElementById('modal-check-date');
+    const modalEwt = document.getElementById('modal-ewt');
+    const modalCounteredCheck = document.getElementById('modal-countered-check');
+    const modalNotes = document.getElementById('modal-notes');
+    
+    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+
+    const openModal = () => modal.classList.remove('hidden');
+    const closeModal = () => modal.classList.add('hidden');
+
+    if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+    if(modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    transactionRows.forEach(row => {
+        row.addEventListener('click', async (event) => {
+            if (event.target.closest('.action-btn')) {
+                return;
+            }
+
+            const transactionId = row.dataset.id;
+            if (!transactionId) return;
+
+            modalRecipient.textContent = 'Loading...';
+            modalNotes.textContent = '';
+            openModal();
+
+            try {
+                const response = await fetch(`/api/transactions/details/${transactionId}`);
+                if (!response.ok) throw new Error('Failed to fetch details');
+                const data = await response.json();
+
+                modalAmountHeader.textContent = currencyFormatter.format(data.amount || 0);
+                modalRecipient.textContent = data.name || 'N/A';
+                modalCheckDate.textContent = data.check_date || 'N/A';
+                modalEwt.textContent = currencyFormatter.format(data.ewt || 0);
+                modalCounteredCheck.textContent = currencyFormatter.format(data.countered_check || 0);
+                modalNotes.textContent = data.notes || 'No notes provided.';
+
+            } catch (error) {
+                console.error("Error fetching transaction details:", error);
+                modalRecipient.textContent = 'Failed to load details.';
+            }
+        });
+    });
+
+    // Search Logic
     const searchInput = document.getElementById('search-input');
     const transactionContainer = document.getElementById('transaction-list-container');
-    const transactionRows = transactionContainer.querySelectorAll('.transaction-item');
     const noResultsMessage = document.getElementById('no-results-message');
 
     if (searchInput && transactionRows.length > 0) {
