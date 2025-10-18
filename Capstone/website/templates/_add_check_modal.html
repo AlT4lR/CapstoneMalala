@@ -1,11 +1,11 @@
 <!-- website/templates/_add_check_modal.html -->
-<div id="add-check-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <div class="bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
+<div id="add-check-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
         <button id="close-add-check-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
         
         <h2 class="text-xl font-bold text-[#3a4d39] mb-6">Create Issued Check</h2>
         
-        <form action="{{ url_for('main.add_transaction') }}" method="POST" class="space-y-6" novalidate>
+        <form action="{{ url_for('main.add_transaction_route') }}" method="POST" class="space-y-6" novalidate>
             {{ form.hidden_tag() }}
             <!-- This hidden input will carry the ID of the parent folder -->
             <input type="hidden" name="parent_id" value="{{ folder._id }}">
@@ -38,4 +38,185 @@
             </div>
         </form>
     </div>
-</div>
+</div>```
+
+### 3. `transaction_folder_detail.html`
+
+Updating the JavaScript for the "Add Check" modal to use the new animation logic.
+
+```html
+<!-- website/templates/transaction_folder_detail.html -->
+{% extends "base.html" %}
+{% block title %}DecoOffice - {{ folder.name }}{% endblock %}
+{% block content %}
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
+    
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold uppercase">Transactions</h2>
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+        {% include "_notification_button.html" %}
+      </div>
+    </header>
+
+    <!-- "Go Back" button link is now correct -->
+    <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
+      <i class="fa-solid fa-arrow-left"></i>
+      Go Back...
+    </a>
+    <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
+
+    <!-- Main content grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+
+      <!-- Left side container -->
+      <div class="lg:col-span-2 flex flex-col">
+        <!-- White box for the scrollable list -->
+        <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
+          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
+            <span class="col-span-3">Name of issued Checked</span>
+            <span class="col-span-2">Check No.</span>
+            <span class="col-span-2">Check Date</span>
+            <span class="col-span-2">EWT</span>
+            <span class="col-span-3">Countered Check</span>
+          </div>
+
+          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
+              {% for check in child_checks %}
+              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row hover:bg-gray-50 transition-colors">
+                <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
+                <span class="col-span-2">{{ check.check_no }}</span>
+                <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
+                <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
+                <div class="col-span-3 flex justify-between items-center">
+                  <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
+                  <div class="flex gap-3 text-gray-400">
+                    <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                    <button title="Delete" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
+              {% endfor %}
+          </div>
+        </div>
+        
+        <div class="mt-4">
+            <button id="create-issued-check-btn" class="px-5 py-2 border border-gray-300 rounded-md font-semibold hover:bg-gray-50 transition">
+              Create Issued Checked
+            </button>
+        </div>
+      </div>
+
+      <!-- Right side -->
+      <div class="flex flex-col space-y-4">
+        <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
+          <label class="font-medium text-sm">Notes</label>
+          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
+          
+          <label class="font-medium text-sm">Total Countered Checks</label>
+          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          
+          <!-- --- START OF MODIFICATION --- -->
+          <label for="check-amount-input" class="font-medium text-sm">Final Check Amount</label>
+          <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
+          <!-- --- END OF MODIFICATION --- -->
+        </div>
+
+        <div class="flex justify-end">
+            <button id="paid-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
+              Paid
+            </button>
+        </div>
+      </div>
+
+    </div>
+</main>
+
+{% include "_add_check_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const createCheckModal = document.getElementById('add-check-modal');
+    const openCreateBtn = document.getElementById('create-issued-check-btn');
+    const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
+    
+    // --- START OF MODIFICATION: Animate Modal ---
+    if (createCheckModal && openCreateBtn && closeCreateBtn) {
+        const openModal = () => {
+            createCheckModal.classList.remove('hidden');
+            setTimeout(() => createCheckModal.classList.add('active'), 10);
+        };
+        const closeModal = () => {
+            createCheckModal.classList.remove('active');
+            createCheckModal.addEventListener('transitionend', () => {
+                createCheckModal.classList.add('hidden');
+            }, { once: true });
+        };
+
+        openCreateBtn.addEventListener('click', openModal);
+        closeCreateBtn.addEventListener('click', closeModal);
+        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
+    }
+    // --- END OF MODIFICATION ---
+
+    const paidBtn = document.getElementById('paid-btn');
+    const notesTextarea = document.getElementById('notes-textarea');
+    // --- START OF MODIFICATION: Get the new editable input ---
+    const checkAmountInput = document.getElementById('check-amount-input');
+    // --- END OF MODIFICATION ---
+
+    paidBtn.addEventListener('click', async () => {
+        const folderId = "{{ folder._id }}";
+        const finalNotes = notesTextarea.value;
+        // --- START OF MODIFICATION: Get and validate the amount ---
+        const finalAmount = parseFloat(checkAmountInput.value);
+
+        if (isNaN(finalAmount) || finalAmount <= 0) {
+            alert('Please enter a valid check amount.');
+            checkAmountInput.focus();
+            return;
+        }
+        // --- END OF MODIFICATION ---
+
+        paidBtn.disabled = true;
+        paidBtn.textContent = 'Processing...';
+
+        try {
+            const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                // --- START OF MODIFICATION: Send notes AND amount in the body ---
+                body: JSON.stringify({ 
+                    notes: finalNotes,
+                    amount: finalAmount 
+                })
+                // --- END OF MODIFICATION ---
+            });
+
+            if (response.ok) {
+                 window.location.href = "{{ url_for('main.transactions_paid') }}";
+            } else {
+                // If backend sends an error, reload to show the flash message
+                window.location.reload();
+            }
+           
+        } catch (error) {
+            console.error('Error:', error);
+            window.location.reload();
+        }
+    });
+});
+</script>
+{% endblock %}

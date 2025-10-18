@@ -32,6 +32,27 @@
         .animate-fade-in-down {
             animation: fadeInDown 0.5s ease-out forwards;
         }
+
+        /* --- START OF MODIFICATION: Generic Modal Animation Styles --- */
+        .modal-backdrop {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-backdrop .modal-content {
+            transform: scale(0.95) translateY(10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .modal-backdrop.active .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        /* --- END OF MODIFICATION --- */
     </style>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
