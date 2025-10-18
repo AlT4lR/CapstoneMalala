@@ -34,7 +34,8 @@ from .models import (
     get_schedules,
     mark_folder_as_paid,
     restore_item, 
-    delete_item_permanently
+    delete_item_permanently,
+    get_weekly_billing_summary
 )
 
 logger = logging.getLogger(__name__)
@@ -214,6 +215,21 @@ def save_subscription():
         return jsonify({'success': True}), 201
     
     return jsonify({'error': 'Failed to save subscription'}), 500
+# --- END OF MODIFICATION ---
+
+# --- START OF MODIFICATION ---
+@main.route('/api/billings/summary', methods=['GET'])
+@jwt_required()
+def get_billings_summary():
+    username = get_jwt_identity()
+    try:
+        year = int(request.args.get('year'))
+        week = int(request.args.get('week'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid year or week parameter'}), 400
+
+    summary_data = current_app.get_weekly_billing_summary(username, year, week)
+    return jsonify(summary_data)
 # --- END OF MODIFICATION ---
 
 @main.route('/api/invoices/upload', methods=['POST'])

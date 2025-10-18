@@ -25,7 +25,10 @@ from .models import (
     add_loan,
     add_schedule, 
     get_schedules,
-    restore_item, delete_item_permanently
+    restore_item, delete_item_permanently,
+    # --- START OF MODIFICATION ---
+    get_weekly_billing_summary
+    # --- END OF MODIFICATION ---
 )
 
 # Logging configuration
@@ -103,6 +106,10 @@ def create_app(config_name='dev'):
     
     app.restore_item = restore_item
     app.delete_item_permanently = delete_item_permanently
+
+    # --- START OF MODIFICATION ---
+    app.get_weekly_billing_summary = get_weekly_billing_summary
+    # --- END OF MODIFICATION ---
 
 
     # MongoDB Connection
