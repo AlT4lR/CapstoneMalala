@@ -1,88 +1,156 @@
-# DecoOffice Capstone Project
+# DecoOffice
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-2.8.2-yellow) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-blue)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-3.0.0-blue) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
 
-A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches. This PWA-ready platform offers a seamless, responsive experience on both desktop and mobile devices.
-
----
-
-## About The Project
-
-This project serves as a comprehensive operational management system for Decolores Merchandise Stores. It provides a centralized platform for key business tasks, enhancing efficiency, data management, and user experience across different store branches.
-
-Built with the Flask framework, the application follows a modular design using blueprints for authentication, core views, and APIs. It is designed as a **Progressive Web App (PWA)**, offering offline capabilities, background sync, push notifications, and a native-like app experience.
+A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches. This **Progressive Web App (PWA)** offers a seamless, responsive, and offline-capable experience on both desktop and mobile devices.
 
 ---
 
-## ✨ Features
+## ✨ About The Project
 
-*   ### Secure User Authentication
-    *   User registration with server-side validation and password strength enforcement.
-    *   Secure login/logout and session management using JWT cookies.
-    *   **Password Reset** via secure, timed email links.
-    *   Email OTP verification for new accounts.
+This project serves as a comprehensive operational management system for Decolores Merchandise Stores, replacing manual tracking with a centralized, real-time platform. It enhances efficiency, data accuracy, and user experience by providing tools for transaction management, scheduling, document handling, and analytics across different store branches.
+
+Built with a robust Flask backend and a dynamic vanilla JavaScript frontend, the application is designed as a **Progressive Web App (PWA)** from the ground up, ensuring reliability, performance, and a native-like app experience without the need for an app store.
+
+---
+
+## 🚀 Key Features
+
+### Core Modules & Management
+*   **Secure User Authentication**:
+    *   Full registration flow with server-side validation and password strength enforcement.
+    *   Secure login/logout and session management using **JWT cookies**.
+    *   Password reset via secure, timed email links.
+    *   Email OTP verification for new accounts to ensure validity.
     *   **Two-Factor Authentication (2FA)** using TOTP for enhanced security.
+*   **Multi-Branch Architecture**:
+    *   Users select a specific store branch (e.g., Montalban, Laguna) to work within a tailored, isolated data context.
+*   **Advanced Transaction Management**:
+    *   Create transaction "folders" for pending items.
+    *   **Detailed Folder View**: Add multiple individual checks (with details like EWT and check numbers) to a single pending folder.
+    *   Mark entire transaction folders as "Paid" with final notes and amounts.
+    *   Separate, searchable, and responsive views for **Pending** and **Paid** transactions.
+*   **Document & Data Handling**:
+    *   **Invoice System**: Upload multiple invoice images with OCR support (via Tesseract) to automatically extract text.
+    *   **Archive System**: Soft-delete transactions and invoices. The archive allows for restoring items or deleting them permanently.
+    *   **Billings & Loans**: A dedicated module to track and manage company loans, separate from regular transactions.
+*   **Analytics & Reporting**:
+    *   Dynamic analytics page with visual bar charts breaking down yearly and monthly earnings.
+    *   Interactive weekly billing summaries to track performance over time.
+    *   Downloadable PDF summaries for paid transactions.
 
-*   ### Multi-Branch Management
-    *   Users select a specific store branch (e.g., Montalban, Laguna) to work within a tailored data context.
-
-*   ### Interactive Dashboard
-    *   A dynamic overview of key metrics (Pending & Paid transaction counts).
+### User Experience & Interface
+*   **Custom Interactive Calendar**:
+    *   A fully custom-built, interactive calendar for **Schedule Management** (does not use external libraries like FullCalendar).
+    *   Fluidly switch between **Week** and **Month** views.
+    *   Create, view, edit, and delete events via an animated, user-friendly modal.
+    *   Features a sidebar with a mini-calendar for quick date navigation.
+*   **Responsive Design**:
+    *   A clean, modern UI built with Tailwind CSS that adapts seamlessly to any screen size, from desktop monitors to mobile phones.
+    *   Hover--expand sidebar for an enhanced desktop experience.
+*   **Interactive Dashboard**:
+    *   A dynamic overview of key metrics (Pending & Paid counts).
     *   Quick actions panel for easy navigation.
     *   **Real-time feed** of recent user activities within the branch.
 
-*   ### Advanced Transaction Management
-    *   Create transaction "folders" for pending items.
-    *   **Detailed Folder View**: Add multiple individual checks to a single pending transaction folder.
-    *   Track key details like check numbers, dates, EWT, and countered amounts.
-    *   Mark entire transaction folders as "Paid" with final notes and amounts.
-    *   Separate, searchable views for **Pending** and **Paid** transactions.
-
-*   ### Custom Interactive Calendar
-    *   A fully custom-built, interactive calendar for **Schedule Management**.
-    *   Switch between **Week** and **Month** views.
-    *   Create, view, edit, and delete events via an animated, user-friendly modal.
-    *   Sidebar with a mini-calendar for quick date navigation.
-    *   Subtle animations for a polished user experience.
-
-*   ### Progressive Web App (PWA) Functionality
-    *   **Installable**: Add DecoOffice to your home screen on desktop or mobile.
-    *   **Offline Access**: A custom offline page is served when there is no network connection.
-    *   **Background Sync**: Queues actions like deletions when offline and automatically syncs them to the server upon reconnection.
-    *   **Push Notifications**: Real-time push notifications for important reminders, such as transaction due dates.
-
-*   ### Document & Data Management
-    *   **Invoice System**: Upload invoices with support for OCR to extract text from images.
-    *   **Archive System**: Soft-delete transactions and invoices. The archive allows for restoring items or deleting them permanently.
-    *   **Billings & Loans**: A dedicated module to track and manage company loans.
-    *   **Analytics Page**: Visual charts and breakdowns of monthly and weekly billings to track performance.
+### Progressive Web App (PWA)
+*   **Installable**: Add DecoOffice to your home screen on desktop or mobile for easy access.
+*   **Offline Access**: A custom offline page is served when there is no network connection, ensuring a graceful user experience.
+*   **Background Sync**: Queues actions like deletions when offline using the Service Worker and automatically syncs them to the server upon reconnection.
+*   **Push Notifications**: The backend can send real-time push notifications for important reminders, such as transaction due dates, powered by PyWebPush.
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-*   **Backend**: Flask, Python
-*   **Database**: MongoDB (with PyMongo)
-*   **Authentication**: Flask-JWT-Extended, bcrypt
-*   **Frontend**: HTML, Tailwind CSS, Vanilla JavaScript
-*   **PWA/Service Worker**: Native JavaScript, IndexedDB
-*   **Email & Notifications**: Flask-Mail, PyWebPush
-*   **Security**: Flask-Limiter, Flask-WTF (CSRF Protection)
+| Category      | Technology / Library                                      |
+|---------------|-----------------------------------------------------------|
+| **Backend**   | Python, Flask                                             |
+| **Database**  | MongoDB (with PyMongo)                                    |
+| **Frontend**  | HTML, Tailwind CSS, Vanilla JavaScript                    |
+| **PWA**       | Service Workers, IndexedDB (via `idb` library), Web App Manifest |
+| **Auth**      | Flask-JWT-Extended, bcrypt                                |
+| **Security**  | Flask-WTF (CSRF), Flask-Limiter                           |
+| **Tasks**     | Flask-Mail (Email), PyWebPush (Push Notifications)        |
+| **Tooling**   | Pytesseract (OCR), ReportLab (PDF Generation)             |
 
 ---
 
-## Getting Started
+## ⚙️ APIs, Libraries, and Services Used
+
+This project integrates a variety of powerful libraries and browser APIs to deliver its features.
+
+### Backend (Python / Flask Ecosystem)
+
+*   **Flask**: The core micro-framework for building the web application, handling routing, and managing requests.
+*   **PyMongo**: The official Python driver for interacting with the MongoDB database, used for all database operations.
+*   **Flask-JWT-Extended**: Manages user authentication and session control using JSON Web Tokens (JWTs) stored in secure cookies.
+*   **Flask-Mail**: Handles the sending of transactional emails for password resets and OTP verification.
+*   **Flask-WTF** & **WTForms**: Provides server-side form creation, validation, and crucial CSRF (Cross-Site Request Forgery) protection.
+*   **Flask-Limiter**: Implements rate limiting on sensitive endpoints like login to prevent brute-force attacks.
+*   **bcrypt**: A library for securely hashing and verifying user passwords.
+*   **pyotp**: Generates and verifies Time-based One-Time Passwords (TOTP) for the Two-Factor Authentication (2FA) feature.
+*   **PyWebPush**: Encrypts and sends push notification payloads to service workers, enabling real-time alerts.
+*   **Pytesseract**: A Python wrapper for Google's Tesseract-OCR Engine, used to extract text from uploaded invoice images.
+*   **Pillow (PIL Fork)**: An image processing library required by Pytesseract to open and manipulate image files.
+*   **ReportLab**: A library for programmatically creating PDF documents, used for generating downloadable transaction receipts.
+*   **ItsDangerous**: Used by Flask internally but explicitly leveraged here to create secure, timed tokens for the password reset links.
+*   **qrcode**: Generates the SVG QR codes required for the 2FA setup process.
+
+### Frontend (Browser & JavaScript APIs)
+
+*   **Service Worker API**: The core browser API that enables PWA functionality, including offline access, background sync, and handling push notifications.
+*   **Cache API**: Used within the service worker to cache network requests and static assets, allowing the app to work offline.
+*   **Fetch API**: The modern browser standard for making asynchronous network (API) requests from the client to the Flask backend.
+*   **IndexedDB API**: A low-level, client-side NoSQL database used to store data for offline use. In this project, it's used with the `idb` library to queue deletion requests made while offline.
+*   **Push API** & **Notifications API**: Browser APIs that allow the service worker to subscribe to, receive, and display push notifications from the server.
+*   **Background Sync API (`SyncManager`)**: A browser API that allows the service worker to defer actions (like syncing deleted items) until the user has a stable network connection.
+*   **Standard Browser APIs**: Extensive use of the DOM (Document Object Model) API for UI manipulation, Event Listeners, and other core browser functionalities.
+
+---
+
+### Internal REST API Endpoints
+
+The Flask application exposes a set of RESTful API endpoints that the frontend JavaScript uses to fetch and manipulate data dynamically without full page reloads.
+
+| Endpoint                                       | Method   | Description                                                     |
+| ---------------------------------------------- | -------- | --------------------------------------------------------------- |
+| `/api/transactions/<id>`                         | `DELETE` | Archives a specific transaction or check.                         |
+| `/api/transactions/details/<id>`                 | `GET`    | Fetches the detailed data for a specific transaction.             |
+| `/api/transactions/update/<id>`                  | `POST`   | Updates the details of a paid transaction.                        |
+| `/api/transactions/folder/<id>/pay`              | `POST`   | Marks an entire transaction folder as paid.                     |
+| `/api/transactions/<id>/download_pdf`            | `GET`    | Generates and serves a PDF receipt for a paid transaction.      |
+| `/api/invoices/upload`                         | `POST`   | Handles the upload and OCR processing of invoice files.         |
+| `/api/invoices/<id>`                             | `DELETE` | Archives a specific invoice.                                    |
+| `/api/invoices/details/<id>`                     | `GET`    | Fetches the detailed data for a specific invoice.               |
+| `/api/schedules`                               | `GET`    | Fetches calendar events for a given date range.                 |
+| `/api/schedules/add`                           | `POST`   | Creates a new schedule/event.                                   |
+| `/api/schedules/update/<id>`                     | `POST`   | Updates an existing schedule/event (e.g., drag-and-drop).       |
+| `/api/schedules/<id>`                            | `DELETE` | Deletes a specific schedule/event.                              |
+| `/api/loans/add`                               | `POST`   | Adds a new loan entry.                                          |
+| `/api/analytics/summary`                       | `GET`    | Provides aggregated data for the analytics charts.              |
+| `/api/billings/summary`                        | `GET`    | Provides aggregated data for the weekly billings summary.       |
+| `/api/notifications/status`                    | `GET`    | Checks for the count of unread notifications.                   |
+| `/api/notifications`                           | `GET`    | Fetches the list of unread notifications.                       |
+| `/api/notifications/read`                      | `POST`   | Marks all unread notifications as read.                         |
+| `/api/archive/restore/<type>/<id>`               | `POST`   | Restores an archived item from the archive.                     |
+| `/api/archive/delete/<type>/<id>`                | `DELETE` | Permanently deletes an item from the archive.                   |
+| `/api/save-subscription`                       | `POST`   | Saves a user's push notification subscription to the database.  |
+
+## 🏁 Getting Started
 
 Follow these steps to get your development environment set up and running.
 
 ### Prerequisites
 
-*   Python 3.8+
-*   pip (Python package installer)
-*   MongoDB: A running MongoDB instance (local or a cloud service like MongoDB Atlas).
-*   Email Account: A Gmail account with **2-Step Verification enabled** and an **App Password** generated for sending transactional emails.
+*   **Python 3.8+** and Pip
+*   **MongoDB**: A running MongoDB instance (local or a cloud service like MongoDB Atlas).
+*   **Tesseract OCR Engine**: This is a system dependency required for the invoice OCR feature.
+    *   [Installation Guide for Tesseract](https://tesseract-ocr.github.io/tessdoc/Installation.html)
+    *   **Windows Users**: Make sure to add the Tesseract installation directory to your system's `PATH` environment variable.
+*   **Email Account**: A Gmail account with **2-Step Verification enabled** and an **App Password** generated for sending transactional emails.
 
-### Installation
+### Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -107,17 +175,26 @@ Follow these steps to get your development environment set up and running.
     pip install -r requirements.txt
     ```
 
-### Environment Setup
+### Environment Configuration
 
-1.  **Create a `.env` file** in the root directory of the project.
+1.  **Create a `.env` file** in the root directory of the project by copying the example:
+    ```bash
+    # For Windows
+    copy .env.example .env
+    # For macOS/Linux
+    cp .env.example .env
+    ```
 
-2.  Copy the contents of `.env.example` into your new `.env` file.
+2.  **Generate VAPID keys** for push notifications. Run this command in your terminal and add the keys to your `.env` file.
+    ```bash
+    pywebpush vapid
+    ```
 
-3.  **Fill in the required values** in your `.env` file:
+3.  **Fill in the required values** in your new `.env` file:
     *   `FLASK_SECRET_KEY` & `JWT_SECRET_KEY`: Generate strong, random keys.
     *   `MONGO_URI`: Your full MongoDB connection string.
     *   `MAIL_USERNAME` & `MAIL_PASSWORD`: Your Gmail address and the **16-digit App Password**.
-    *   `VAPID_` keys: Generate these once for PWA push notifications.
+    *   `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_CLAIM_EMAIL`: Use the keys generated in the previous step and your email.
 
 ---
 
@@ -128,16 +205,20 @@ Follow these steps to get your development environment set up and running.
     python main.py
     ```
 
-2.  **Access the application:**
-    Open your web browser and navigate to `http://127.0.0.1:5000/`.
+2.  **(Optional) Run the Notification Scheduler:**
+    To enable notifications for due transactions, you can run this script separately. In a real-world scenario, this would be set up as a cron job.
+    ```bash
+    python create_notifications_task.py
+    ```
 
-3.  **Register a new user account.** The application uses a full registration and 2FA setup flow.
+3.  **Access the application:**
+    Open your web browser and navigate to `http://127.0.0.1:5000/`. You can register a new user and follow the complete onboarding flow, including email verification and 2FA setup.
 
 ---
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute, please feel free to fork the repository and open a pull request.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1.  Fork the Project.
 2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
