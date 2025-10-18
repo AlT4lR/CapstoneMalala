@@ -3,7 +3,7 @@
 {% block head %}
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<!-- --- START OF MODIFICATION --- -->
+<!-- --- START OF MODIFICATION: Overhauled all styles to match the new UI --- -->
 <style>
     /* --- Layout Base --- */
     html, body {
@@ -14,23 +14,28 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        min-height: 100vh;
+        min-height: 100vh; /* Ensure main takes full viewport height */
     }
 
     .main-content-layout {
+        flex: 1; /* Allow this container to grow */
+        display: flex;
+        flex-direction: column; /* Stack header and calendar vertically */
+        gap: 1rem;
+        min-height: 0; /* Necessary for flex children to scroll */
+    }
+
+    .calendar-area {
         flex: 1;
         display: flex;
-        flex-direction: row;
         gap: 1rem;
         min-height: 0;
-        height: 100%;
     }
 
     .calendar-wrapper {
         display: flex;
         flex: 1;
         min-height: 0;
-        height: 100%;
     }
 
     /* --- Main Calendar Container --- */
@@ -43,8 +48,6 @@
         flex-direction: column;
         flex: 1;
         min-height: 0;
-        height: 100%;
-        width: 100%;
         box-sizing: border-box;
         overflow: hidden;
     }
@@ -72,7 +75,7 @@
 
     /* --- View Switcher Buttons --- */
     #view-switcher {
-        background-color: #f6f7f1;
+        background-color: #eef2e9; /* Light green background */
         border: 1px solid #d4d8c4;
         color: #3a4d39;
     }
@@ -88,7 +91,7 @@
         display: grid;
         flex: 1;
         gap: 1px;
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.2); /* Grid line color */
         border: 1px solid rgba(255, 255, 255, 0.2);
         overflow: auto;
         min-height: 0;
@@ -100,82 +103,87 @@
         position: relative;
     }
 
-    .event-container {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
-    }
-
     /* --- Month View --- */
     .month-view {
         grid-template-columns: repeat(7, 1fr);
-        grid-template-rows: auto repeat(5, 1fr);
+        grid-auto-rows: 1fr; /* Make rows expand equally */
     }
     .month-view .day-header {
         text-align: center;
         font-weight: 600;
         padding: 0.75rem 0.5rem;
+        position: sticky; top: 0; z-index: 5;
     }
     .month-view .date-cell {
-        padding: 0.5rem;
-    }
-    .month-view .date-cell.empty {
-        background-color: #3a4d39;
+        display: flex;
+        flex-direction: column;
     }
     .month-view .date-number {
         font-weight: 500;
+        align-self: flex-end;
+        margin-bottom: 0.25rem;
     }
-    .month-view .is-today {
-        background-color: rgba(255, 255, 255, 0.1);
+    .month-view .is-today .date-number {
+        background-color: white;
+        color: #3a4d39;
+        border-radius: 9999px;
+        width: 1.75rem;
+        height: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     .month-view .event {
-        background-color: #8b5cf6;
-        color: white;
+        background-color: #eef2e9;
+        color: #3a4d39;
         font-size: 0.75rem;
-        padding: 2px 6px;
+        font-weight: 500;
+        padding: 2px 8px;
         border-radius: 4px;
         margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         cursor: pointer;
-        pointer-events: all;
+    }
+    .month-view .events-container {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
     }
 
     /* --- Week View --- */
     .week-view {
-        grid-template-columns: 60px repeat(7, 1fr);
+        grid-template-columns: 80px repeat(7, 1fr); /* Wider time column */
     }
     .week-view .day-header, .week-view .corner-cell {
         position: sticky; top: 0; z-index: 10;
         background-color: #3a4d39;
-    }
-    .week-view .day-header {
         text-align: center;
         font-weight: 600;
         padding: 0.75rem 0.5rem;
     }
     .week-view .time-slot {
         font-size: 0.875rem;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        text-align: right;
+        padding-right: 1rem;
         color: #e5e7eb;
     }
     .week-view .event {
         position: absolute;
         background-color: #E9D5FF;
         color: #37304A;
-        border-radius: 4px;
-        padding: 4px 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.1);
+        padding: 8px;
         font-size: 12px;
-        left: 2px;
-        right: 2px;
         overflow: hidden;
         cursor: pointer;
-        pointer-events: all;
         z-index: 5;
+        /* --- START OF FIX: Use left and right properties to constrain width --- */
+        left: 4px;
+        right: 4px;
+        /* --- END OF FIX --- */
     }
 
     /* --- Modal Animation --- */
@@ -205,69 +213,74 @@
 {% block content %}
 <main class="flex-1 p-4 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
 
-    <!-- Header -->
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <div>
-            <h1 class="text-2xl font-bold">Schedules</h1>
-        </div>
-        <div id="view-switcher" class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
-            <button data-view="day" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
-            <button data-view="week" class="px-2 sm:px-3 py-1 rounded-md active-view">Week</button>
-            <button data-view="month" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
-            <button data-view="year" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
-        </div>
-    </header>
-
     <!-- Main Layout -->
     <div class="main-content-layout">
-        <!-- Left Sidebar -->
-        <aside class="w-full lg:max-w-xs bg-[#3a4d39] text-white rounded-2xl p-4 flex flex-col space-y-4">
-            <button id="create-schedule-btn"
-                class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
-                Create Schedule
-            </button>
+        
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-                <div class="flex justify-between items-center mb-2">
-                    <span id="mini-cal-title" class="font-bold text-base tracking-wider">OCTOBER 2025</span>
-                    <div>
-                        <button id="mini-cal-prev" class="px-2 hover:text-gray-300">&lt;</button>
-                        <button id="mini-cal-next" class="px-2 hover:text-gray-300">&gt;</button>
+                <h1 class="text-2xl font-bold">Schedules</h1>
+            </div>
+            <div id="view-switcher" class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
+                <button data-view="day" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
+                <button data-view="week" class="px-2 sm:px-3 py-1 rounded-md active-view">Week</button>
+                <button data-view="month" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
+                <button data-view="year" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
+            </div>
+        </header>
+
+        <!-- Calendar Area -->
+        <div class="calendar-area">
+            <!-- Left Sidebar -->
+            <aside class="w-full lg:max-w-xs bg-[#3a4d39] text-white rounded-2xl p-4 flex flex-col space-y-4">
+                <button id="create-schedule-btn"
+                    class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
+                    Create Schedule
+                </button>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span id="mini-cal-title" class="font-bold text-base tracking-wider">OCTOBER 2025</span>
+                        <div>
+                            <button id="mini-cal-prev" class="px-2 hover:text-gray-300">&lt;</button>
+                            <button id="mini-cal-next" class="px-2 hover:text-gray-300">&gt;</button>
+                        </div>
+                    </div>
+                    <div id="mini-cal-grid" class="grid grid-cols-7 text-center text-sm gap-y-2">
+                        <span class="font-medium text-gray-400">S</span>
+                        <span class="font-medium text-gray-400">M</span>
+                        <span class="font-medium text-gray-400">T</span>
+                        <span class="font-medium text-gray-400">W</span>
+                        <span class="font-medium text-gray-400">T</span>
+                        <span class="font-medium text-gray-400">F</span>
+                        <span class="font-medium text-gray-400">S</span>
                     </div>
                 </div>
-                <div id="mini-cal-grid" class="grid grid-cols-7 text-center text-sm gap-y-2">
-                    <span class="font-medium text-gray-400">S</span>
-                    <span class="font-medium text-gray-400">M</span>
-                    <span class="font-medium text-gray-400">T</span>
-                    <span class="font-medium text-gray-400">W</span>
-                    <span class="font-medium text-gray-400">T</span>
-                    <span class="font-medium text-gray-400">F</span>
-                    <span class="font-medium text-gray-400">S</span>
+                <div id="label-filter">
+                    <h3 class="font-bold text-base mb-3">Label</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #3b82f6;"></div><span>Office</span></div>
+                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #8b5cf6;"></div><span>Meetings</span></div>
+                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #ec4d99;"></div><span>Events</span></div>
+                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #f59e0b;"></div><span>Personal</span></div>
+                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></div><span>Others</span></div>
+                    </div>
+                    <button class="w-full mt-4 bg-white/10 text-white font-semibold py-2 rounded-xl text-xs hover:bg-white/20 transition-colors">+ Add Label</button>
                 </div>
-            </div>
-            <div id="label-filter">
-                <h3 class="font-bold text-base mb-3">Label</h3>
-                <div class="space-y-3 text-sm">
-                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #3b82f6;"></div><span>Office</span></div>
-                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #8b5cf6;"></div><span>Meetings</span></div>
-                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #ec4d99;"></div><span>Events</span></div>
-                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #f59e0b;"></div><span>Personal</span></div>
-                    <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></div><span>Others</span></div>
-                </div>
-                <button class="w-full mt-4 bg-white/10 text-white font-semibold py-2 rounded-xl text-xs hover:bg-white/20 transition-colors">+ Add Label</button>
-            </div>
-        </aside>
+            </aside>
 
-        <!-- Right: Dynamic Calendar -->
-        <div class="calendar-wrapper">
-            <div id="main-calendar-container" class="dynamic-calendar-container">
-                <!-- Calendar content generated by dynamic_calendar.js -->
+            <!-- Right: Dynamic Calendar -->
+            <div class="calendar-wrapper">
+                <div id="main-calendar-container" class="dynamic-calendar-container">
+                    <!-- Calendar content generated by dynamic_calendar.js -->
+                </div>
             </div>
         </div>
+
     </div>
 </main>
 
 <!-- === Create Schedule Modal (New Inline Version) === -->
-<div id="schedule-modal-backdrop" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+<div id="schedule-modal-backdrop" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
     <div class="modal-container bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
         <form id="schedule-form" method="POST" class="space-y-4">
             <input type="hidden" id="schedule-id" name="schedule_id" value="">

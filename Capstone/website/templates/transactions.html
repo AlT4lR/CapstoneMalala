@@ -50,9 +50,15 @@
             form.style.display = 'block';
             successMessage.classList.add('hidden');
             modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('active'), 10);
         };
 
-        const closeModal = () => modal.classList.add('hidden');
+        const closeModal = () => {
+            modal.classList.remove('active');
+            modal.addEventListener('transitionend', () => {
+                modal.classList.add('hidden');
+            }, { once: true });
+        };
 
         if (modal && openBtn && closeBtn) {
             openBtn.addEventListener('click', openModal);
