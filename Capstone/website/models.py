@@ -237,10 +237,12 @@ def archive_invoice(username, invoice_id):
     db = current_app.db
     if db is None: return False
     try:
+        # --- START OF FIX: Changed 'id' to '_id' ---
         result = db.invoices.update_one(
-            {'id': ObjectId(invoice_id), 'username': username},
+            {'_id': ObjectId(invoice_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
+        # --- END OF FIX ---
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error archiving invoice {invoice_id}: {e}", exc_info=True)
@@ -351,10 +353,12 @@ def mark_folder_as_paid(username, folder_id, notes, amount):
         if notes is not None:
             update_data['$set']['notes'] = notes
 
+        # --- START OF FIX: Changed 'id' to '_id' ---
         result = db.transactions.update_one(
-            {'id': ObjectId(folder_id), 'username': username},
+            {'_id': ObjectId(folder_id), 'username': username},
             update_data
         )
+        # --- END OF FIX ---
 
         if result.modified_count == 0:
             logger.warning(f"No document found or updated for folder {folder_id} for user {username}.")
@@ -374,10 +378,12 @@ def archive_transaction(username, transaction_id):
     db = current_app.db
     if db is None: return False
     try:
+        # --- START OF FIX: Changed 'id' to '_id' ---
         result = db.transactions.update_one(
-            {'id': ObjectId(transaction_id), 'username': username},
+            {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
+        # --- END OF FIX ---
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
@@ -610,6 +616,57 @@ def delete_item_permanently(username, item_type, item_id):
 # =========================================================
 # --- Analytics, Notification, and Push Models ---
 # =========================================================
+
+def get_weekly_billing_summary(username, year, week_number):
+    db = current_app.db
+    if db is None: return {}
+    
+    try:
+        first_day_of_year = datetime(year, 1, 1, tzinfo=pytz.utc)
+        first_day_of_year -= timedelta(days=first_day_of_year.weekday())
+        
+        week_start = first_day_of_year + timedelta(weeks=week_number - 1)
+        week_end = week_start + timedelta(days=7)
+
+        pipeline = [
+            {'$match': {
+                'username': username,
+                'status': 'Paid',
+                'check_date': {'$gte': week_start, '$lt': week_end}
+            }},
+            {'$group': {
+                '_id': None,
+                'total_check_amount': {'$sum': '$amount'},
+                'total_ewt': {'$sum': '$ewt'},
+                'total_countered_check': {'$sum': '$countered_check'}
+            }}
+        ]
+        
+        transaction_results = list(db.transactions.aggregate(pipeline))
+        
+        loan_pipeline = [
+            {'$match': {
+                'username': username,
+                'date_issued': {'$gte': week_start, '$lt': week_end}
+            }},
+            {'$group': {
+                '_id': None,
+                'total_loans': {'$sum': '$amount'}
+            }}
+        ]
+        loan_results = list(db.loans.aggregate(loan_pipeline))
+        
+        summary = {
+            'check_amount': transaction_results[0]['total_check_amount'] if transaction_results else 0,
+            'ewt_collected': transaction_results[0]['total_ewt'] if transaction_results else 0,
+            'countered_check': transaction_results[0]['total_countered_check'] if transaction_results else 0,
+            'other_loans': loan_results[0]['total_loans'] if loan_results else 0
+        }
+        return summary
+    except Exception as e:
+        logger.error(f"Error getting weekly billing summary for {username}, week {week_number}: {e}", exc_info=True)
+        return {}
+
 
 def get_analytics_data(username, year):
     db = current_app.db
