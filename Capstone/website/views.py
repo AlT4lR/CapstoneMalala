@@ -1,3 +1,5 @@
+# website/views.py
+
 # Add the following imports at top of file if not already present
 from flask import abort
 
@@ -106,7 +108,6 @@ def transactions_paid():
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     return render_template('paid_transactions.html', transactions=transactions, show_sidebar=True)
 
-# --- START OF MODIFICATION ---
 @main.route('/transaction/folder/<transaction_id>')
 @jwt_required()
 def transaction_folder_details(transaction_id):
@@ -119,7 +120,6 @@ def transaction_folder_details(transaction_id):
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     form = TransactionForm()
 
-    # Calculate the total of all countered checks
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     
     return render_template(
@@ -130,7 +130,6 @@ def transaction_folder_details(transaction_id):
         total_countered_check=total_countered_check,
         show_sidebar=True
     )
-# --- END OF MODIFICATION ---
 
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
@@ -159,8 +158,9 @@ def add_transaction_route():
 @main.route('/analytics')
 @jwt_required()
 def analytics():
-    analytics_data = get_analytics_data(get_jwt_identity(), datetime.now().year)
-    return render_template('analytics.html', analytics_data=analytics_data, show_sidebar=True)
+    # Fetch data for the current month/year on initial load
+    initial_data = get_analytics_data(get_jwt_identity(), datetime.now().year, datetime.now().month)
+    return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
 
 @main.route('/invoice')
 @jwt_required()
@@ -196,13 +196,11 @@ def settings():
 def archive():
     username = get_jwt_identity()
     archived_items = get_archived_items(username)
-    # Merged modification: Pass the previous page URL to the template
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
 # --- API Routes ---
 
-# --- START OF MODIFICATION: Add route for saving push subscriptions ---
 @main.route('/api/save-subscription', methods=['POST'])
 @jwt_required()
 def save_subscription():
@@ -215,9 +213,24 @@ def save_subscription():
         return jsonify({'success': True}), 201
     
     return jsonify({'error': 'Failed to save subscription'}), 500
+
+# --- START OF MODIFICATION: Add dynamic analytics API endpoint ---
+@main.route('/api/analytics/summary', methods=['GET'])
+@jwt_required()
+def get_analytics_summary():
+    username = get_jwt_identity()
+    try:
+        year = int(request.args.get('year', datetime.now().year))
+        month = int(request.args.get('month', datetime.now().month))
+        if not (1 <= month <= 12):
+            raise ValueError("Month is out of range")
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid year or month parameter'}), 400
+
+    summary_data = get_analytics_data(username, year, month)
+    return jsonify(summary_data)
 # --- END OF MODIFICATION ---
 
-# --- START OF MODIFICATION ---
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
 def get_billings_summary():
@@ -230,7 +243,6 @@ def get_billings_summary():
 
     summary_data = current_app.get_weekly_billing_summary(username, year, week)
     return jsonify(summary_data)
-# --- END OF MODIFICATION ---
 
 @main.route('/api/invoices/upload', methods=['POST'])
 @jwt_required()

@@ -668,38 +668,54 @@ def get_weekly_billing_summary(username, year, week_number):
         return {}
 
 
-def get_analytics_data(username, year):
+def get_analytics_data(username, year, month):
     db = current_app.db
     if db is None: return {}
     try:
-        pipeline_monthly = [
-            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}}},
+        # Calculate totals for the entire year to determine bar chart percentages
+        pipeline_yearly = [
+            {'$match': {
+                'username': username, 'status': 'Paid', 'parent_id': None, 
+                'check_date': {'$gte': datetime(year, 1, 1, tzinfo=pytz.utc), '$lt': datetime(year + 1, 1, 1, tzinfo=pytz.utc)}
+            }},
             {'$group': {'_id': {'$month': '$check_date'}, 'total': {'$sum': '$amount'}}}
         ]
-        monthly_totals = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_monthly)}
-        current_month = datetime.now(pytz.utc).month
-        start_of_current_month = datetime(year, current_month, 1, tzinfo=pytz.utc)
-        start_of_next_month = datetime(year, current_month + 1, 1, tzinfo=pytz.utc) if current_month < 12 else datetime(year + 1, 1, 1, tzinfo=pytz.utc)
+        monthly_totals_all_year = {doc['_id']: doc['total'] for doc in db.transactions.aggregate(pipeline_yearly)}
+        total_year_earning = sum(monthly_totals_all_year.values())
+        max_monthly_earning = max(monthly_totals_all_year.values()) if monthly_totals_all_year else 1
+
+        # Calculate weekly breakdown for the *selected* month
+        start_of_selected_month = datetime(year, month, 1, tzinfo=pytz.utc)
+        if month == 12:
+            start_of_next_month = datetime(year + 1, 1, 1, tzinfo=pytz.utc)
+        else:
+            start_of_next_month = datetime(year, month + 1, 1, tzinfo=pytz.utc)
+
         pipeline_weekly = [
-            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': start_of_current_month, '$lt': start_of_next_month}}},
+            {'$match': {'username': username, 'status': 'Paid', 'parent_id': None, 'check_date': {'$gte': start_of_selected_month, '$lt': start_of_next_month}}},
             {'$group': {'_id': {'$week': '$check_date'}, 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
         weekly_agg = list(db.transactions.aggregate(pipeline_weekly))
         weekly_breakdown = [{'week': f"Week {i+1}", 'total': doc['total']} for i, doc in enumerate(weekly_agg)]
-        total_year_earning = sum(monthly_totals.values())
-        max_monthly_earning = max(monthly_totals.values()) if monthly_totals else 1
+        
+        # Format chart data for all 12 months of the year
         chart_data = [
             {
-                'month_name': month_name[i][:3], 'total': monthly_totals.get(i, 0),
-                'percentage': (monthly_totals.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0,
-                'is_current_month': i == current_month
+                'month_name': month_name[i][:3], 
+                'total': monthly_totals_all_year.get(i, 0),
+                'percentage': (monthly_totals_all_year.get(i, 0) / max_monthly_earning) * 100 if max_monthly_earning > 0 else 0,
+                'is_current_month': i == month
             } for i in range(1, 13)
         ]
+        
         return {
-            'year': year, 'total_year_earning': total_year_earning,
-            'chart_data': chart_data, 'current_month_name': month_name[current_month].upper(),
-            'weekly_breakdown': weekly_breakdown, 'current_month_total': monthly_totals.get(current_month, 0)
+            'year': year, 
+            'total_year_earning': total_year_earning,
+            'chart_data': chart_data, 
+            'current_month_name': month_name[month].upper(),
+            'weekly_breakdown': weekly_breakdown, 
+            'current_month_total': monthly_totals_all_year.get(month, 0)
         }
     except Exception as e:
         logger.error(f"Error generating analytics for {username} year {year}: {e}", exc_info=True)
