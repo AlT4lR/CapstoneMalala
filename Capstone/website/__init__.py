@@ -1,3 +1,5 @@
+# website/__init__.py
+
 import os
 from flask import Flask, render_template
 from flask_mail import Mail
@@ -15,55 +17,85 @@ from .config import config_by_name
 from .models import (
     get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
     record_failed_login_attempt, set_user_otp, verify_user_otp, update_user_password,
-    add_transaction, get_transactions_by_status, get_transaction_by_id,
+    add_transaction, get_transactions_by_status, get_transaction_by_id, update_transaction,
     archive_transaction, get_archived_items, get_child_transactions_by_parent_id,
     mark_folder_as_paid,
     get_analytics_data,
     log_user_activity, get_recent_activity,
     add_invoice, get_invoices, get_invoice_by_id, archive_invoice,
-    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read, save_push_subscription, get_user_push_subscriptions,
-    add_loan,
-    add_schedule, 
-    get_schedules,
+    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read,
+    save_push_subscription, get_user_push_subscriptions,
+    add_loan, get_loans,
+    add_schedule, get_schedules, update_schedule, delete_schedule,
     restore_item, delete_item_permanently,
-    # --- START OF MODIFICATION ---
     get_weekly_billing_summary
-    # --- END OF MODIFICATION ---
 )
 
-# Logging configuration
+# -------------------------------
+# Logging Configuration
+# -------------------------------
 log_config = {
-    'version': 1, 'disable_existing_loggers': False,
-    'formatters': {'standard': {'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'}},
-    'handlers': {'console': {'level': 'INFO', 'formatter': 'standard', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout'}},
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        }
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout'
+        }
+    },
     'loggers': {
-        '': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
-        'pymongo': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True
+        },
+        'pymongo': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False
+        }
     }
 }
 dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-# Initialize extensions
+# -------------------------------
+# Initialize Extensions
+# -------------------------------
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 csrf = CSRFProtect()
 
+
+# -------------------------------
+# App Factory
+# -------------------------------
 def create_app(config_name='dev'):
     """Application factory function."""
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
+    # Ensure upload folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
+    # Initialize extensions
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
     csrf.init_app(app)
 
-    # Attach all model functions to the app instance
+    # -------------------------------
+    # Attach model functions to app
+    # -------------------------------
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
     app.add_user = add_user
@@ -73,17 +105,17 @@ def create_app(config_name='dev'):
     app.set_user_otp = set_user_otp
     app.verify_user_otp = verify_user_otp
     app.update_user_password = update_user_password
-    
+
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
+    app.update_transaction = update_transaction  # ✅ newly added
     app.archive_transaction = archive_transaction
     app.get_archived_items = get_archived_items
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
     app.mark_folder_as_paid = mark_folder_as_paid
 
     app.get_analytics_data = get_analytics_data
-    
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
 
@@ -98,42 +130,52 @@ def create_app(config_name='dev'):
     app.mark_notifications_as_read = mark_notifications_as_read
     app.save_push_subscription = save_push_subscription
     app.get_user_push_subscriptions = get_user_push_subscriptions
-    app.mail = mail
-    
+
     app.add_loan = add_loan
+    app.get_loans = get_loans
+
     app.add_schedule = add_schedule
     app.get_schedules = get_schedules
-    
+    app.update_schedule = update_schedule
+    app.delete_schedule = delete_schedule
+
     app.restore_item = restore_item
     app.delete_item_permanently = delete_item_permanently
 
-    # --- START OF MODIFICATION ---
     app.get_weekly_billing_summary = get_weekly_billing_summary
-    # --- END OF MODIFICATION ---
 
+    app.mail = mail
 
+    # -------------------------------
     # MongoDB Connection
+    # -------------------------------
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         mongo_client.admin.command('ping')
-        logger.info(f"Successfully connected to MongoDB.")
+        logger.info("✅ Successfully connected to MongoDB.")
     except Exception as e:
-        logger.error(f"MongoDB connection failed: {e}", exc_info=True)
+        logger.error(f"❌ MongoDB connection failed: {e}", exc_info=True)
         app.db = None
-    
+
+    # -------------------------------
     # Register Blueprints
+    # -------------------------------
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    # -------------------------------
     # Error Handlers
+    # -------------------------------
     @app.errorhandler(404)
     def page_not_found(e):
-        return "404 Not Found", 404
+        return render_template('errors/404.html'), 404
+
     @app.errorhandler(500)
     def internal_server_error(e):
-        return "500 Internal Server Error", 500
+        return render_template('errors/500.html'), 500
 
     return app

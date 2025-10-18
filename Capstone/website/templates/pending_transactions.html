@@ -108,21 +108,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Prevent link navigation when clicking the archive button
+    // --- START OF FIX ---
+    // This updated logic correctly handles clicking the delete button inside the link.
+    // It prevents the page from navigating away and allows the global delete handler
+    // in common.js to do its work without causing a recursion error.
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
+            // Prevent the <a> tag from navigating to the details page.
             event.preventDefault();
-            event.stopPropagation();
-            // Manually trigger the global delete handler from common.js
-            // Create a temporary button element with the correct data attributes
-            const tempBtn = document.createElement('button');
-            tempBtn.classList.add('delete-btn');
-            tempBtn.dataset.id = this.dataset.id;
-            tempBtn.dataset.name = this.dataset.name;
-            const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
-            tempBtn.dispatchEvent(clickEvent);
+            
+            // NOTE: We DO NOT stop propagation. This allows the click event to
+            // bubble up to the document body, where the main listener in `common.js`
+            // can catch it and trigger the delete confirmation dialog.
         });
     });
+    // --- END OF FIX ---
 });
 </script>
 {% endblock %}
