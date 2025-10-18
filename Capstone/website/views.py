@@ -1,11 +1,8 @@
 # website/views.py
 
-# Add the following imports at top of file if not already present
-from flask import abort
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
-    make_response, current_app, send_from_directory, jsonify, send_file
+    make_response, current_app, send_from_directory, jsonify, send_file, abort
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from datetime import datetime
@@ -32,12 +29,19 @@ from .models import (
     get_invoice_by_id,
     archive_invoice,
     add_loan,
-    add_schedule, 
+    add_schedule,
     get_schedules,
     mark_folder_as_paid,
-    restore_item, 
+    restore_item,
     delete_item_permanently,
-    get_weekly_billing_summary
+    get_weekly_billing_summary,
+    add_transaction,
+    add_invoice,
+    get_unread_notifications,
+    get_unread_notification_count,
+    mark_notifications_as_read,
+    save_push_subscription,
+    log_user_activity
 )
 
 logger = logging.getLogger(__name__)
@@ -61,10 +65,12 @@ def root_route():
 
 @main.route('/branches')
 @jwt_required()
-def branches(): return render_template('branches.html')
+def branches():
+    return render_template('branches.html')
 
 @main.route('/offline')
-def offline(): return render_template('offline.html')
+def offline():
+    return render_template('offline.html')
 
 @main.route('/select_branch/<branch_name>')
 @jwt_required()
@@ -78,12 +84,21 @@ def select_branch(branch_name):
 @jwt_required()
 def dashboard():
     selected_branch = session.get('selected_branch')
-    if not selected_branch: return redirect(url_for('main.branches'))
+    if not selected_branch:
+        return redirect(url_for('main.branches'))
     username = get_jwt_identity()
     pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     recent_activities = get_recent_activity(username, limit=3)
-    return render_template( 'dashboard.html', username=username, selected_branch=selected_branch, show_sidebar=True, pending_count=len(pending_transactions), paid_count=len(paid_transactions), recent_activities=recent_activities)
+    return render_template(
+        'dashboard.html',
+        username=username,
+        selected_branch=selected_branch,
+        show_sidebar=True,
+        pending_count=len(pending_transactions),
+        paid_count=len(paid_transactions),
+        recent_activities=recent_activities
+    )
 
 @main.route('/transactions')
 @jwt_required()
@@ -96,7 +111,8 @@ def transactions():
 def transactions_pending():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
-    if not selected_branch: return redirect(url_for('main.branches'))
+    if not selected_branch:
+        return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True)
 
@@ -119,7 +135,6 @@ def transaction_folder_details(transaction_id):
     
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     form = TransactionForm()
-
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     
     return render_template(
@@ -137,15 +152,13 @@ def add_transaction_route():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = TransactionForm()
-    
     parent_id = request.form.get('parent_id') if request.form.get('parent_id') else None
-    
     redirect_url = url_for('main.transaction_folder_details', transaction_id=parent_id) if parent_id else url_for('main.transactions_pending')
 
     if form.validate_on_submit():
-        if current_app.add_transaction(username, selected_branch, form.data, parent_id=parent_id):
+        if add_transaction(username, selected_branch, form.data, parent_id=parent_id):
             activity = 'Added a new check' if parent_id else 'Created a new transaction folder'
-            current_app.log_user_activity(username, activity)
+            log_user_activity(username, activity)
             flash(f'Successfully {activity}!', 'success')
         else:
             flash('An error occurred while saving.', 'error')
@@ -158,7 +171,6 @@ def add_transaction_route():
 @main.route('/analytics')
 @jwt_required()
 def analytics():
-    # Fetch data for the current month/year on initial load
     initial_data = get_analytics_data(get_jwt_identity(), datetime.now().year, datetime.now().month)
     return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
 
@@ -203,18 +215,17 @@ def archive():
 
 @main.route('/api/save-subscription', methods=['POST'])
 @jwt_required()
-def save_subscription():
+def save_subscription_route():
     subscription_data = request.get_json()
     if not subscription_data or 'endpoint' not in subscription_data:
         return jsonify({'error': 'Invalid subscription data provided'}), 400
     
     username = get_jwt_identity()
-    if current_app.save_push_subscription(username, subscription_data):
+    if save_push_subscription(username, subscription_data):
         return jsonify({'success': True}), 201
     
     return jsonify({'error': 'Failed to save subscription'}), 500
 
-# --- START OF MODIFICATION: Add dynamic analytics API endpoint ---
 @main.route('/api/analytics/summary', methods=['GET'])
 @jwt_required()
 def get_analytics_summary():
@@ -229,7 +240,6 @@ def get_analytics_summary():
 
     summary_data = get_analytics_data(username, year, month)
     return jsonify(summary_data)
-# --- END OF MODIFICATION ---
 
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
@@ -241,7 +251,7 @@ def get_billings_summary():
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid year or week parameter'}), 400
 
-    summary_data = current_app.get_weekly_billing_summary(username, year, week)
+    summary_data = get_weekly_billing_summary(username, year, week)
     return jsonify(summary_data)
 
 @main.route('/api/invoices/upload', methods=['POST'])
@@ -273,18 +283,16 @@ def upload_invoice():
             filename = secure_filename(file.filename)
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
             extracted_text = perform_ocr_on_image(filepath)
             extracted_text_all.append(extracted_text)
-            
             processed_files_info.append({
                 'filename': filename,
                 'content_type': file.content_type,
                 'size': os.path.getsize(filepath)
             })
 
-    if current_app.add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
-        current_app.log_user_activity(username, 'Uploaded an invoice')
+    if add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
+        log_user_activity(username, 'Uploaded an invoice')
         flash('Successfully added and processed invoice!', 'success')
         return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
     else:
@@ -295,21 +303,21 @@ def upload_invoice():
 @jwt_required()
 def notification_status():
     username = get_jwt_identity()
-    count = current_app.get_unread_notification_count(username)
+    count = get_unread_notification_count(username)
     return jsonify({'unread_count': count})
 
 @main.route('/api/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
     username = get_jwt_identity()
-    notifications = current_app.get_unread_notifications(username)
+    notifications = get_unread_notifications(username)
     return jsonify(notifications)
 
 @main.route('/api/notifications/read', methods=['POST'])
 @jwt_required()
 def mark_read():
     username = get_jwt_identity()
-    if current_app.mark_notifications_as_read(username):
+    if mark_notifications_as_read(username):
         return jsonify({'success': True})
     return jsonify({'error': 'Failed to mark notifications as read'}), 500
 
@@ -319,7 +327,7 @@ def delete_transaction_route(transaction_id):
     username = get_jwt_identity()
     if archive_transaction(username, transaction_id):
         flash('Transaction successfully moved to archive!', 'success')
-        current_app.log_user_activity(username, 'Archived a transaction')
+        log_user_activity(username, 'Archived a transaction')
         return jsonify({'success': True}), 200
     flash('Failed to archive transaction.', 'error')
     return jsonify({'error': 'Failed to archive transaction.'}), 404
@@ -328,7 +336,7 @@ def delete_transaction_route(transaction_id):
 @jwt_required()
 def get_transaction_details(transaction_id):
     username = get_jwt_identity()
-    transaction_data = current_app.get_transaction_by_id(username, transaction_id)
+    transaction_data = get_transaction_by_id(username, transaction_id)
     if transaction_data:
         return jsonify(transaction_data)
     return jsonify({'error': 'Transaction not found'}), 404
@@ -350,7 +358,7 @@ def pay_transaction_folder(folder_id):
         return jsonify({'error': 'A valid amount is required.'}), 400
 
     if mark_folder_as_paid(username, folder_id, notes, amount):
-        current_app.log_user_activity(username, f'Marked transaction folder as Paid')
+        log_user_activity(username, f'Marked transaction folder as Paid')
         flash('Transaction successfully marked as paid!', 'success')
         return jsonify({'success': True})
     
@@ -361,9 +369,9 @@ def pay_transaction_folder(folder_id):
 @jwt_required()
 def delete_invoice_route(invoice_id):
     username = get_jwt_identity()
-    if current_app.archive_invoice(username, invoice_id):
+    if archive_invoice(username, invoice_id):
         flash('Invoice successfully moved to archive!', 'success')
-        current_app.log_user_activity(username, 'Archived an invoice')
+        log_user_activity(username, 'Archived an invoice')
         return jsonify({'success': True}), 200
     flash('Failed to archive invoice.', 'error')
     return jsonify({'error': 'Failed to archive invoice.'}), 404
@@ -372,7 +380,7 @@ def delete_invoice_route(invoice_id):
 @jwt_required()
 def get_invoice_details(invoice_id):
     username = get_jwt_identity()
-    invoice_data = current_app.get_invoice_by_id(username, invoice_id)
+    invoice_data = get_invoice_by_id(username, invoice_id)
     if invoice_data:
         return jsonify(invoice_data)
     return jsonify({'error': 'Invoice not found'}), 404
@@ -389,7 +397,7 @@ def perform_ocr_on_image(image_path):
 @jwt_required()
 def download_invoice_as_pdf(invoice_id):
     username = get_jwt_identity()
-    invoice = current_app.get_invoice_by_id(username, invoice_id)
+    invoice = get_invoice_by_id(username, invoice_id)
     if not invoice or not invoice.get('files'):
         return redirect(url_for('main.all_invoices'))
     
@@ -431,8 +439,8 @@ def add_loan_route():
     selected_branch = session.get('selected_branch')
     form = LoanForm()
     if form.validate_on_submit():
-        if current_app.add_loan(username, selected_branch, form.data):
-            current_app.log_user_activity(username, 'Added a new loan')
+        if add_loan(username, selected_branch, form.data):
+            log_user_activity(username, 'Added a new loan')
             flash('Successfully added a new loan!', 'success')
             return jsonify({'success': True})
     
@@ -447,7 +455,7 @@ def get_schedules_route():
     end = request.args.get('end')
     if not start or not end:
         return jsonify({"error": "Start and end date are required"}), 400
-    events = current_app.get_schedules(username, start, end)
+    events = get_schedules(username, start, end)
     return jsonify(events)
 
 @main.route('/api/schedules/add', methods=['POST'])
@@ -456,8 +464,8 @@ def add_schedule_route():
     username = get_jwt_identity()
     if not request.form:
         return jsonify({"error": "Form data is missing"}), 400
-    if current_app.add_schedule(username, request.form):
-        current_app.log_user_activity(username, "Created a new schedule")
+    if add_schedule(username, request.form):
+        log_user_activity(username, "Created a new schedule")
         return jsonify({"success": True})
     
     flash('Failed to create schedule.', 'error')
@@ -467,9 +475,9 @@ def add_schedule_route():
 @jwt_required()
 def restore_item_route(item_type, item_id):
     username = get_jwt_identity()
-    if current_app.restore_item(username, item_type, item_id):
+    if restore_item(username, item_type, item_id):
         flash(f'{item_type} successfully restored!', 'success')
-        current_app.log_user_activity(username, f'Restored a {item_type.lower()}')
+        log_user_activity(username, f'Restored a {item_type.lower()}')
         return jsonify({'success': True}), 200
     flash(f'Failed to restore {item_type.lower()}.', 'error')
     return jsonify({'error': f'Failed to restore {item_type.lower()}.'}), 404
@@ -478,9 +486,7 @@ def restore_item_route(item_type, item_id):
 @jwt_required()
 def delete_item_permanently_route(item_type, item_id):
     username = get_jwt_identity()
-    if current_app.delete_item_permanently(username, item_type, item_id):
+    if delete_item_permanently(username, item_type, item_id):
         flash(f'{item_type} permanently deleted!', 'success')
-        current_app.log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
-        return jsonify({'success': True}), 200
-    flash(f'Failed to permanently delete {item_type.lower()}.', 'error')
-    return jsonify({'error': f'Failed to delete {item_type.lower()}.'}), 404
+        log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
+        return jsonify({'error': 'An unexpected error occurred.'}), 500

@@ -11,15 +11,15 @@
         </div>
 
         <!-- Status & Amount Header -->
-        <div id="modal-status-box" class="flex justify-between items-center border border-[#3a4d39]/50 rounded-lg px-4 py-3 mb-4">
-            <div class="flex items-center gap-3 font-semibold text-[#3a4d39]">
+        <div id="modal-status-box" class="flex justify-between items-center bg-green-100 border border-green-300 text-green-800 rounded-lg px-4 py-3 mb-4">
+            <div class="flex items-center gap-3 font-semibold">
                 <i id="modal-status-icon" class="fas fa-check-circle fa-lg"></i>
-                <span id="modal-status-text">A payment was sent to Nenia Ann</span>
+                <span id="modal-status-text">Paid</span>
             </div>
-            <span id="modal-amount-header" class="font-bold text-lg text-[#3a4d39]">₱ 10,000.00</span>
+            <span id="modal-amount-header" class="font-bold text-lg"></span>
         </div>
 
-        <hr class="border-t border-[#3a4d39]/30 my-4">
+        <hr class="border-t border-gray-300 my-4">
 
         <!-- Details Section -->
         <div class="mb-4">
@@ -27,39 +27,35 @@
             <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
                     <span class="text-gray-500">Recipient</span>
-                    <span id="modal-recipient" class="font-semibold"></span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Delivery Date</span>
-                    <span id="modal-delivery-date" class="font-semibold"></span>
+                    <span id="modal-recipient" class="font-semibold text-right"></span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">Check Date</span>
                     <span id="modal-check-date" class="font-semibold"></span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-gray-500">Payment Method</span>
-                    <span id="modal-payment-method" class="font-semibold"></span>
+                    <span class="text-gray-500">EWT</span>
+                    <span id="modal-ewt" class="font-semibold"></span>
                 </div>
                  <div class="flex justify-between">
-                    <span class="text-gray-500">Amount Sent</span>
-                    <span id="modal-amount-sent" class="font-semibold"></span>
+                    <span class="text-gray-500">Countered Check</span>
+                    <span id="modal-countered-check" class="font-semibold"></span>
                 </div>
             </div>
         </div>
 
-        <hr class="border-t border-[#3a4d39]/30 my-4">
+        <hr class="border-t border-gray-300 my-4">
         
         <!-- Notes Section -->
         <div class="mb-6">
             <h3 class="font-bold text-[#3a4d39] mb-2">Notes</h3>
-            <div id="modal-notes" class="w-full p-3 bg-transparent border border-[#3a4d39]/30 rounded-lg text-sm min-h-[80px]"></div>
+            <div id="modal-notes" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm min-h-[80px] whitespace-pre-wrap"></div>
         </div>
 
         <!-- Download Button -->
         <button class="w-full bg-[#6f8a6e] hover:bg-[#5a7159] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
-            <i class="fas fa-upload"></i>
-            <span>Download</span>
+            <i class="fas fa-download"></i>
+            <span>Download Receipt</span>
         </button>
     </div>
 </div>
