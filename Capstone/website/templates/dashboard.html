@@ -74,33 +74,36 @@
                         </div>
                         <!-- --- START OF MODIFICATION --- -->
                         <div id="activity-list-container" class="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-2">
-                        <!-- --- END OF MODIFICATION --- -->
+                            <!-- --- START OF FIX --- -->
                             {% for activity in recent_activities %}
+                                {% set activity_type = activity.activity_type %}
+                                {% set icon_class = 'fa-solid fa-info-circle' %}
+                                {% set icon_color = 'text-gray-500' %}
+
+                                {% if activity_type == 'User Log In' %}
+                                    {% set icon_class = 'fa-solid fa-right-to-bracket' %}
+                                    {% set icon_color = 'text-green-600' %}
+                                {% elif 'Created' in activity_type or 'Added' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-plus-circle' %}
+                                    {% set icon_color = 'text-blue-600' %}
+                                {% elif 'Archived' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-box-archive' %}
+                                    {% set icon_color = 'text-red-600' %}
+                                {% elif 'Paid' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-dollar-sign' %}
+                                    {% set icon_color = 'text-purple-600' %}
+                                {% elif 'Restored' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-trash-arrow-up' %}
+                                    {% set icon_color = 'text-purple-600' %}
+                                {% endif %}
+                            
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
-                                    {% if activity.activity_type == 'User Log In' %}
-                                        <i class="fa-solid fa-right-to-bracket text-green-600"></i>
-                                    {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
-                                    {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
-                                        <i class="fa-solid fa-plus-circle text-blue-600"></i>
-                                    {% elif 'Archived' in activity.activity_type %}
-                                    {% elif 'Archived' in activity.activity_type %}
-                                        <i class="fa-solid fa-box-archive text-red-600"></i>
-                                    {% elif 'Paid' in activity.activity_type %}
-                                        <i class="fa-solid fa-dollar-sign text-purple-600"></i>
-                                    {% elif 'Restored' in activity.activity_type %}
-                                        <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
-                                    {% elif 'Restored' in activity.activity_type %}
-                                        <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
-                                    {% else %}
-                                        <i class="fa-solid fa-info-circle text-gray-500"></i>
-                                    {% endif %}
-                                    
+                                    <i class="{{ icon_class }} {{ icon_color }}"></i>
                                     <div>
                                         <p class="font-medium">{{ activity.username }}</p>
                                         <p class="text-[10px] text-gray-500">{{ activity.activity_type }}</p>
                                     </div>
-
                                 </div>
                                 <span class="text-gray-600">{{ activity.relative_time }}</span>
                             </div>
@@ -109,7 +112,8 @@
                                 No recent activity found.
                             </div>
                             {% endfor %}
-                            </div>
+                            <!-- --- END OF FIX --- -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -137,45 +141,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (refreshButton && activityListContainer) {
         refreshButton.addEventListener('click', async function() {
-            // 1. Disable button and show loading state
             this.disabled = true;
             this.textContent = 'Refreshing...';
             activityListContainer.innerHTML = '<p class="text-center text-gray-500 py-4">Loading...</p>';
 
             try {
-                // 2. Fetch new data from the API
                 const response = await fetch("{{ url_for('main.get_recent_activity_api') }}");
                 if (!response.ok) {
                     throw new Error('Failed to fetch new activity.');
                 }
                 const activities = await response.json();
 
-                // 3. Clear the container and render new data
-                activityListContainer.innerHTML = ''; // Clear loading message
+                activityListContainer.innerHTML = ''; 
 
                 if (activities.length === 0) {
                     activityListContainer.innerHTML = '<div class="text-center text-gray-500 pt-4">No recent activity found.</div>';
                 } else {
                     activities.forEach(activity => {
-                        let iconHtml = '<i class="fa-solid fa-info-circle text-gray-500"></i>';
+                        let iconClass = 'fa-solid fa-info-circle text-gray-500';
                         const activityType = activity.activity_type;
 
                         if (activityType === 'User Log In') {
-                            iconHtml = '<i class="fa-solid fa-right-to-bracket text-green-600"></i>';
+                            iconClass = 'fa-solid fa-right-to-bracket text-green-600';
                         } else if (activityType.includes('Created') || activityType.includes('Added')) {
-                            iconHtml = '<i class="fa-solid fa-plus-circle text-blue-600"></i>';
+                            iconClass = 'fa-solid fa-plus-circle text-blue-600';
                         } else if (activityType.includes('Archived')) {
-                            iconHtml = '<i class="fa-solid fa-box-archive text-red-600"></i>';
+                            iconClass = 'fa-solid fa-box-archive text-red-600';
                         } else if (activityType.includes('Paid')) {
-                            iconHtml = '<i class="fa-solid fa-dollar-sign text-purple-600"></i>';
+                            iconClass = 'fa-solid fa-dollar-sign text-purple-600';
                         } else if (activityType.includes('Restored')) {
-                             iconHtml = '<i class="fa-solid fa-trash-arrow-up text-purple-600"></i>';
+                             iconClass = 'fa-solid fa-trash-arrow-up text-purple-600';
                         }
 
                         const activityHtml = `
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
-                                    ${iconHtml}
+                                    <i class="${iconClass}"></i>
                                     <div>
                                         <p class="font-medium">${activity.username}</p>
                                         <p class="text-[10px] text-gray-500">${activity.activity_type}</p>
@@ -192,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error refreshing activity:', error);
                 activityListContainer.innerHTML = '<p class="text-center text-red-500 py-4">Failed to load activity.</p>';
             } finally {
-                // 4. Re-enable button
                 this.disabled = false;
                 this.textContent = 'Refresh';
             }

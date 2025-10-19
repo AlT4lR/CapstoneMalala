@@ -58,3 +58,4 @@ def get_archived_items(username):
             logger.error(f"Error fetching archived items from {collection_name} for {username}: {e}")
     items.sort(key=lambda x: x['relative_time'], reverse=True)
     return items
+
