@@ -100,6 +100,7 @@ def transactions():
     form = TransactionForm()
     return render_template('transactions.html', show_sidebar=True, form=form)
 
+# --- START OF FIX ---
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
@@ -108,8 +109,10 @@ def transactions_pending():
     if not selected_branch:
         return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
+    # This form instance is required by the included '_edit_transaction_modal.html'
     edit_form = EditTransactionForm() 
     return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
+# --- END OF FIX ---
 
 @main.route('/transactions/paid')
 @jwt_required()

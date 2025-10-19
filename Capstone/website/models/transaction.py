@@ -92,9 +92,6 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
             return None
         if full_document: return doc
 
-        # --- START OF FIX ---
-        # This is a more robust way to handle potentially missing or invalid date fields.
-        
         check_date_str = ''
         check_date_val = doc.get('check_date')
         if isinstance(check_date_val, datetime):
@@ -117,7 +114,6 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
             'notes': doc.get('notes', ''),
             'status': doc.get('status')
         }
-        # --- END OF FIX ---
     except Exception as e:
         logger.error(f"CRITICAL ERROR fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
