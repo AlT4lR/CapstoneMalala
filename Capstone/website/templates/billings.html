@@ -69,31 +69,25 @@
                     </span>
                 </div>
             </div>
+            <!-- --- START OF FIX --- -->
             <!-- Table Body -->
             <div class="flex-1 overflow-y-auto">
-                <!-- Example Row 1 -->
-                <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm">
-                    <span class="col-span-3 font-medium">Personal Loan</span>
-                    <span class="col-span-2 text-gray-600">BDO Unibank</span>
-                    <span class="col-span-2 text-gray-600">₱ 50,000.00</span>
-                    <span class="col-span-2 text-gray-600">09/15/2025</span>
+                {% for loan in loans %}
+                <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm hover:bg-gray-50">
+                    <span class="col-span-3 font-medium">{{ loan.name }}</span>
+                    <span class="col-span-2 text-gray-600">{{ loan.bank_name }}</span>
+                    <span class="col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
+                    <span class="col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
                     <div class="col-span-3 flex justify-between items-center">
-                        <span class="text-gray-600">10/15/2025</span>
+                        <span class="text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
                         <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
                     </div>
                 </div>
-                <!-- Example Row 2 -->
-                 <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm">
-                    <span class="col-span-3 font-medium">Car Loan</span>
-                    <span class="col-span-2 text-gray-600">Metrobank</span>
-                    <span class="col-span-2 text-gray-600">₱ 850,000.00</span>
-                    <span class="col-span-2 text-gray-600">07/01/2025</span>
-                    <div class="col-span-3 flex justify-between items-center">
-                        <span class="text-gray-600">-</span>
-                        <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
-                    </div>
-                </div>
+                {% else %}
+                <p class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
+                {% endfor %}
             </div>
+            <!-- --- END OF FIX --- -->
         </div>
         <div class="mt-4 text-right">
             <button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button>
@@ -160,11 +154,10 @@
         const totalLoansEl = document.getElementById('total-loans');
 
         let currentDate = new Date();
-        let currentWeek; // Will be set on initialization
+        let currentWeek;
 
         const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-        // Helper to get ISO week number for a date
         function getWeekNumber(d) {
             d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
             d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -172,13 +165,11 @@
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
-        // Helper to get the number of weeks a month spans
         function getWeeksInMonth(year, month) {
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
             const startWeek = getWeekNumber(firstDay);
             const endWeek = getWeekNumber(lastDay);
-            // Handle case where week 53 of previous year is startWeek
             if (startWeek > endWeek) {
                 return (52 - startWeek) + endWeek + 1;
             }
@@ -209,7 +200,6 @@
                 totalLoansEl.textContent = errorText;
             }
 
-            // --- START OF FIX: Use a lighter green for highlight ---
             weekButtonsContainer.querySelectorAll('.week-btn').forEach(btn => {
                 btn.classList.remove('bg-[#7f9c7e]', 'border-white');
                 btn.classList.add('bg-[#6f8a6e]');
@@ -217,7 +207,6 @@
                     btn.classList.add('bg-[#7f9c7e]', 'border-white');
                 }
             });
-            // --- END OF FIX ---
         }
 
         function renderControls() {
@@ -226,7 +215,7 @@
             const monthName = currentDate.toLocaleString('default', { month: 'long' }).toUpperCase();
             
             monthYearDisplay.textContent = `${monthName} ${year}`;
-            weekButtonsContainer.innerHTML = ''; // Clear existing buttons
+            weekButtonsContainer.innerHTML = '';
 
             const numWeeks = getWeeksInMonth(year, month);
             const firstDayOfMonth = new Date(year, month, 1);
@@ -235,13 +224,12 @@
             for (let i = 0; i < numWeeks; i++) {
                 const weekNum = startWeekNum + i;
                 const button = document.createElement('button');
-                button.dataset.weekIndex = weekNum; // Use the actual ISO week number
+                button.dataset.weekIndex = weekNum;
                 button.textContent = `WEEK ${i + 1}`;
                 button.className = 'week-btn bg-[#6f8a6e] hover:bg-[#7f9c7e] border-2 border-transparent text-white font-semibold py-2 rounded-md transition-colors';
                 weekButtonsContainer.appendChild(button);
             }
             
-            // If the current month is the same as the initial month, keep the week, otherwise reset to first week
             const today = new Date();
             if (today.getFullYear() === year && today.getMonth() === month) {
                  currentWeek = getWeekNumber(today);
@@ -270,10 +258,8 @@
             }
         });
         
-        // Initial setup
         renderControls();
 
-        // --- Loan Modal Logic (unchanged) ---
         const modal = document.getElementById('add-loan-modal');
         const openBtn = document.getElementById('create-loan-btn');
         const closeBtn = document.getElementById('close-loan-modal-btn');

@@ -96,6 +96,7 @@ def create_app(config_name='dev'):
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
     app.update_transaction = update_transaction
+    app.update_transaction = update_transaction
     app.archive_transaction = archive_transaction
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
     app.mark_folder_as_paid = mark_folder_as_paid

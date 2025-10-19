@@ -81,11 +81,15 @@
                                     {% if activity.activity_type == 'User Log In' %}
                                         <i class="fa-solid fa-right-to-bracket text-green-600"></i>
                                     {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
+                                    {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
                                         <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                                    {% elif 'Archived' in activity.activity_type %}
                                     {% elif 'Archived' in activity.activity_type %}
                                         <i class="fa-solid fa-box-archive text-red-600"></i>
                                     {% elif 'Paid' in activity.activity_type %}
                                         <i class="fa-solid fa-dollar-sign text-purple-600"></i>
+                                    {% elif 'Restored' in activity.activity_type %}
+                                        <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
                                     {% elif 'Restored' in activity.activity_type %}
                                         <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
                                     {% else %}

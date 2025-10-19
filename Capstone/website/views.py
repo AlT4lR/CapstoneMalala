@@ -200,6 +200,7 @@ def add_transaction_route():
     return redirect(redirect_url)
 
 
+# --- START OF MODIFICATION ---
 @main.route('/analytics')
 @jwt_required()
 def analytics():
@@ -211,6 +212,7 @@ def analytics():
     
     initial_data = get_analytics_data(username, selected_branch, datetime.now().year, datetime.now().month)
     return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
+# --- END OF MODIFICATION ---
 
 @main.route('/invoice')
 @jwt_required()
@@ -273,6 +275,7 @@ def save_subscription_route():
     
     return jsonify({'error': 'Failed to save subscription'}), 500
 
+# --- START OF MODIFICATION ---
 @main.route('/api/analytics/summary', methods=['GET'])
 @jwt_required()
 def get_analytics_summary():
@@ -291,6 +294,7 @@ def get_analytics_summary():
 
     summary_data = get_analytics_data(username, selected_branch, year, month)
     return jsonify(summary_data)
+# --- END OF MODIFICATION ---
 
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
