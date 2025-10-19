@@ -1,6 +1,6 @@
 # DecoOffice
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-3.0.0-blue) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![Version](https://img.shields.io/badge/version-3.1.2-blue) ![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
 
 A modern, full-featured Flask web application designed to centralize and manage operations for Decolores Merchandise Stores across multiple branches. This **Progressive Web App (PWA)** offers a seamless, responsive, and offline-capable experience on both desktop and mobile devices.
 
