@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Modal Element Refs ---
     const modal = document.getElementById('create-schedule-modal');
     const form = document.getElementById('schedule-form');
-    const discardBtn = document.getElementById('discard-schedule-btn');
     const scheduleIdInput = document.getElementById('schedule-id');
     const scheduleTitleInput = document.getElementById('schedule-title');
     const scheduleDateInput = document.getElementById('schedule-date');
@@ -15,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const allDayToggle = document.getElementById('all-day-toggle');
     const descriptionInput = document.getElementById('schedule-description');
     const locationInput = document.getElementById('schedule-location');
+    const scheduleLabelInput = document.getElementById('schedule-label');
 
     // --- View Buttons ---
     const dayViewBtn = document.getElementById('day-view-btn');
@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scheduleDateInput.value = event.startStr.slice(0, 10);
             descriptionInput.value = event.extendedProps?.description || '';
             locationInput.value = event.extendedProps?.location || '';
+            scheduleLabelInput.value = event.extendedProps?.label || 'Others';
             allDayToggle.checked = !!event.allDay;
             if (!event.allDay) {
                 startTimeInput.value = event.startStr.slice(11, 16);

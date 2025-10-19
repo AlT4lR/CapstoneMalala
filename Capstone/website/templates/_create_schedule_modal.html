@@ -37,11 +37,27 @@
                 </div>
             </div>
 
+            <!-- ✅ START OF MODIFICATION: Added Labels Dropdown -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="schedule-location" class="text-sm font-semibold">Location</label>
+                    <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                </div>
+                <div>
+                    <label for="schedule-label" class="text-sm font-semibold">Label</label>
+                    <select id="schedule-label" name="label" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                        <option value="Office">Office</option>
+                        <option value="Meetings">Meetings</option>
+                        <option value="Events">Events</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Others" selected>Others</option>
+                    </select>
+                </div>
+            </div>
+            <!-- ✅ END OF MODIFICATION -->
+
             <!-- Description -->
             <textarea id="schedule-description" name="description" placeholder="About schedule..." rows="3" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
-
-            <!-- Location -->
-            <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
 
             <!-- Footer -->
             <div class="flex justify-between items-center pt-4">

@@ -13,20 +13,17 @@ def add_schedule(username, branch, schedule_data):
     db = current_app.db
     if db is None: return False
     try:
-        is_all_day = 'all_day' in schedule_data and schedule_data['all_day'] == 'on'
+        is_all_day = schedule_data.get('allDay', False)
         date_str = schedule_data.get('date')
 
+        # When creating from a JSON payload, the JS sends pre-formatted ISO strings
+        start_dt = datetime.fromisoformat(schedule_data['start'].replace('Z', '+00:00'))
+        
         if is_all_day:
-            start_dt = datetime.strptime(date_str, '%Y-%m-%d')
+            # For all-day events, the end date is not sent from the JS payload, so we calculate it
             end_dt = start_dt + timedelta(days=1)
         else:
-            start_time_str = schedule_data.get('start_time') or '00:00'
-            end_time_str = schedule_data.get('end_time')
-            start_dt = datetime.strptime(f"{date_str}T{start_time_str}", '%Y-%m-%dT%H:%M')
-            if end_time_str:
-                end_dt = datetime.strptime(f"{date_str}T{end_time_str}", '%Y-%m-%dT%H:%M')
-            else:
-                end_dt = start_dt + timedelta(hours=1)
+            end_dt = datetime.fromisoformat(schedule_data['end'].replace('Z', '+00:00'))
         
         db.schedules.insert_one({
             'username': username,
@@ -34,15 +31,18 @@ def add_schedule(username, branch, schedule_data):
             'title': schedule_data.get('title'),
             'description': schedule_data.get('description'),
             'location': schedule_data.get('location'),
+            'label': schedule_data.get('label', 'Others'),
             'start': start_dt.replace(tzinfo=pytz.utc),
             'end': end_dt.replace(tzinfo=pytz.utc),
             'allDay': is_all_day,
             'createdAt': datetime.now(pytz.utc)
         })
         return True
-    except Exception as e:
-        logger.error(f"Error adding schedule for {username}: {e}", exc_info=True)
+    except (KeyError, TypeError, ValueError) as e:
+        # Catch potential errors if the JSON payload is malformed
+        logger.error(f"Error parsing schedule JSON for {username}: {e}", exc_info=True)
         return False
+# ✅ END OF FIX
 
 # Function to fetch schedules - already uses 'branch'
 def get_schedules(username, branch, start_str, end_str):
@@ -66,7 +66,8 @@ def get_schedules(username, branch, start_str, end_str):
                 'end': doc.get('end').isoformat(),
                 'allDay': doc.get('allDay'),
                 'description': doc.get('description'),
-                'location': doc.get('location')
+                'location': doc.get('location'),
+                'label': doc.get('label', 'Others')
             })
     except Exception as e:
         logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
@@ -90,6 +91,8 @@ def update_schedule(username, schedule_id, data):
             update_fields['description'] = data['description']
         if 'location' in data:
             update_fields['location'] = data['location']
+        if 'label' in data:
+            update_fields['label'] = data['label']
         
         result = db.schedules.update_one(
             {'_id': ObjectId(schedule_id), 'username': username},
