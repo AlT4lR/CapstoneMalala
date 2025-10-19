@@ -26,14 +26,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     // MODIFICATION: Expose the calendar instance to the window object
-    // 'const calendar' is changed to 'const calendar = window.calendar ='
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
+        // --- START OF MODIFICATION: Updated initial view and header to match new design ---
+        initialView: 'dayGridMonth',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: '' // Right is empty because we use custom buttons
+            right: '' // Right is empty because we use custom buttons in the sidebar
         },
+        // --- END OF MODIFICATION ---
         selectable: true,
         editable: true,
         eventResizableFromStart: true,
@@ -291,18 +292,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.deleteSchedule = deleteSchedule;
 
+    // --- START OF MODIFICATION: Updated active button styling logic ---
     function setActiveView(activeBtn) {
         [dayViewBtn, weekViewBtn, monthViewBtn, yearViewBtn].forEach(btn => {
-            btn.classList.remove('bg-white', 'shadow');
+            btn.classList.remove('active-view');
         });
-        activeBtn.classList.add('bg-white', 'shadow');
+        activeBtn.classList.add('active-view');
     }
+    // --- END OF MODIFICATION ---
 
     dayViewBtn.addEventListener('click', () => { calendar.changeView('timeGridDay'); setActiveView(dayViewBtn); });
     weekViewBtn.addEventListener('click', () => { calendar.changeView('timeGridWeek'); setActiveView(weekViewBtn); });
     monthViewBtn.addEventListener('click', () => { calendar.changeView('dayGridMonth'); setActiveView(monthViewBtn); });
     yearViewBtn.addEventListener('click', () => {
-        calendar.changeView('dayGridMonth');
+        // FullCalendar doesn't have a 'year' view by default, dayGridMonth is the closest
+        calendar.changeView('dayGridYear');
         setActiveView(yearViewBtn);
     });
 });
