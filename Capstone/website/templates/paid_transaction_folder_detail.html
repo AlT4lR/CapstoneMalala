@@ -1,0 +1,109 @@
+<!-- website/templates/paid_transaction_folder_detail.html -->
+{% extends "base.html" %}
+{% block title %}DecoOffice - {{ folder.name }}{% endblock %}
+{% block content %}
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
+    
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold uppercase">Paid Transaction Details</h2>
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+        {% include "_notification_button.html" %}
+      </div>
+    </header>
+
+    <!-- Go Back link -->
+    <a href="{{ url_for('main.transactions_paid') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
+      <i class="fa-solid fa-arrow-left"></i>
+      Go Back...
+    </a>
+    <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
+
+    <!-- Main content grid -->
+    <div class="grid grid-cols-1 flex-grow">
+      <div class="flex flex-col">
+        <!-- White box for the scrollable list -->
+        <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
+          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
+            <span class="col-span-4">Name of issued Checked</span>
+            <span class="col-span-2">Check No.</span>
+            <span class="col-span-2">Check Date</span>
+            <span class="col-span-2">EWT</span>
+            <span class="col-span-2">Countered Check</span>
+          </div>
+
+          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
+              {% for check in child_checks %}
+              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row hover:bg-gray-50 transition-colors cursor-pointer" data-id="{{ check._id }}">
+                <span class="col-span-4 font-medium truncate">{{ check.name }}</span>
+                <span class="col-span-2">{{ check.check_no }}</span>
+                <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
+                <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
+                <span class="col-span-2">₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
+              </div>
+              {% else %}
+              <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks were found for this paid transaction.</p>
+              {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+</main>
+
+{% include "_transaction_details_modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Details Modal Logic for individual checks
+    const detailsModal = document.getElementById('transaction-details-modal');
+    const closeDetailsModalBtn = document.getElementById('close-modal-btn');
+    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+    const openDetailsModal = () => detailsModal.classList.remove('hidden');
+    const closeDetailsModal = () => detailsModal.classList.add('hidden');
+
+    if(closeDetailsModalBtn) closeDetailsModalBtn.addEventListener('click', closeDetailsModal);
+    if(detailsModal) detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
+
+    document.querySelectorAll('.check-row').forEach(row => {
+        row.addEventListener('click', async () => {
+            const checkId = row.dataset.id;
+            if (!checkId) return;
+
+            openDetailsModal();
+            // Populate with a loading state
+            document.getElementById('modal-recipient').textContent = 'Loading...';
+            document.getElementById('modal-amount-header').textContent = '';
+            document.getElementById('modal-check-date').textContent = '';
+            document.getElementById('modal-ewt').textContent = '';
+            document.getElementById('modal-countered-check').textContent = '';
+            document.getElementById('modal-notes').textContent = '';
+
+            try {
+                const response = await fetch(`/api/transactions/details/${checkId}`);
+                if (!response.ok) throw new Error('Failed to fetch details');
+                const data = await response.json();
+                
+                // Populate modal with the specific check's data
+                document.getElementById('modal-amount-header').textContent = currencyFormatter.format(data.amount || 0);
+                document.getElementById('modal-recipient').textContent = data.name || 'N/A';
+                document.getElementById('modal-check-date').textContent = data.check_date ? new Date(data.check_date + 'T00:00:00').toLocaleDateString('en-US') : 'N/A';
+                document.getElementById('modal-ewt').textContent = currencyFormatter.format(data.ewt || 0);
+                document.getElementById('modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
+                document.getElementById('modal-notes').textContent = data.notes || 'No notes provided for this check.';
+
+            } catch (error) {
+                console.error("Error fetching check details:", error);
+                document.getElementById('modal-recipient').textContent = 'Failed to load details.';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
