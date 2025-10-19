@@ -96,7 +96,6 @@ def create_app(config_name='dev'):
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
     app.update_transaction = update_transaction
-    app.update_transaction = update_transaction
     app.archive_transaction = archive_transaction
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
     app.mark_folder_as_paid = mark_folder_as_paid
@@ -149,6 +148,7 @@ def create_app(config_name='dev'):
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
+    # This now imports the 'main' blueprint from the 'views' package (__init__.py)
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
