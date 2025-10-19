@@ -79,14 +79,12 @@
 </main>
 
 {% include "_edit_transaction_modal.html" %}
-
-{% include "_edit_transaction_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Search with Highlighting Logic
+    // --- Search with Highlighting Logic ---
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -95,19 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.trim();
             const searchTermLower = searchTerm.toLowerCase();
-            const searchTerm = this.value.trim();
-            const searchTermLower = searchTerm.toLowerCase();
             let visibleCount = 0;
 
-
             transactionRows.forEach(row => {
-                const nameDisplayElement = row.querySelector('.transaction-name-display');
-                if (!nameDisplayElement) return;
-
-                const originalName = row.dataset.name;
-                const originalNameLower = originalName.toLowerCase();
-
-                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
                 const nameDisplayElement = row.querySelector('.transaction-name-display');
                 if (!nameDisplayElement) return;
 
@@ -124,24 +112,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
                         nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
                     }
-
-                    if (searchTermLower === '') {
-                        nameDisplayElement.innerHTML = originalName;
-                    } else {
-                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
-                    }
                 } else {
                     row.style.display = 'none';
                 }
             });
 
-
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
 
-    // Edit Modal Logic
+    // --- Edit Modal Logic ---
     const editModal = document.getElementById('edit-transaction-modal');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
@@ -157,17 +137,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.edit-btn').forEach(button => {
         button.addEventListener('click', async function() {
             const transactionId = this.dataset.id;
-            
-            // --- START OF FIX ---
             let response; 
             try {
                 response = await fetch(`/api/transactions/details/${transactionId}`);
-                
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Server responded with status ${response.status}. Response: ${errorText}`);
                 }
-                
                 const data = await response.json();
                 
                 document.getElementById('edit-transaction-id').value = transactionId;
@@ -179,13 +155,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('edit-notes').value = data.notes || '';
                 
                 openEditModal();
-
             } catch (error) {
-                // This provides a much more useful error message for debugging
                 console.error('CRITICAL ERROR populating edit form:', error);
                 alert('Could not load transaction details for editing. Please check the developer console (F12) for more details.');
             }
-            // --- END OF FIX ---
         });
     });
 
@@ -225,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Delete button logic
+    // --- Delete Button Logic ---
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
