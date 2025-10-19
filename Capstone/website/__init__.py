@@ -1,5 +1,4 @@
 # website/__init__.py
-
 import os
 from flask import Flask, render_template
 from flask_mail import Mail
@@ -109,7 +108,7 @@ def create_app(config_name='dev'):
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
-    app.update_transaction = update_transaction  # ✅ newly added
+    app.update_transaction = update_transaction
     app.archive_transaction = archive_transaction
     app.get_archived_items = get_archived_items
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
@@ -153,9 +152,13 @@ def create_app(config_name='dev'):
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         mongo_client.admin.command('ping')
-        logger.info("✅ Successfully connected to MongoDB.")
+        # --- START OF FIX ---
+        logger.info("Successfully connected to MongoDB.")
+        # --- END OF FIX ---
     except Exception as e:
-        logger.error(f"❌ MongoDB connection failed: {e}", exc_info=True)
+        # --- START OF FIX ---
+        logger.error(f"MongoDB connection failed: {e}", exc_info=True)
+        # --- END OF FIX ---
         app.db = None
 
     # -------------------------------
