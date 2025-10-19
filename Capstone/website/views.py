@@ -1,5 +1,3 @@
-# website/views.py
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file, abort

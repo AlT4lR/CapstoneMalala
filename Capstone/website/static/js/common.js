@@ -13,7 +13,6 @@ function setupCustomDialog() {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'custom-dialog-modal';
-        // --- START OF MODIFICATION: Add animation classes ---
         modal.className = 'modal-backdrop hidden fixed inset-0 z-[9999] bg-gray-900 bg-opacity-75 flex items-center justify-center p-4';
         modal.innerHTML = `
             <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl p-8 w-full max-w-sm text-center relative">
@@ -34,7 +33,6 @@ function setupCustomDialog() {
     const iconContainer = document.getElementById('custom-dialog-icon-container');
     const dialogModal = document.getElementById('custom-dialog-modal');
 
-    // --- START OF MODIFICATION: Update show/hide logic ---
     const hideDialog = () => {
         dialogModal.classList.remove('active');
         dialogModal.addEventListener('transitionend', () => {
@@ -52,10 +50,9 @@ function setupCustomDialog() {
         dialogModal.classList.remove('hidden');
         setTimeout(() => dialogModal.classList.add('active'), 10);
     };
-    // --- END OF MODIFICATION ---
 }
 
-// --- START OF MODIFICATION: PWA Enhancements (Install Prompt & Notifications) ---
+// --- PWA Enhancements (Install Prompt & Notifications) ---
 let deferredPrompt;
 const installButton = document.getElementById('custom-install-button');
 const notificationButton = document.getElementById('enable-notifications-btn');
@@ -69,17 +66,35 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
+// --- START OF MODIFICATION ---
 if (installButton) {
     installButton.addEventListener('click', async () => {
         if (!deferredPrompt) return;
+        
+        // Disable the button while the prompt is open
         installButton.disabled = true;
+        
+        // Show the browser's install prompt
         deferredPrompt.prompt();
+        
+        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-        setTimeout(() => installButton.style.display = 'none', 1000);
+        
+        // Check the outcome
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+            // The prompt can't be used again, so clear it
+            deferredPrompt = null;
+            // Hide the button permanently
+            installButton.style.display = 'none';
+        } else {
+            console.log('User dismissed the install prompt');
+            // Re-enable the button so the user can try again
+            installButton.disabled = false;
+        }
     });
 }
+// --- END OF MODIFICATION ---
 
 window.addEventListener('appinstalled', () => {
     if (installButton) installButton.style.display = 'none';
@@ -140,7 +155,6 @@ function askForNotificationPermission() {
 if (notificationButton) {
     notificationButton.addEventListener('click', askForNotificationPermission);
 }
-// --- END OF MODIFICATION: PWA Enhancements (Install Prompt & Notifications) ---
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -168,13 +182,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!transactionId) return;
 
         window.showCustomConfirm(`Are you sure you want to delete ${transactionName}?`, async () => {
-            // --- START OF MODIFICATION: Background Sync for Deletes ---
             const deleteUrl = `/api/transactions/${transactionId}`;
             const csrfToken = window.getCsrfToken();
 
             if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
                 try {
-                    // Save the request to IndexedDB
                     await window.db.writeData('transaction-outbox', {
                         url: deleteUrl,
                         method: 'DELETE',
@@ -182,11 +194,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         timestamp: new Date().toISOString()
                     });
 
-                    // Register the sync event with the service worker
                     const swRegistration = await navigator.serviceWorker.ready;
                     await swRegistration.sync.register('sync-deleted-items');
                     
-                    // Optimistic UI update: remove the element from the DOM
                     alert("You're offline. This item will be deleted when you reconnect.");
                     const itemElement = deleteButton.closest('.transaction-row, .transaction-item');
                     if(itemElement) itemElement.remove();
@@ -196,20 +206,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Could not schedule deletion. Please try again when online.');
                 }
             } else {
-                // Online or no sync support: perform fetch directly
                 try {
                     const response = await fetch(deleteUrl, {
                         method: 'DELETE',
                         headers: { 'X-CSRF-Token': csrfToken }
                     });
-                    // Reload is the desired online behavior
                     window.location.reload(); 
                 } catch (error) {
                     console.error("Deletion failed:", error);
                     window.location.reload();
                 }
             }
-            // --- END OF MODIFICATION ---
         });
     });
 
@@ -242,9 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (notification.title.toLowerCase().includes('meeting')) {
             iconClass = 'fa-solid fa-calendar-days';
         }
-
-        // NOTE: The unread indicator logic in the original HTML template might need server-side rendering or more complex client-side logic to fully work.
-        // For simplicity and matching the provided merge logic, the red dot is kept *visible* in the template but the *outer* indicator is controlled by checkNotificationStatus.
+        
         const unreadIndicator = '<span class="absolute -top-1 -left-1 block h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"></span>';
 
         return `

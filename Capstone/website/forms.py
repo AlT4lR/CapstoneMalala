@@ -64,10 +64,13 @@ class ResetPasswordForm(FlaskForm):
 # -------------------------
 
 class TransactionForm(FlaskForm):
-    """Form for the 'Create Issued Checked' modal."""
+    """Form for creating transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
-    check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])  # Optional for folder creation
-    check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
+    check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
+    check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
+    # --- START OF MODIFICATION ---
+    due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
+    # --- END OF MODIFICATION ---
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     submit = SubmitField('Add')
@@ -77,6 +80,7 @@ class EditTransactionForm(FlaskForm):
     """Form for editing a transaction."""
     name = StringField('Recipient Name', validators=[DataRequired(), Length(max=100)])
     check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
+    due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
