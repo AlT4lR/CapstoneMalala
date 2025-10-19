@@ -6,8 +6,6 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <!-- FullCalendar CSS & JS -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js'></script>
-
-<!-- ✅ Year View plugin (must load before calendar.js) -->
 <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/year-view@6.1.13/index.global.min.js'></script>
 
 <style>
@@ -90,18 +88,27 @@
 }
 
 /* Left panel (Views & Labels) */
-aside {
+#schedule-controls {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+
 .view-btn {
   transition: all 0.2s ease;
 }
 .view-btn.bg-white.shadow {
   color: var(--primary-green);
   font-weight: 600;
+}
+
+.event-label-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
 }
 </style>
 
@@ -117,7 +124,6 @@ aside {
             <p class="text-gray-500 text-sm mt-1">Manage your events and appointments.</p>
         </div>
         <div class="flex items-center gap-4">
-            <!-- "Create Schedule" button removed from here -->
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -126,7 +132,9 @@ aside {
     <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
         
         <!-- Left Panel: View Controls -->
-        <aside class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
+        <!-- ✅ START OF FIX: Correctly added the ID without invalid comments -->
+        <aside id="schedule-controls" class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
+        <!-- ✅ END OF FIX -->
             <h3 class="font-bold text-lg text-[#3a4d39]">Views</h3>
             <div class="bg-gray-100 p-1 rounded-lg flex flex-col gap-1">
                 <button id="day-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Day View</button>
@@ -149,7 +157,7 @@ aside {
 
         <!-- Right Panel: Main Calendar -->
         <div class="flex-1 bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div id="calendar" class="h-full"></div>
+            <div id="calendar" class="h-full custom-scrollbar"></div>
         </div>
     </div>
 </main>
