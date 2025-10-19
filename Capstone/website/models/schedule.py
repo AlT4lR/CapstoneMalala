@@ -8,7 +8,7 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-# ✅ START OF FIX: This function is now fully JSON-compatible
+# MODIFIED: Added 'branch' parameter and logic
 def add_schedule(username, branch, schedule_data):
     db = current_app.db
     if db is None: return False
@@ -27,7 +27,7 @@ def add_schedule(username, branch, schedule_data):
         
         db.schedules.insert_one({
             'username': username,
-            'branch': branch,
+            'branch': branch, # ADDED: Save the branch to the document
             'title': schedule_data.get('title'),
             'description': schedule_data.get('description'),
             'location': schedule_data.get('location'),
@@ -44,6 +44,7 @@ def add_schedule(username, branch, schedule_data):
         return False
 # ✅ END OF FIX
 
+# Function to fetch schedules - already uses 'branch'
 def get_schedules(username, branch, start_str, end_str):
     db = current_app.db
     if db is None: return []
@@ -72,6 +73,7 @@ def get_schedules(username, branch, start_str, end_str):
         logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
     return schedules
 
+# Function to update a schedule
 def update_schedule(username, schedule_id, data):
     db = current_app.db
     if db is None: return False
@@ -101,6 +103,7 @@ def update_schedule(username, schedule_id, data):
         logger.error(f"Error updating schedule {schedule_id}: {e}", exc_info=True)
         return False
 
+# Function to delete a schedule
 def delete_schedule(username, schedule_id):
     db = current_app.db
     if db is None: return False

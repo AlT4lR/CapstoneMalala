@@ -22,39 +22,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthViewBtn = document.getElementById('month-view-btn');
     const yearViewBtn = document.getElementById('year-view-btn');
 
+    // Helper to get CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-    const labelColors = {
-        'Office': '#3b82f6',
-        'Meetings': '#8b5cf6',
-        'Events': '#ec4899',
-        'Personal': '#f59e0b',
-        'Others': '#6b7280'
-    };
 
     // --- FullCalendar Setup ---
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
         headerToolbar: {
+            // ✅ "Create Schedule" button removed from the toolbar
             left: 'prev,next today',
             center: 'title',
-            right: ''
+            right: '' 
         },
+        // ✅ customButtons block fully removed
         selectable: true,
         editable: true,
         height: '100%',
-        events: `/api/schedules`,
-
-        // ✅ START OF FIX: Replaced eventContent with eventDidMount
-        eventDidMount: function(info) {
-            const label = info.event.extendedProps.label || 'Others';
-            const color = labelColors[label] || labelColors['Others'];
-            if (color) {
-                info.el.style.backgroundColor = color;
-                info.el.style.borderColor = color;
-            }
-        },
-        // ✅ END OF FIX
+        events: `/api/schedules`, // FullCalendar will auto-add start/end params
 
         select: function(info) {
             form.reset();
@@ -65,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 endTimeInput.value = info.endStr ? info.endStr.slice(11, 16) : '';
             }
             allDayToggle.checked = info.allDay;
-            scheduleLabelInput.value = 'Others';
             modal.classList.remove('hidden');
         },
 
@@ -97,48 +80,15 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const formData = new FormData(this);
         const id = scheduleIdInput.value;
+        const url = id ? `/api/schedules/update/${id}` : '/api/schedules/add';
+        const method = 'POST';
 
         try {
-            let response;
-
-            if (id) {
-                // UPDATE (send as JSON)
-                const url = `/api/schedules/update/${id}`;
-                const payload = {
-                    title: formData.get('title'),
-                    description: formData.get('description'),
-                    location: formData.get('location'),
-                    label: formData.get('label'),
-                    allDay: formData.has('all_day')
-                };
-
-                const date = formData.get('date');
-                if (payload.allDay) {
-                    payload.start = new Date(date + 'T00:00:00Z').toISOString();
-                } else {
-                    const startTime = formData.get('start_time') || '00:00';
-                    const endTime = formData.get('end_time');
-                    payload.start = new Date(`${date}T${startTime}:00Z`).toISOString();
-                    if (endTime) {
-                        payload.end = new Date(`${date}T${endTime}:00Z`).toISOString();
-                    }
-                }
-
-                response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                // CREATE (send as form-data)
-                const url = '/api/schedules/add';
-                response = await fetch(url, {
-                    method: 'POST',
-                    body: new URLSearchParams(formData),
-                    headers: { 'X-CSRF-Token': csrfToken }
-                });
-            }
-
+            const response = await fetch(url, {
+                method: method,
+                body: new URLSearchParams(formData),
+                headers: { 'X-CSRF-Token': csrfToken }
+            });
             const result = await response.json();
             if (result.success) {
                 modal.classList.add('hidden');
@@ -156,11 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const payload = {
             start: event.start.toISOString(),
             end: event.end ? event.end.toISOString() : null,
-            allDay: event.allDay,
-            title: event.title,
-            description: event.extendedProps.description,
-            location: event.extendedProps.location,
-            label: event.extendedProps.label
+            allDay: event.allDay
         };
         try {
             const response = await fetch(`/api/schedules/update/${event.id}`, {
@@ -175,30 +121,25 @@ document.addEventListener('DOMContentLoaded', function() {
             info.revert();
         }
     }
-    
+
     window.deleteSchedule = async function(id) {
-        if (!id) return;
-        const event = calendar.getEventById(id);
-        const eventTitle = event ? event.title : 'this schedule';
-        
-        window.showCustomConfirm(`Are you sure you want to delete "${eventTitle}"?`, async () => {
-            try {
-                const response = await fetch(`/api/schedules/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-Token': csrfToken }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    modal.classList.add('hidden');
-                    calendar.refetchEvents();
-                } else {
-                    alert('Error: ' + (result.error || 'Could not delete schedule.'));
-                }
-            } catch (error) {
-                console.error('Delete error:', error);
-                alert('A network error occurred.');
+        if (!id || !confirm('Are you sure you want to delete this schedule?')) return;
+        try {
+            const response = await fetch(`/api/schedules/${id}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-Token': csrfToken }
+            });
+            const result = await response.json();
+            if (result.success) {
+                modal.classList.add('hidden');
+                calendar.refetchEvents();
+            } else {
+                alert('Error: ' + (result.error || 'Could not delete schedule.'));
             }
-        });
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('A network error occurred.');
+        }
     }
 
     // --- View Controls Logic ---
@@ -227,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     yearViewBtn.addEventListener('click', () => {
-        calendar.changeView('yearGrid');
+        calendar.changeView('yearGrid'); // The plugin uses 'yearGrid'
         setActiveView(yearViewBtn);
     });
 });

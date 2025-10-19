@@ -6,49 +6,112 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <!-- FullCalendar CSS & JS -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/year-view@6.1.13/index.global.min.js'></script>
+
 <style>
-    /* Custom styles to match the new UI theme */
-    .fc {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    .fc .fc-toolbar.fc-header-toolbar {
-        margin-bottom: 1.5em;
-        color: #3a4d39;
-    }
-    .fc .fc-toolbar-title {
-        font-size: 1.5em;
-        font-weight: 700;
-    }
-    .fc .fc-button {
-        background-color: #3a4d39;
-        border-color: #3a4d39;
-        color: white;
-    }
-    .fc .fc-button:hover {
-        background-color: #4b5e4a;
-        border-color: #4b5e4a;
-    }
-    .fc-event-main {
-        padding: 4px 6px;
-    }
-    .event-label-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 8px;
-        flex-shrink: 0;
-    }
-    .fc-v-event {
-        border-color: #6f8a6e;
-    }
-    /* Active view button styling */
-    .view-btn.bg-white.shadow {
-        color: #3a4d39;
-        font-weight: 600;
-    }
+/* Match dashboard color scheme */
+:root {
+  --primary-green: #3a4d39;
+  --primary-green-hover: #4b5e4a;
+  --bg-light: #f6f7f1;
+  --card-bg: #ffffff;
+  --text-muted: #6b6b6b;
+  --border-color: #e0e0e0;
+}
+
+/* Overall layout */
+.fc {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Toolbar */
+.fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 1.25em;
+  color: var(--primary-green);
+}
+.fc .fc-toolbar-title {
+  font-size: 1.4em;
+  font-weight: 700;
+}
+.fc .fc-button {
+  background-color: var(--primary-green);
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 6px 12px;
+  transition: background-color 0.2s ease;
+}
+.fc .fc-button:hover {
+  background-color: var(--primary-green-hover);
+}
+
+/* Calendar grid */
+.fc-theme-standard td, 
+.fc-theme-standard th {
+  border-color: var(--border-color);
+}
+.fc-daygrid-day-frame {
+  background-color: var(--bg-light);
+  border-radius: 6px;
+}
+.fc-daygrid-day:hover {
+  background-color: #eef0ea;
+}
+
+/* Events */
+.fc-event {
+  background-color: var(--primary-green);
+  border: none;
+  border-radius: 8px;
+  padding: 2px 6px;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Year view and custom labels */
+.fc-yearGridMonth-frame {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #fafaf7;
+}
+.fc-yearGridMonth-name {
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 0.25rem;
+}
+
+/* Left panel (Views & Labels) */
+#schedule-controls {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.view-btn {
+  transition: all 0.2s ease;
+}
+.view-btn.bg-white.shadow {
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+.event-label-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
 </style>
+
 {% endblock %}
 
 {% block content %}
@@ -69,7 +132,9 @@
     <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
         
         <!-- Left Panel: View Controls -->
-        <aside class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
+        <!-- ✅ START OF FIX: Correctly added the ID without invalid comments -->
+        <aside id="schedule-controls" class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
+        <!-- ✅ END OF FIX -->
             <h3 class="font-bold text-lg text-[#3a4d39]">Views</h3>
             <div class="bg-gray-100 p-1 rounded-lg flex flex-col gap-1">
                 <button id="day-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Day View</button>
@@ -92,7 +157,7 @@
 
         <!-- Right Panel: Main Calendar -->
         <div class="flex-1 bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div id="calendar" class="h-full"></div>
+            <div id="calendar" class="h-full custom-scrollbar"></div>
         </div>
     </div>
 </main>
