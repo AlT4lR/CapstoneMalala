@@ -1,5 +1,4 @@
 <!-- website/templates/_add_transaction_modal.html -->
-<!-- --- START OF MODIFICATION: Replaced with the new simple design for folder creation --- -->
 <div id="create-transaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
     <div class="modal-content bg-[#f8f6f2] rounded-lg shadow-xl w-full max-w-lg p-8 relative text-[#3a4d39]">
         
@@ -16,17 +15,19 @@
             
             {{ form.hidden_tag() }}
 
-            <!-- Form Fields -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <!-- Form Fields updated to include Due Date -->
+            <div class="space-y-4">
                 <div>
                     <label for="name_of_issued_check" class="block text-sm font-medium mb-2">Name</label>
-                    <!-- We only need the 'name' field from the form here -->
                     {{ form.name_of_issued_check(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
                 <div>
-                    <label for="check_date" class="block text-sm font-medium mb-2">Date</label>
-                    <!-- We only need the 'date' field from the form here -->
+                    <label for="check_date" class="block text-sm font-medium mb-2">Date Created</label>
                     {{ form.check_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
+                </div>
+                <div>
+                    <label for="due_date" class="block text-sm font-medium mb-2">Due Date</label>
+                    {{ form.due_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
             </div>
 
@@ -37,4 +38,3 @@
         </form>
     </div>
 </div>
-<!-- --- END OF MODIFICATION --- -->
