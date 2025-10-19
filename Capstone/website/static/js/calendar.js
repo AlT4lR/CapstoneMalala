@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Modal Element Refs ---
     const modal = document.getElementById('create-schedule-modal');
     const form = document.getElementById('schedule-form');
-    const discardBtn = document.getElementById('discard-schedule-btn');
     const scheduleIdInput = document.getElementById('schedule-id');
     const scheduleTitleInput = document.getElementById('schedule-title');
     const scheduleDateInput = document.getElementById('schedule-date');
@@ -15,85 +14,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const allDayToggle = document.getElementById('all-day-toggle');
     const descriptionInput = document.getElementById('schedule-description');
     const locationInput = document.getElementById('schedule-location');
+    const scheduleLabelInput = document.getElementById('schedule-label');
 
-    // Buttons
+    // --- View Buttons ---
     const dayViewBtn = document.getElementById('day-view-btn');
     const weekViewBtn = document.getElementById('week-view-btn');
     const monthViewBtn = document.getElementById('month-view-btn');
     const yearViewBtn = document.getElementById('year-view-btn');
 
-    // Helper: get CSRF token from meta
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    // MODIFICATION: Expose the calendar instance to the window object
+    const labelColors = {
+        'Office': '#3b82f6',
+        'Meetings': '#8b5cf6',
+        'Events': '#ec4899',
+        'Personal': '#f59e0b',
+        'Others': '#6b7280'
+    };
+
+    // --- FullCalendar Setup ---
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
-        // --- START OF MODIFICATION: Updated initial view and header to match new design ---
-        initialView: 'dayGridMonth',
+        initialView: 'timeGridWeek',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: '' // Right is empty because we use custom buttons in the sidebar
+            right: ''
         },
-        // --- END OF MODIFICATION ---
         selectable: true,
         editable: true,
-        eventResizableFromStart: true,
         height: '100%',
-        
-        events: function(fetchInfo, successCallback, failureCallback) {
-            const params = new URLSearchParams({
-                start: fetchInfo.startStr,
-                end: fetchInfo.endStr
-            });
-            fetch(`/api/schedules?${params.toString()}`, {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(r => {
-                if (!r.ok) throw new Error('Failed to load events');
-                return r.json();
-            })
-            .then(data => successCallback(data))
-            .catch(err => {
-                console.error('Error fetching events:', err);
-                failureCallback(err);
-            });
-        },
+        events: `/api/schedules`,
 
-        eventContent: function(arg) {
-            const title = arg.event.title.toLowerCase();
-            let dotColor = '#6b7280'; // Default to 'Others'
-            if (title.includes('office')) dotColor = '#3b82f6';
-            else if (title.includes('meeting')) dotColor = '#8b5cf6';
-            else if (title.includes('event')) dotColor = '#ec4899';
-            else if (title.includes('personal')) dotColor = '#f59e0b';
-            
-            const eventHtml = `
-                <div class="flex items-center">
-                    <span class="event-label-dot" style="background-color: ${dotColor};"></span>
-                    <div class="fc-event-title">${arg.event.title}</div>
-                </div>
-            `;
-            return { html: eventHtml };
+        // ✅ START OF FIX: Replaced eventContent with eventDidMount
+        eventDidMount: function(info) {
+            const label = info.event.extendedProps.label || 'Others';
+            const color = labelColors[label] || labelColors['Others'];
+            if (color) {
+                info.el.style.backgroundColor = color;
+                info.el.style.borderColor = color;
+            }
         },
+        // ✅ END OF FIX
 
         select: function(info) {
             form.reset();
             scheduleIdInput.value = '';
-            scheduleTitleInput.value = '';
-            descriptionInput.value = '';
-            locationInput.value = '';
-            allDayToggle.checked = info.allDay || false;
-
-            scheduleDateInput.value = info.startStr.slice(0,10);
+            scheduleDateInput.value = info.startStr.slice(0, 10);
             if (!info.allDay) {
-                startTimeInput.value = info.startStr.slice(11,16);
-                endTimeInput.value = info.endStr ? info.endStr.slice(11,16) : '';
-            } else {
-                startTimeInput.value = '';
-                endTimeInput.value = '';
+                startTimeInput.value = info.startStr.slice(11, 16);
+                endTimeInput.value = info.endStr ? info.endStr.slice(11, 16) : '';
             }
+            allDayToggle.checked = info.allDay;
+            scheduleLabelInput.value = 'Others';
             modal.classList.remove('hidden');
         },
 
@@ -102,211 +74,160 @@ document.addEventListener('DOMContentLoaded', function() {
             form.reset();
             scheduleIdInput.value = event.id;
             scheduleTitleInput.value = event.title || '';
-            scheduleDateInput.value = event.startStr.slice(0,10);
+            scheduleDateInput.value = event.startStr.slice(0, 10);
             descriptionInput.value = event.extendedProps?.description || '';
             locationInput.value = event.extendedProps?.location || '';
+            scheduleLabelInput.value = event.extendedProps?.label || 'Others';
             allDayToggle.checked = !!event.allDay;
-
             if (!event.allDay) {
-                startTimeInput.value = event.startStr.slice(11,16);
-                endTimeInput.value = event.endStr ? event.endStr.slice(11,16) : '';
-            } else {
-                startTimeInput.value = '';
-                endTimeInput.value = '';
+                startTimeInput.value = event.startStr.slice(11, 16);
+                endTimeInput.value = event.endStr ? event.endStr.slice(11, 16) : '';
             }
             modal.classList.remove('hidden');
         },
 
-        eventDrop: function(info) {
-            const e = info.event;
-            const payload = {
-                start: e.start.toISOString(),
-                end: e.end ? e.end.toISOString() : null,
-                allDay: !!e.allDay
-            };
-            fetch(`/api/schedules/update/${e.id}`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(r => r.json())
-            .then(j => {
-                if (!j.success) {
-                    console.error('Failed to update event on drop:', j);
-                    info.revert();
-                }
-            })
-            .catch(err => {
-                console.error('Error updating event on drop:', err);
-                info.revert();
-            });
-        },
-
-        eventResize: function(info) {
-            const e = info.event;
-            const payload = {
-                start: e.start.toISOString(),
-                end: e.end ? e.end.toISOString() : null,
-                allDay: !!e.allDay
-            };
-            fetch(`/api/schedules/update/${e.id}`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(r => r.json())
-            .then(j => {
-                if (!j.success) {
-                    console.error('Failed to update event on resize:', j);
-                    info.revert();
-                }
-            })
-            .catch(err => {
-                console.error('Error updating event on resize:', err);
-                info.revert();
-            });
-        }
+        eventDrop: (info) => handleEventUpdate(info.event),
+        eventResize: (info) => handleEventUpdate(info.event),
     });
 
     calendar.render();
 
-    // Modal controls
-    const closeModal = () => modal.classList.add('hidden');
-    discardBtn.addEventListener('click', closeModal);
-    document.getElementById('create-schedule-btn').addEventListener('click', () => {
-        form.reset();
-        scheduleIdInput.value = '';
-        scheduleDateInput.valueAsDate = new Date();
-        startTimeInput.value = '';
-        endTimeInput.value = '';
-        modal.classList.remove('hidden');
-    });
-
-    // Submit form - handles both create and update
+    // --- Event Handlers (Submit, Update, Delete) ---
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-
-        const data = new FormData(this);
+        const formData = new FormData(this);
         const id = scheduleIdInput.value;
-        if (allDayToggle.checked) data.set('all_day', 'on');
-        else data.delete('all_day');
 
         try {
-            if (!id) {
-                const body = new URLSearchParams(data).toString();
-                const resp = await fetch('/api/schedules/add', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body,
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': csrfToken
-                    }
-                });
-                const result = await resp.json();
-                if (result.success) {
-                    closeModal();
-                    calendar.refetchEvents();
-                } else {
-                    alert('Failed to create schedule: ' + (result.error || 'Unknown error'));
-                }
-            } else {
-                const date = data.get('date');
-                const isAllDay = data.get('all_day') === 'on';
-                let startIso = null, endIso = null;
+            let response;
 
-                if (isAllDay) {
-                    const s = new Date(date + 'T00:00:00Z');
-                    const e = new Date(s.getTime() + 24 * 60 * 60 * 1000);
-                    startIso = s.toISOString();
-                    endIso = e.toISOString();
-                } else {
-                    const sTime = data.get('start_time') || '00:00';
-                    const eTime = data.get('end_time') || '23:59';
-                    startIso = new Date(date + 'T' + sTime + ':00').toISOString();
-                    endIso = new Date(date + 'T' + eTime + ':00').toISOString();
-                }
-
+            if (id) {
+                // UPDATE (send as JSON)
+                const url = `/api/schedules/update/${id}`;
                 const payload = {
-                    title: data.get('title'),
-                    description: data.get('description'),
-                    location: data.get('location'),
-                    start: startIso,
-                    end: endIso,
-                    allDay: isAllDay
+                    title: formData.get('title'),
+                    description: formData.get('description'),
+                    location: formData.get('location'),
+                    label: formData.get('label'),
+                    allDay: formData.has('all_day')
                 };
 
-                const resp = await fetch(`/api/schedules/update/${id}`, {
+                const date = formData.get('date');
+                if (payload.allDay) {
+                    payload.start = new Date(date + 'T00:00:00Z').toISOString();
+                } else {
+                    const startTime = formData.get('start_time') || '00:00';
+                    const endTime = formData.get('end_time');
+                    payload.start = new Date(`${date}T${startTime}:00Z`).toISOString();
+                    if (endTime) {
+                        payload.end = new Date(`${date}T${endTime}:00Z`).toISOString();
+                    }
+                }
+
+                response = await fetch(url, {
                     method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                     body: JSON.stringify(payload)
                 });
-                const result = await resp.json();
-                if (result.success) {
-                    closeModal();
-                    calendar.refetchEvents();
-                } else {
-                    alert('Failed to update schedule: ' + (result.error || 'Unknown'));
-                }
+            } else {
+                // CREATE (send as form-data)
+                const url = '/api/schedules/add';
+                response = await fetch(url, {
+                    method: 'POST',
+                    body: new URLSearchParams(formData),
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
             }
-        } catch (err) {
-            console.error('Network error while saving schedule:', err);
-            alert('Network error — could not save schedule.');
+
+            const result = await response.json();
+            if (result.success) {
+                modal.classList.add('hidden');
+                calendar.refetchEvents();
+            } else {
+                alert('Error: ' + (result.error || 'Could not save schedule.'));
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('A network error occurred.');
         }
     });
 
-    function deleteSchedule(id) {
+    async function handleEventUpdate(event) {
+        const payload = {
+            start: event.start.toISOString(),
+            end: event.end ? event.end.toISOString() : null,
+            allDay: event.allDay,
+            title: event.title,
+            description: event.extendedProps.description,
+            location: event.extendedProps.location,
+            label: event.extendedProps.label
+        };
+        try {
+            const response = await fetch(`/api/schedules/update/${event.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('Update failed');
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Could not save changes.');
+            info.revert();
+        }
+    }
+    
+    window.deleteSchedule = async function(id) {
         if (!id) return;
-        if (!confirm('Are you sure you want to delete this schedule?')) return;
-        fetch(`/api/schedules/${id}`, {
-            method: 'DELETE',
-            credentials: 'same-origin',
-            headers: { 'X-CSRF-Token': csrfToken }
-        })
-        .then(r => r.json())
-        .then(j => {
-            if (j.success) {
-                calendar.refetchEvents();
-                closeModal();
-            } else {
-                alert('Failed to delete schedule: ' + (j.error || 'Unknown'));
+        const event = calendar.getEventById(id);
+        const eventTitle = event ? event.title : 'this schedule';
+        
+        window.showCustomConfirm(`Are you sure you want to delete "${eventTitle}"?`, async () => {
+            try {
+                const response = await fetch(`/api/schedules/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': csrfToken }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    modal.classList.add('hidden');
+                    calendar.refetchEvents();
+                } else {
+                    alert('Error: ' + (result.error || 'Could not delete schedule.'));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('A network error occurred.');
             }
-        })
-        .catch(err => {
-            console.error('Error deleting schedule:', err);
-            alert('Network error while deleting schedule.');
         });
     }
 
-    window.deleteSchedule = deleteSchedule;
-
-    // --- START OF MODIFICATION: Updated active button styling logic ---
+    // --- View Controls Logic ---
     function setActiveView(activeBtn) {
         [dayViewBtn, weekViewBtn, monthViewBtn, yearViewBtn].forEach(btn => {
-            btn.classList.remove('active-view');
+            btn.classList.remove('bg-white', 'shadow');
+            btn.classList.add('text-gray-600', 'hover:bg-white', 'hover:shadow');
         });
-        activeBtn.classList.add('active-view');
+        activeBtn.classList.add('bg-white', 'shadow');
+        activeBtn.classList.remove('text-gray-600');
     }
-    // --- END OF MODIFICATION ---
 
-    dayViewBtn.addEventListener('click', () => { calendar.changeView('timeGridDay'); setActiveView(dayViewBtn); });
-    weekViewBtn.addEventListener('click', () => { calendar.changeView('timeGridWeek'); setActiveView(weekViewBtn); });
-    monthViewBtn.addEventListener('click', () => { calendar.changeView('dayGridMonth'); setActiveView(monthViewBtn); });
+    dayViewBtn.addEventListener('click', () => {
+        calendar.changeView('timeGridDay');
+        setActiveView(dayViewBtn);
+    });
+
+    weekViewBtn.addEventListener('click', () => {
+        calendar.changeView('timeGridWeek');
+        setActiveView(weekViewBtn);
+    });
+
+    monthViewBtn.addEventListener('click', () => {
+        calendar.changeView('dayGridMonth');
+        setActiveView(monthViewBtn);
+    });
+
     yearViewBtn.addEventListener('click', () => {
-        // FullCalendar doesn't have a 'year' view by default, dayGridMonth is the closest
-        calendar.changeView('dayGridYear');
+        calendar.changeView('yearGrid');
         setActiveView(yearViewBtn);
     });
 });
