@@ -11,6 +11,7 @@ app = create_app(os.getenv('FLASK_CONFIG') or 'dev')
 def check_due_transactions_and_notify():
     """
     Scans for pending transactions due today and creates notifications for the respective users.
+    Handles both legacy transactions (with check_date) and new transactions (with due_date).
     """
     with app.app_context():
         db = app.db
@@ -24,10 +25,21 @@ def check_due_transactions_and_notify():
         
         print(f"Checking for transactions due between {today_start} and {today_end}...")
 
-        due_transactions = db.transactions.find({
-            "check_date": {"$gte": today_start, "$lt": today_end},
-            "status": "Pending"
-        })
+        # --- START OF MODIFICATION ---
+        # The query now checks for EITHER a `due_date` of today, OR a `check_date`
+        # of today IF `due_date` is not set (for legacy data).
+        query = {
+            "status": "Pending",
+            "$or": [
+                { "due_date": {"$gte": today_start, "$lt": today_end} },
+                {
+                    "due_date": {"$in": [None, ""]},
+                    "check_date": {"$gte": today_start, "$lt": today_end}
+                }
+            ]
+        }
+        due_transactions = db.transactions.find(query)
+        # --- END OF MODIFICATION ---
 
         count = 0
         for transaction in due_transactions:

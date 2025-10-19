@@ -1,405 +1,108 @@
+<!-- website/templates/schedules.html -->
 {% extends "base.html" %}
 {% block title %}DecoOffice - Schedules{% endblock %}
+
 {% block head %}
 <meta name="csrf-token" content="{{ csrf_token() }}">
-
-<!-- --- START OF MODIFICATION: Overhauled all styles to match the new UI --- -->
+<!-- FullCalendar CSS & JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js'></script>
 <style>
-    /* --- Layout Base --- */
-    html, body {
+    /* Custom styles to match the new UI theme */
+    .fc {
         height: 100%;
-    }
-
-    main {
         display: flex;
         flex-direction: column;
-        height: 100%;
-        min-height: 100vh; /* Ensure main takes full viewport height */
     }
-
-    .main-content-layout {
-        flex: 1; /* Allow this container to grow */
-        display: flex;
-        flex-direction: column; /* Stack header and calendar vertically */
-        gap: 1rem;
-        min-height: 0; /* Necessary for flex children to scroll */
+    .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 1.5em;
+        color: #3a4d39;
     }
-
-    .calendar-area {
-        flex: 1;
-        display: flex;
-        gap: 1rem;
-        min-height: 0;
-    }
-
-    .calendar-wrapper {
-        display: flex;
-        flex: 1;
-        min-height: 0;
-    }
-
-    /* --- Main Calendar Container --- */
-    .dynamic-calendar-container {
-        background-color: #3a4d39;
-        color: #ffffff;
-        border-radius: 1.5rem;
-        padding: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-        box-sizing: border-box;
-        overflow: hidden;
-    }
-
-    /* --- Calendar Header --- */
-    .calendar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    .calendar-title {
-        font-size: 1.5rem;
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
         font-weight: 700;
-        letter-spacing: 0.05em;
     }
-    .calendar-nav button {
-        background: transparent;
-        border: none;
-        color: #ffffff;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0 0.5rem;
-    }
-
-    /* --- View Switcher Buttons --- */
-    #view-switcher {
-        background-color: #eef2e9; /* Light green background */
-        border: 1px solid #d4d8c4;
-        color: #3a4d39;
-    }
-    #view-switcher button.active-view {
-        background-color: #ffffff;
-        color: #3a4d39;
-        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1),
-                    0 1px 2px -1px rgb(0 0 0 / 0.1);
-    }
-
-    /* --- Calendar Grid --- */
-    .calendar-grid {
-        display: grid;
-        flex: 1;
-        gap: 1px;
-        background-color: rgba(255, 255, 255, 0.2); /* Grid line color */
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        overflow: auto;
-        min-height: 0;
-        position: relative;
-    }
-    .calendar-grid > div {
+    .fc .fc-button {
         background-color: #3a4d39;
-        padding: 0.5rem;
-        position: relative;
+        border-color: #3a4d39;
+        color: white;
     }
-
-    /* --- Month View --- */
-    .month-view {
-        grid-template-columns: repeat(7, 1fr);
-        grid-auto-rows: 1fr; /* Make rows expand equally */
+    .fc .fc-button:hover {
+        background-color: #4b5e4a;
+        border-color: #4b5e4a;
     }
-    .month-view .day-header {
-        text-align: center;
-        font-weight: 600;
-        padding: 0.75rem 0.5rem;
-        position: sticky; top: 0; z-index: 5;
+    .fc-event-main {
+        padding: 4px 6px;
     }
-    .month-view .date-cell {
-        display: flex;
-        flex-direction: column;
+    .event-label-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 8px;
+        flex-shrink: 0;
     }
-    .month-view .date-number {
-        font-weight: 500;
-        align-self: flex-end;
-        margin-bottom: 0.25rem;
+    .fc-v-event {
+        border-color: #6f8a6e;
     }
-    .month-view .is-today .date-number {
-        background-color: white;
+    /* Active view button styling */
+    .view-btn.bg-white.shadow {
         color: #3a4d39;
-        border-radius: 9999px;
-        width: 1.75rem;
-        height: 1.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .month-view .event {
-        background-color: #eef2e9;
-        color: #3a4d39;
-        font-size: 0.75rem;
-        font-weight: 500;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-top: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        cursor: pointer;
-    }
-    .month-view .events-container {
-        flex: 1;
-        overflow-y: auto;
-        min-height: 0;
-    }
-
-    /* --- Week View --- */
-    .week-view {
-        grid-template-columns: 80px repeat(7, 1fr); /* Wider time column */
-    }
-    .week-view .day-header, .week-view .corner-cell {
-        position: sticky; top: 0; z-index: 10;
-        background-color: #3a4d39;
-        text-align: center;
         font-weight: 600;
-        padding: 0.75rem 0.5rem;
-    }
-    .week-view .time-slot {
-        font-size: 0.875rem;
-        text-align: right;
-        padding-right: 1rem;
-        color: #e5e7eb;
-    }
-    .week-view .event {
-        position: absolute;
-        background-color: #E9D5FF;
-        color: #37304A;
-        border-radius: 8px;
-        border: 1px solid rgba(0,0,0,0.1);
-        padding: 8px;
-        font-size: 12px;
-        overflow: hidden;
-        cursor: pointer;
-        z-index: 5;
-        /* --- START OF FIX: Use left and right properties to constrain width --- */
-        left: 4px;
-        right: 4px;
-        /* --- END OF FIX --- */
-    }
-
-    /* --- Modal Animation --- */
-    #schedule-modal-backdrop {
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.25s ease, visibility 0.25s ease;
-    }
-    #schedule-modal-backdrop.active {
-        opacity: 1;
-        visibility: visible;
-    }
-    #schedule-modal-backdrop .modal-container {
-        transform: scale(0.95) translateY(10px);
-        opacity: 0;
-        transition: all 0.3s ease;
-    }
-    #schedule-modal-backdrop.active .modal-container {
-        transform: scale(1) translateY(0);
-        opacity: 1;
     }
 </style>
-<!-- --- END OF MODIFICATION --- -->
-
 {% endblock %}
 
 {% block content %}
-<main class="flex-1 p-4 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
-
-    <!-- Main Layout -->
-    <div class="main-content-layout">
-        
-        <!-- Header -->
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-                <h1 class="text-2xl font-bold">Schedules</h1>
-            </div>
-            <div id="view-switcher" class="bg-gray-200 p-1 rounded-lg text-xs sm:text-sm font-semibold self-start sm:self-center">
-                <button data-view="day" class="px-2 sm:px-3 py-1 rounded-md">Day</button>
-                <button data-view="week" class="px-2 sm:px-3 py-1 rounded-md active-view">Week</button>
-                <button data-view="month" class="px-2 sm:px-3 py-1 rounded-md">Month</button>
-                <button data-view="year" class="px-2 sm:px-3 py-1 rounded-md">Year</button>
-            </div>
-        </header>
-
-        <!-- Calendar Area -->
-        <div class="calendar-area">
-            <!-- Left Sidebar -->
-            <aside class="w-full lg:max-w-xs bg-[#3a4d39] text-white rounded-2xl p-4 flex flex-col space-y-4">
-                <button id="create-schedule-btn"
-                    class="w-full bg-white text-[#3a4d39] font-bold py-2.5 rounded-xl hover:bg-gray-200 transition-colors">
-                    Create Schedule
-                </button>
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span id="mini-cal-title" class="font-bold text-base tracking-wider">OCTOBER 2025</span>
-                        <div>
-                            <button id="mini-cal-prev" class="px-2 hover:text-gray-300">&lt;</button>
-                            <button id="mini-cal-next" class="px-2 hover:text-gray-300">&gt;</button>
-                        </div>
-                    </div>
-                    <div id="mini-cal-grid" class="grid grid-cols-7 text-center text-sm gap-y-2">
-                        <span class="font-medium text-gray-400">S</span>
-                        <span class="font-medium text-gray-400">M</span>
-                        <span class="font-medium text-gray-400">T</span>
-                        <span class="font-medium text-gray-400">W</span>
-                        <span class="font-medium text-gray-400">T</span>
-                        <span class="font-medium text-gray-400">F</span>
-                        <span class="font-medium text-gray-400">S</span>
-                    </div>
-                </div>
-                <div id="label-filter">
-                    <h3 class="font-bold text-base mb-3">Label</h3>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #3b82f6;"></div><span>Office</span></div>
-                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #8b5cf6;"></div><span>Meetings</span></div>
-                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #ec4d99;"></div><span>Events</span></div>
-                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #f59e0b;"></div><span>Personal</span></div>
-                        <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></div><span>Others</span></div>
-                    </div>
-                    <button class="w-full mt-4 bg-white/10 text-white font-semibold py-2 rounded-xl text-xs hover:bg-white/20 transition-colors">+ Add Label</button>
-                </div>
-            </aside>
-
-            <!-- Right: Dynamic Calendar -->
-            <div class="calendar-wrapper">
-                <div id="main-calendar-container" class="dynamic-calendar-container">
-                    <!-- Calendar content generated by dynamic_calendar.js -->
-                </div>
-            </div>
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1]">
+    
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h2 class="text-3xl font-bold text-[#3a4d39] uppercase tracking-wide">Schedules</h2>
+            <p class="text-gray-500 text-sm mt-1">Manage your events and appointments.</p>
         </div>
+        <div class="flex items-center gap-4">
+            {% include "_notification_button.html" %}
+        </div>
+    </header>
 
+    <!-- Calendar Layout -->
+    <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
+        
+        <!-- Left Panel: View Controls -->
+        <aside class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
+            <h3 class="font-bold text-lg text-[#3a4d39]">Views</h3>
+            <div class="bg-gray-100 p-1 rounded-lg flex flex-col gap-1">
+                <button id="day-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Day View</button>
+                <button id="week-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md bg-white shadow">Week View</button>
+                <button id="month-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Month View</button>
+                <button id="year-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Year View</button>
+            </div>
+            <hr>
+            <div>
+                 <h3 class="font-bold text-lg text-[#3a4d39] mb-2">Labels</h3>
+                 <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-3"><span class="event-label-dot" style="background-color: #3b82f6;"></span><span>Office</span></div>
+                    <div class="flex items-center gap-3"><span class="event-label-dot" style="background-color: #8b5cf6;"></span><span>Meetings</span></div>
+                    <div class="flex items-center gap-3"><span class="event-label-dot" style="background-color: #ec4899;"></span><span>Events</span></div>
+                    <div class="flex items-center gap-3"><span class="event-label-dot" style="background-color: #f59e0b;"></span><span>Personal</span></div>
+                    <div class="flex items-center gap-3"><span class="event-label-dot" style="background-color: #6b7280;"></span><span>Others</span></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Main Calendar -->
+        <div class="flex-1 bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div id="calendar" class="h-full"></div>
+        </div>
     </div>
 </main>
 
-<!-- === Create Schedule Modal (New Inline Version) === -->
-<div id="schedule-modal-backdrop" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-    <div class="modal-container bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
-        <form id="schedule-form" method="POST" class="space-y-4">
-            <input type="hidden" id="schedule-id" name="schedule_id" value="">
+<!-- Use the existing modal template from the codebase -->
+{% include "_create_schedule_modal.html" %}
 
-            <!-- Header -->
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Discard</button>
-                </div>
-            </div>
-
-            <!-- Title -->
-            <input type="text" id="schedule-title" name="title" placeholder="Create title here" class="w-full px-3 py-2 text-lg font-semibold border-b focus:outline-none focus:border-[#6f8a6e]" required>
-
-            <!-- Date & Time -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div>
-                    <label for="schedule-date" class="text-sm font-semibold">Date</label>
-                    <input type="date" id="schedule-date" name="date" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]" required>
-                </div>
-                <div class="flex items-center justify-end pt-5 gap-2">
-                    <input type="checkbox" id="all-day-toggle" name="all_day" class="h-4 w-4 rounded">
-                    <label for="all-day-toggle" class="text-sm font-medium">All Day</label>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="schedule-start-time" class="text-sm font-semibold">Start Time</label>
-                    <input type="time" id="schedule-start-time" name="start_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
-                </div>
-                <div>
-                    <label for="schedule-end-time" class="text-sm font-semibold">End Time</label>
-                    <input type="time" id="schedule-end-time" name="end_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
-                </div>
-            </div>
-
-            <!-- Description -->
-            <textarea id="schedule-description" name="description" placeholder="About schedule..." rows="3" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
-
-            <!-- Location -->
-            <input type="text" id="schedule-location" name="location" placeholder="Add Location" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-
-            <!-- Footer -->
-            <div class="flex justify-between items-center pt-4">
-                <div>
-                    <button type="button" id="delete-schedule-btn" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" id="cancel-schedule-btn" class="px-6 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-                    <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Save</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/dynamic_calendar.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Mini Calendar Logic (Unchanged) ---
-    const miniCalTitle = document.getElementById('mini-cal-title');
-    const miniCalGrid = document.getElementById('mini-cal-grid');
-    const prevBtn = document.getElementById('mini-cal-prev');
-    const nextBtn = document.getElementById('mini-cal-next');
-
-    if (!miniCalTitle || !miniCalGrid || !prevBtn || !nextBtn) return;
-
-    let currentDate = new Date();
-    const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-
-    function renderMiniCalendar() {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const today = new Date();
-        miniCalTitle.textContent = `${monthNames[month]} ${year}`;
-        while (miniCalGrid.children.length > 7) miniCalGrid.removeChild(miniCalGrid.lastChild);
-        const firstDayOfMonth = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let i = 0; i < firstDayOfMonth; i++) miniCalGrid.insertAdjacentHTML('beforeend', '<span></span>');
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayEl = document.createElement('span');
-            dayEl.textContent = day;
-            dayEl.className = 'py-0.5 px-2 text-white cursor-pointer hover:bg-white/20 rounded-full transition-colors';
-            const applySelectedStyle = (el) => {
-                el.classList.add('bg-white', 'text-[#3a4d39]', 'font-bold');
-                el.classList.remove('text-white');
-            };
-            const removeSelectedStyle = (el) => {
-                el.classList.remove('bg-white', 'text-[#3a4d39]', 'font-bold');
-                el.classList.add('text-white');
-            };
-            if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-                applySelectedStyle(dayEl);
-            }
-            dayEl.addEventListener('click', () => {
-                const selectedDate = new Date(year, month, day);
-                if (window.mainCalendar && typeof window.mainCalendar.goToDate === 'function') {
-                    window.mainCalendar.goToDate(selectedDate);
-                }
-                const currentlySelected = miniCalGrid.querySelector('.bg-white');
-                if (currentlySelected) removeSelectedStyle(currentlySelected);
-                applySelectedStyle(dayEl);
-            });
-            miniCalGrid.appendChild(dayEl);
-        }
-    }
-    prevBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderMiniCalendar(); });
-    nextBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderMiniCalendar(); });
-    function scheduleMidnightRefresh() {
-        const now = new Date();
-        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-        const msUntilMidnight = midnight.getTime() - now.getTime();
-        setTimeout(() => { renderMiniCalendar(); scheduleMidnightRefresh(); }, msUntilMidnight + 1000);
-    }
-    renderMiniCalendar();
-    scheduleMidnightRefresh();
-});
-</script>
+<!-- Load the correct, backend-connected calendar script -->
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 {% endblock %}

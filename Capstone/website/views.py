@@ -100,6 +100,7 @@ def transactions():
     form = TransactionForm()
     return render_template('transactions.html', show_sidebar=True, form=form)
 
+# --- START OF FIX ---
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
@@ -108,7 +109,10 @@ def transactions_pending():
     if not selected_branch:
         return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
-    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True)
+    # This form instance is required by the included '_edit_transaction_modal.html'
+    edit_form = EditTransactionForm() 
+    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
+# --- END OF FIX ---
 
 @main.route('/transactions/paid')
 @jwt_required()
@@ -138,6 +142,28 @@ def transaction_folder_details(transaction_id):
         child_checks=child_checks,
         form=form,
         total_countered_check=total_countered_check,
+        show_sidebar=True
+    )
+
+@main.route('/transaction/paid/folder/<transaction_id>')
+@jwt_required()
+def paid_transaction_folder_details(transaction_id):
+    """Renders the read-only details page for a paid transaction folder."""
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+
+    # Security check: Ensure the folder exists and is actually 'Paid'
+    if not folder or folder.get('status') != 'Paid':
+        flash('Paid transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_paid'))
+    
+    # Fetch all child checks associated with this paid folder
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    
+    return render_template(
+        'paid_transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
         show_sidebar=True
     )
 
@@ -177,7 +203,6 @@ def add_transaction_route():
     return redirect(redirect_url)
 
 
-# --- START OF MODIFICATION ---
 @main.route('/analytics')
 @jwt_required()
 def analytics():
@@ -189,7 +214,6 @@ def analytics():
     
     initial_data = get_analytics_data(username, selected_branch, datetime.now().year, datetime.now().month)
     return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
-# --- END OF MODIFICATION ---
 
 @main.route('/invoice')
 @jwt_required()
@@ -252,7 +276,6 @@ def save_subscription_route():
     
     return jsonify({'error': 'Failed to save subscription'}), 500
 
-# --- START OF MODIFICATION ---
 @main.route('/api/analytics/summary', methods=['GET'])
 @jwt_required()
 def get_analytics_summary():
@@ -271,7 +294,6 @@ def get_analytics_summary():
 
     summary_data = get_analytics_data(username, selected_branch, year, month)
     return jsonify(summary_data)
-# --- END OF MODIFICATION ---
 
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
@@ -414,10 +436,70 @@ def perform_ocr_on_image(image_path):
         logger.error(f"OCR failed for image {image_path}: {e}")
         return "OCR failed: Could not read text from image."
 
+# --- START OF MODIFICATION: Implemented Invoice PDF Download ---
 @main.route('/api/invoices/<invoice_id>/download', methods=['GET'])
 @jwt_required()
 def download_invoice_as_pdf(invoice_id):
-    pass
+    username = get_jwt_identity()
+    invoice = get_invoice_by_id(username, invoice_id)
+    if not invoice:
+        abort(404)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    styles = getSampleStyleSheet()
+    
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(inch, height - inch, f"Invoice: {invoice.get('folder_name', 'N/A')}")
+    
+    # OCR Text Section
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(inch, height - 1.5 * inch, "Extracted Text (OCR)")
+    ocr_text = invoice.get('extracted_text', 'No text was extracted.').replace('\n', '<br/>')
+    ocr_paragraph = Paragraph(ocr_text, styles['Normal'])
+    w, h = ocr_paragraph.wrapOn(p, width - 2 * inch, height)
+    ocr_paragraph.drawOn(p, inch, height - 1.6 * inch - h)
+    
+    # Images Section
+    if invoice.get('files'):
+        p.showPage() # Start a new page for images
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(inch, height - inch, "Attached Images")
+        y_pos = height - 1.5 * inch
+        
+        for file_info in invoice['files']:
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file_info['filename'])
+            if os.path.exists(filepath):
+                try:
+                    img_reader = ImageReader(filepath)
+                    img_width, img_height = img_reader.getSize()
+                    
+                    # Scale image to fit within the page width
+                    max_width = width - 2 * inch
+                    if img_width > max_width:
+                        ratio = max_width / img_width
+                        img_width = max_width
+                        img_height *= ratio
+                    
+                    if y_pos - img_height < inch: # Check if there's enough space
+                        p.showPage()
+                        y_pos = height - inch
+
+                    p.drawImage(img_reader, inch, y_pos - img_height, width=img_width, height=img_height)
+                    y_pos -= (img_height + 0.5 * inch)
+
+                except Exception as e:
+                    logger.error(f"Could not process image for PDF: {filepath}, Error: {e}")
+                    p.drawString(inch, y_pos, f"[Could not load image: {file_info['filename']}]")
+                    y_pos -= 0.5*inch
+
+
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype='application/pdf')
+# --- END OF MODIFICATION ---
 
 @main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])
 @jwt_required()
@@ -486,34 +568,77 @@ def add_loan_route():
             return jsonify({'success': True})
     return jsonify({'success': False, 'errors': form.errors}), 400
 
+# --- START OF MODIFICATION: Fixed Schedules API Logic ---
 @main.route('/api/schedules', methods=['GET'])
 @jwt_required()
 def get_schedules_route():
     username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return jsonify({"error": "Branch not selected"}), 400
+    
     start, end = request.args.get('start'), request.args.get('end')
-    if not start or not end: return jsonify({"error": "Start and end date are required"}), 400
-    return jsonify(get_schedules(username, start, end))
+    if not start or not end: 
+        return jsonify({"error": "Start and end date are required"}), 400
+    
+    # Pass the selected_branch to the model function
+    return jsonify(get_schedules(username, selected_branch, start, end))
+# --- END OF MODIFICATION ---
 
+# --- START OF MODIFICATION: Add notification on schedule creation (Merged with the simpler definition) ---
 @main.route('/api/schedules/add', methods=['POST'])
 @jwt_required()
 def add_schedule_route():
     username = get_jwt_identity()
-    if not request.form: return jsonify({"error": "Form data is missing"}), 400
-    if add_schedule(username, request.form):
+    form_data = request.form
+    if not form_data: 
+        return jsonify({"error": "Form data is missing"}), 400
+        
+    if add_schedule(username, form_data):
         log_user_activity(username, "Created a new schedule")
-        return jsonify({"success": True})
-    return jsonify({"error": "Failed to create schedule"}), 500
+        
+        # Check if a notification method was selected
+        if form_data.get('notification_method') != 'none':
+            schedule_title = form_data.get('title', 'a new event')
+            schedule_date = form_data.get('date', '')
+            
+            try:
+                date_obj = datetime.strptime(schedule_date, '%Y-%m-%d')
+                formatted_date = date_obj.strftime('%B %d, %Y')
+                message = f"Your event '{schedule_title}' is scheduled for {formatted_date}."
+                # The URL will point the user back to the schedules page
+                notification_url = url_for('main.schedules', _external=False)
+                add_notification(username, "New Event Created", message, notification_url)
+            except Exception as e:
+                logger.error(f"Failed to create notification for new schedule: {e}")
 
+        return jsonify({"success": True})
+        
+    return jsonify({"error": "Failed to create schedule"}), 500
+# --- END OF MODIFICATION ---
+
+# --- START OF MODIFICATION: Add notification on schedule update (Merged with the simpler definition) ---
 @main.route('/api/schedules/update/<schedule_id>', methods=['POST'])
 @jwt_required()
 def update_schedule_route(schedule_id):
     username = get_jwt_identity()
     data = request.get_json()
-    if not data: return jsonify({'error': 'Invalid data'}), 400
+    if not data: 
+        return jsonify({'error': 'Invalid data'}), 400
+        
     if update_schedule(username, schedule_id, data):
         log_user_activity(username, "Updated a schedule")
+        
+        # Also create a notification for the update
+        schedule_title = data.get('title', 'an event')
+        message = f"Your event '{schedule_title}' has been updated."
+        notification_url = url_for('main.schedules', _external=False)
+        add_notification(username, "Event Updated", message, notification_url)
+
         return jsonify({'success': True})
+        
     return jsonify({'error': 'Update failed'}), 500
+# --- END OF MODIFICATION ---
 
 @main.route('/api/schedules/<schedule_id>', methods=['DELETE'])
 @jwt_required()
