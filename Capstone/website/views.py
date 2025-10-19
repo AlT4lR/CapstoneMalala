@@ -1,7 +1,5 @@
-# website/views.py
-
 from flask import (
-    Blueprint, render_template, request, redirect, url_for, session, flash, # flash added here
+    Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file, abort
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
@@ -83,7 +81,7 @@ def dashboard():
     username = get_jwt_identity()
     pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
-    recent_activities = get_recent_activity(username, limit=3)
+    recent_activities = get_recent_activity(username, limit=10)
     return render_template(
         'dashboard.html',
         username=username,
@@ -100,6 +98,7 @@ def transactions():
     form = TransactionForm()
     return render_template('transactions.html', show_sidebar=True, form=form)
 
+# --- START OF MODIFICATION ---
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
@@ -108,7 +107,9 @@ def transactions_pending():
     if not selected_branch:
         return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
-    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True)
+    edit_form = EditTransactionForm() # Create an instance of the edit form
+    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
+# --- END OF MODIFICATION ---
 
 @main.route('/transactions/paid')
 @jwt_required()
@@ -141,6 +142,28 @@ def transaction_folder_details(transaction_id):
         show_sidebar=True
     )
 
+@main.route('/transaction/paid/folder/<transaction_id>')
+@jwt_required()
+def paid_transaction_folder_details(transaction_id):
+    """Renders the read-only details page for a paid transaction folder."""
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+
+    # Security check: Ensure the folder exists and is actually 'Paid'
+    if not folder or folder.get('status') != 'Paid':
+        flash('Paid transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_paid'))
+    
+    # Fetch all child checks associated with this paid folder
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    
+    return render_template(
+        'paid_transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
+        show_sidebar=True
+    )
+
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
 def add_transaction_route():
@@ -166,11 +189,9 @@ def add_transaction_route():
                 flash('An error occurred while saving the check.', 'error')
             return redirect(url_for('main.transaction_folder_details', transaction_id=parent_id))
     
-    # Handle validation errors for AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': False, 'errors': form.errors}), 400
     
-    # Handle validation errors for standard form submission
     for field, errors in form.errors.items():
         for error in errors:
             flash(error, 'error')
@@ -182,7 +203,13 @@ def add_transaction_route():
 @main.route('/analytics')
 @jwt_required()
 def analytics():
-    initial_data = get_analytics_data(get_jwt_identity(), datetime.now().year, datetime.now().month)
+    username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        flash('Please select a branch first.', 'error')
+        return redirect(url_for('main.branches'))
+    
+    initial_data = get_analytics_data(username, selected_branch, datetime.now().year, datetime.now().month)
     return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
 
 @main.route('/invoice')
@@ -198,18 +225,14 @@ def all_invoices():
     invoice_list = get_invoices(username, selected_branch)
     return render_template('all_invoices.html', show_sidebar=True, invoices=invoice_list)
 
-# --- START OF MODIFICATION ---
 @main.route('/billings')
 @jwt_required()
 def billings():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = LoanForm()
-    # Fetch loans from the database
     loans = get_loans(username, selected_branch)
-    # Pass loans to the template
     return render_template('billings.html', show_sidebar=True, form=form, loans=loans)
-# --- END OF MODIFICATION ---
 
 @main.route('/schedules')
 @jwt_required()
@@ -230,6 +253,12 @@ def archive():
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
 # --- API Routes ---
+@main.route('/api/activity/recent', methods=['GET'])
+@jwt_required()
+def get_recent_activity_api():
+    username = get_jwt_identity()
+    activities = get_recent_activity(username, limit=10)
+    return jsonify(activities)
 
 @main.route('/api/save-subscription', methods=['POST'])
 @jwt_required()
@@ -248,6 +277,10 @@ def save_subscription_route():
 @jwt_required()
 def get_analytics_summary():
     username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return jsonify({'error': 'Branch not selected'}), 400
+        
     try:
         year = int(request.args.get('year', datetime.now().year))
         month = int(request.args.get('month', datetime.now().month))
@@ -256,7 +289,7 @@ def get_analytics_summary():
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid year or month parameter'}), 400
 
-    summary_data = get_analytics_data(username, year, month)
+    summary_data = get_analytics_data(username, selected_branch, year, month)
     return jsonify(summary_data)
 
 @main.route('/api/billings/summary', methods=['GET'])
@@ -363,17 +396,16 @@ def pay_transaction_folder(folder_id):
 
     notes, amount = data.get('notes'), data.get('amount')
 
-    # Server-side validation for amount
     if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
-        flash('Please enter a valid check amount.', 'error') # Flash for invalid amount
+        flash('Please enter a valid check amount.', 'error')
         return jsonify({'success': False, 'error': 'A valid amount is required.'}), 400
 
     if mark_folder_as_paid(username, folder_id, notes, amount):
         log_user_activity(username, f'Marked transaction folder as Paid')
-        flash('Transaction successfully marked as Paid!', 'success') # Success flash message
+        flash('Transaction successfully marked as Paid!', 'success')
         return jsonify({'success': True})
     else:
-        flash('Failed to process payment. Please try again.', 'error') # Flash for backend failure
+        flash('Failed to process payment. Please try again.', 'error')
         return jsonify({'success': False, 'error': 'Failed to process payment.'}), 400
 
 @main.route('/api/invoices/<invoice_id>', methods=['DELETE'])
@@ -404,7 +436,6 @@ def perform_ocr_on_image(image_path):
 @main.route('/api/invoices/<invoice_id>/download', methods=['GET'])
 @jwt_required()
 def download_invoice_as_pdf(invoice_id):
-    # ... (function remains the same)
     pass
 
 @main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])

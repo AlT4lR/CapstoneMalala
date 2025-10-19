@@ -1,5 +1,4 @@
 # website/__init__.py
-
 import os
 from flask import Flask, render_template
 from flask_mail import Mail
@@ -14,22 +13,7 @@ from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-from .models import (
-    get_user_by_username, get_user_by_email, add_user, check_password, update_last_login,
-    record_failed_login_attempt, set_user_otp, verify_user_otp, update_user_password,
-    add_transaction, get_transactions_by_status, get_transaction_by_id, update_transaction,
-    archive_transaction, get_archived_items, get_child_transactions_by_parent_id,
-    mark_folder_as_paid,
-    get_analytics_data,
-    log_user_activity, get_recent_activity,
-    add_invoice, get_invoices, get_invoice_by_id, archive_invoice,
-    add_notification, get_unread_notifications, get_unread_notification_count, mark_notifications_as_read,
-    save_push_subscription, get_user_push_subscriptions,
-    add_loan, get_loans,
-    add_schedule, get_schedules, update_schedule, delete_schedule,
-    restore_item, delete_item_permanently,
-    get_weekly_billing_summary
-)
+from .models import *
 
 # -------------------------------
 # Logging Configuration
@@ -105,17 +89,20 @@ def create_app(config_name='dev'):
     app.set_user_otp = set_user_otp
     app.verify_user_otp = verify_user_otp
     app.update_user_password = update_user_password
+    app.save_push_subscription = save_push_subscription
+    app.get_user_push_subscriptions = get_user_push_subscriptions
 
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
-    app.update_transaction = update_transaction  # ✅ newly added
+    app.update_transaction = update_transaction
     app.archive_transaction = archive_transaction
-    app.get_archived_items = get_archived_items
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
     app.mark_folder_as_paid = mark_folder_as_paid
 
     app.get_analytics_data = get_analytics_data
+    app.get_weekly_billing_summary = get_weekly_billing_summary
+
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
 
@@ -128,8 +115,6 @@ def create_app(config_name='dev'):
     app.get_unread_notifications = get_unread_notifications
     app.get_unread_notification_count = get_unread_notification_count
     app.mark_notifications_as_read = mark_notifications_as_read
-    app.save_push_subscription = save_push_subscription
-    app.get_user_push_subscriptions = get_user_push_subscriptions
 
     app.add_loan = add_loan
     app.get_loans = get_loans
@@ -139,10 +124,9 @@ def create_app(config_name='dev'):
     app.update_schedule = update_schedule
     app.delete_schedule = delete_schedule
 
+    app.get_archived_items = get_archived_items
     app.restore_item = restore_item
     app.delete_item_permanently = delete_item_permanently
-
-    app.get_weekly_billing_summary = get_weekly_billing_summary
 
     app.mail = mail
 
@@ -153,9 +137,9 @@ def create_app(config_name='dev'):
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
         mongo_client.admin.command('ping')
-        logger.info("✅ Successfully connected to MongoDB.")
+        logger.info("Successfully connected to MongoDB.")
     except Exception as e:
-        logger.error(f"❌ MongoDB connection failed: {e}", exc_info=True)
+        logger.error(f"MongoDB connection failed: {e}", exc_info=True)
         app.db = None
 
     # -------------------------------
