@@ -148,13 +148,13 @@ def create_app(config_name='dev'):
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-    # This now imports the 'main' blueprint from the 'views' package (__init__.py)
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
     # -------------------------------
     # Error Handlers
     # -------------------------------
+    # ✅ START OF FIX: Updated error handlers to point to the new templates
     @app.errorhandler(404)
     def page_not_found(e):
         return render_template('errors/404.html'), 404
@@ -162,5 +162,12 @@ def create_app(config_name='dev'):
     @app.errorhandler(500)
     def internal_server_error(e):
         return render_template('errors/500.html'), 500
+    
+    # You can add more handlers for other errors here, pointing to the same templates
+    # For example, for a 403 Forbidden error:
+    # @app.errorhandler(403)
+    # def forbidden_error(e):
+    #     return render_template('errors/403.html'), 403 # (You would create a 403.html)
+    # ✅ END OF FIX
 
     return app
