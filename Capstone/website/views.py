@@ -143,6 +143,28 @@ def transaction_folder_details(transaction_id):
         show_sidebar=True
     )
 
+@main.route('/transaction/paid/folder/<transaction_id>')
+@jwt_required()
+def paid_transaction_folder_details(transaction_id):
+    """Renders the read-only details page for a paid transaction folder."""
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+
+    # Security check: Ensure the folder exists and is actually 'Paid'
+    if not folder or folder.get('status') != 'Paid':
+        flash('Paid transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_paid'))
+    
+    # Fetch all child checks associated with this paid folder
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    
+    return render_template(
+        'paid_transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
+        show_sidebar=True
+    )
+
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
 def add_transaction_route():

@@ -68,9 +68,9 @@ class TransactionForm(FlaskForm):
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
-    # --- START OF FIX ---
+    # --- START OF MODIFICATION ---
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
-    # --- END OF FIX ---
+    # --- END OF MODIFICATION ---
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     submit = SubmitField('Add')

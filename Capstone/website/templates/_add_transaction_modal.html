@@ -13,7 +13,9 @@
 
         <form id="create-transaction-folder-form" action="{{ url_for('main.add_transaction_route') }}" method="POST" class="space-y-6" novalidate>
             
+            <!-- --- START OF FIX --- -->
             {{ form.hidden_tag() }}
+            <!-- --- END OF FIX --- -->
 
             <!-- Form Fields updated to include Due Date -->
             <div class="space-y-4">

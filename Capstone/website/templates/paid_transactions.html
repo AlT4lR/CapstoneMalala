@@ -37,37 +37,41 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
-                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors p-4 md:p-0 transaction-item" 
+                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors transaction-item" 
                      data-name="{{ t.name }}" 
                      data-id="{{ t._id }}">
                     <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center md:px-4 md:py-3 text-sm">
                         
-                        <div class="md:hidden">
+                        <!-- Mobile View -->
+                        <div class="md:hidden p-4">
                              <div class="flex justify-between items-start gap-4">
-                                <div class="flex items-center gap-3 cursor-pointer details-opener">
-                                    <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                    <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                                </div>
+                                <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
+                                    <i class="fa-solid fa-folder-open text-gray-400 fa-lg"></i>
+                                    <!-- --- START OF MODIFICATION --- -->
+                                    <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                                    <!-- --- END OF MODIFICATION --- -->
+                                </a>
                                 <div class="flex gap-4 text-gray-500 text-base">
-                                    <button title="Edit" class="edit-btn hover:text-green-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
                                     <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                                     <button title="Download" class="download-btn hover:text-blue-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-download"></i></button>
                                 </div>
                             </div>
-                            <div class="mt-3 space-y-1 cursor-pointer details-opener">
+                            <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="block mt-3 space-y-1">
                                 <p><strong class="text-gray-500">Date:</strong> {{ t.check_date }}</p>
                                 <p><strong class="text-gray-500">Editor:</strong> {{ t.editor }}</p>
-                            </div>
+                            </a>
                         </div>
 
-                        <div class="hidden md:flex col-span-4 items-center gap-3 cursor-pointer details-opener">
-                            <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                            <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                        </div>
-                        <span class="hidden md:block col-span-2 text-gray-700 cursor-pointer details-opener">{{ t.check_date }}</span>
-                        <span class="hidden md:block col-span-2 text-gray-700 cursor-pointer details-opener">{{ t.editor }}</span> 
+                        <!-- Desktop View -->
+                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-4 items-center gap-3">
+                            <i class="fa-solid fa-folder-open text-gray-400 fa-lg"></i>
+                            <!-- --- START OF MODIFICATION --- -->
+                            <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                            <!-- --- END OF MODIFICATION --- -->
+                        </a>
+                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700">{{ t.check_date }}</a>
+                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700">{{ t.editor }}</a> 
                         <div class="hidden md:flex col-span-2 justify-end gap-5 text-gray-500">
-                            <button title="Edit" class="edit-btn hover:text-green-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                             <button title="Download" class="download-btn hover:text-blue-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-download"></i></button>
                         </div>
@@ -83,159 +87,56 @@
         </div>
     </div>
 </main>
-
-{% include "_transaction_details_modal.html" %}
-<!-- --- START OF MODIFICATION: Include the new edit modal --- -->
-{% include "_edit_transaction_modal.html" %}
-<!-- --- END OF MODIFICATION --- -->
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Details Modal Logic
-    const detailsModal = document.getElementById('transaction-details-modal');
-    const closeDetailsModalBtn = document.getElementById('close-modal-btn');
-    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-    const openDetailsModal = () => detailsModal.classList.remove('hidden');
-    const closeDetailsModal = () => detailsModal.classList.add('hidden');
-    if(closeDetailsModalBtn) closeDetailsModalBtn.addEventListener('click', closeDetailsModal);
-    if(detailsModal) detailsModal.addEventListener('click', e => { if (e.target === detailsModal) closeDetailsModal(); });
-
-    document.querySelectorAll('.details-opener').forEach(opener => {
-        opener.addEventListener('click', async (event) => {
-            const transactionId = opener.closest('.transaction-item').dataset.id;
-            if (!transactionId) return;
-
-            openDetailsModal();
-            // Populate with loading state
-            document.getElementById('modal-recipient').textContent = 'Loading...';
-
-            try {
-                const response = await fetch(`/api/transactions/details/${transactionId}`);
-                if (!response.ok) throw new Error('Failed to fetch details');
-                const data = await response.json();
-                document.getElementById('modal-amount-header').textContent = currencyFormatter.format(data.amount || 0);
-                document.getElementById('modal-recipient').textContent = data.name || 'N/A';
-                document.getElementById('modal-check-date').textContent = data.check_date ? new Date(data.check_date + 'T00:00:00').toLocaleDateString('en-US') : 'N/A';
-                document.getElementById('modal-ewt').textContent = currencyFormatter.format(data.ewt || 0);
-                document.getElementById('modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
-                document.getElementById('modal-notes').textContent = data.notes || 'No notes provided.';
-
-            } catch (error) {
-                console.error("Error fetching transaction details:", error);
-                document.getElementById('modal-recipient').textContent = 'Failed to load details.';
-            }
-        });
-    });
-
-    // --- START OF MODIFICATION: Edit and Download Logic ---
-    const editModal = document.getElementById('edit-transaction-modal');
-    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-    const cancelEditBtn = document.getElementById('cancel-edit-btn');
-    const editForm = document.getElementById('edit-transaction-form');
-
-    const openEditModal = () => editModal.classList.remove('hidden');
-    const closeEditModal = () => editModal.classList.add('hidden');
-
-    if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
-    if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
-    if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
-
-    // Handle clicking the EDIT button on any transaction
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const transactionId = this.dataset.id;
-            
-            // Fetch current data to populate the modal
-            try {
-                const response = await fetch(`/api/transactions/details/${transactionId}`);
-                if (!response.ok) throw new Error('Failed to fetch transaction data.');
-                const data = await response.json();
-
-                // Populate form fields
-                document.getElementById('edit-transaction-id').value = transactionId;
-                document.getElementById('edit-name').value = data.name || '';
-                document.getElementById('edit-check-date').value = data.check_date || '';
-                document.getElementById('edit-ewt').value = data.ewt || '0.00';
-                document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
-                document.getElementById('edit-notes').value = data.notes || '';
-                
-                openEditModal();
-            } catch (error) {
-                console.error('Error populating edit form:', error);
-                alert('Could not load transaction details for editing.');
-            }
-        });
-    });
-
-    // Handle EDIT form submission
-    if (editForm) {
-        editForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const transactionId = document.getElementById('edit-transaction-id').value;
-            const submitButton = this.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Saving...';
-
-            const formData = new FormData(this);
-            try {
-                const response = await fetch(`/api/transactions/update/${transactionId}`, {
-                    method: 'POST',
-                    body: new URLSearchParams(formData).toString(),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
-                    }
-                });
-                
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    const result = await response.json();
-                    alert('Error: ' + (result.error || 'Could not save changes.'));
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Save Changes';
-                }
-            } catch (error) {
-                console.error('Error submitting edit form:', error);
-                alert('A network error occurred.');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Save Changes';
-            }
-        });
-    }
-
-    // Handle clicking the DOWNLOAD button
-    document.querySelectorAll('.download-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const transactionId = this.dataset.id;
-            window.location.href = `/api/transactions/${transactionId}/download_pdf`;
-        });
-    });
-    // --- END OF MODIFICATION ---
-
-    // Search Logic (remains the same)
+    // --- START OF MODIFICATION: Functional Search with Highlighting ---
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-item');
     const noResultsMessage = document.getElementById('no-results-message');
 
     if (searchInput && transactionRows.length > 0) {
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
+            const searchTerm = this.value.trim();
+            const searchTermLower = searchTerm.toLowerCase();
             let visibleCount = 0;
+
             transactionRows.forEach(row => {
-                const name = row.dataset.name.toLowerCase();
-                if (name.includes(searchTerm)) {
+                const nameDisplayElement = row.querySelector('.transaction-name-display');
+                if (!nameDisplayElement) return;
+
+                const originalName = row.dataset.name;
+                const originalNameLower = originalName.toLowerCase();
+
+                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
                     row.style.display = 'block';
                     visibleCount++;
+
+                    if (searchTermLower === '') {
+                        nameDisplayElement.innerHTML = originalName;
+                    } else {
+                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+                    }
                 } else {
                     row.style.display = 'none';
                 }
             });
+
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
+    // --- END OF MODIFICATION ---
+
+    // Download Logic (remains the same)
+    document.querySelectorAll('.download-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const transactionId = this.dataset.id;
+            window.location.href = `/api/transactions/${transactionId}/download_pdf`;
+        });
+    });
 });
 </script>
 {% endblock %}

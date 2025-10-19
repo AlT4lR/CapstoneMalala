@@ -79,6 +79,8 @@
 </main>
 
 {% include "_edit_transaction_modal.html" %}
+
+{% include "_edit_transaction_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
@@ -93,9 +95,19 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.trim();
             const searchTermLower = searchTerm.toLowerCase();
+            const searchTerm = this.value.trim();
+            const searchTermLower = searchTerm.toLowerCase();
             let visibleCount = 0;
 
+
             transactionRows.forEach(row => {
+                const nameDisplayElement = row.querySelector('.transaction-name-display');
+                if (!nameDisplayElement) return;
+
+                const originalName = row.dataset.name;
+                const originalNameLower = originalName.toLowerCase();
+
+                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
                 const nameDisplayElement = row.querySelector('.transaction-name-display');
                 if (!nameDisplayElement) return;
 
@@ -112,10 +124,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
                         nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
                     }
+
+                    if (searchTermLower === '') {
+                        nameDisplayElement.innerHTML = originalName;
+                    } else {
+                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+                    }
                 } else {
                     row.style.display = 'none';
                 }
             });
+
 
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
