@@ -1,0 +1,143 @@
+# website/views/core.py
+
+from flask import (
+    Blueprint, render_template, request, redirect, url_for, session,
+    send_from_directory, jsonify
+)
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+import os
+
+from . import main # Import the blueprint
+from ..models import (
+    get_transactions_by_status, get_recent_activity, get_archived_items, 
+    log_user_activity, restore_item, delete_item_permanently, 
+    save_push_subscription, get_unread_notification_count, 
+    get_unread_notifications, mark_notifications_as_read
+)
+
+# --- Static Service Worker & Offline Page ---
+@main.route('/sw.js')
+def service_worker():
+    return send_from_directory(os.path.join(main.root_path, '..', 'static', 'js'), 'sw.js', mimetype='application/javascript')
+
+@main.route('/offline')
+def offline():
+    return render_template('offline.html')
+
+# --- Root & Branch Routes ---
+@main.route('/')
+def root_route():
+    try:
+        verify_jwt_in_request(optional=True)
+        if get_jwt_identity():
+            return redirect(url_for('main.dashboard')) if session.get('selected_branch') else redirect(url_for('main.branches'))
+        return redirect(url_for('auth.login'))
+    except Exception:
+        return redirect(url_for('auth.login'))
+
+@main.route('/branches')
+@jwt_required()
+def branches():
+    return render_template('branches.html')
+
+@main.route('/select_branch/<branch_name>')
+@jwt_required()
+def select_branch(branch_name):
+    if branch_name.upper() in ['MONTALBAN', 'LAGUNA']:
+        session['selected_branch'] = branch_name.upper()
+    return redirect(url_for('main.dashboard'))
+
+# --- Main Pages ---
+@main.route('/dashboard')
+@jwt_required()
+def dashboard():
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return redirect(url_for('main.branches'))
+    username = get_jwt_identity()
+    pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
+    paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
+    recent_activities = get_recent_activity(username, limit=10)
+    return render_template(
+        'dashboard.html',
+        username=username,
+        selected_branch=selected_branch,
+        show_sidebar=True,
+        pending_count=len(pending_transactions),
+        paid_count=len(paid_transactions),
+        recent_activities=recent_activities
+    )
+
+@main.route('/settings')
+@jwt_required()
+def settings():
+    return render_template('settings.html', show_sidebar=True)
+
+@main.route('/archive')
+@jwt_required()
+def archive():
+    username = get_jwt_identity()
+    archived_items = get_archived_items(username)
+    back_url = request.args.get('back') or url_for('main.dashboard')
+    return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
+
+# --- Core API Routes ---
+@main.route('/api/activity/recent', methods=['GET'])
+@jwt_required()
+def get_recent_activity_api():
+    username = get_jwt_identity()
+    activities = get_recent_activity(username, limit=10)
+    return jsonify(activities)
+
+@main.route('/api/save-subscription', methods=['POST'])
+@jwt_required()
+def save_subscription_route():
+    subscription_data = request.get_json()
+    if not subscription_data or 'endpoint' not in subscription_data:
+        return jsonify({'error': 'Invalid subscription data provided'}), 400
+    
+    username = get_jwt_identity()
+    if save_push_subscription(username, subscription_data):
+        return jsonify({'success': True}), 201
+    
+    return jsonify({'error': 'Failed to save subscription'}), 500
+
+@main.route('/api/notifications/status', methods=['GET'])
+@jwt_required()
+def notification_status():
+    username = get_jwt_identity()
+    count = get_unread_notification_count(username)
+    return jsonify({'unread_count': count})
+
+@main.route('/api/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    username = get_jwt_identity()
+    notifications = get_unread_notifications(username)
+    return jsonify(notifications)
+
+@main.route('/api/notifications/read', methods=['POST'])
+@jwt_required()
+def mark_read():
+    username = get_jwt_identity()
+    if mark_notifications_as_read(username):
+        return jsonify({'success': True})
+    return jsonify({'error': 'Failed to mark notifications as read'}), 500
+    
+@main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
+@jwt_required()
+def restore_item_route(item_type, item_id):
+    username = get_jwt_identity()
+    if restore_item(username, item_type, item_id):
+        log_user_activity(username, f'Restored a {item_type.lower()}')
+        return jsonify({'success': True}), 200
+    return jsonify({'error': f'Failed to restore {item_type.lower()}.'}), 404
+
+@main.route('/api/archive/delete/<item_type>/<item_id>', methods=['DELETE'])
+@jwt_required()
+def delete_item_permanently_route(item_type, item_id):
+    username = get_jwt_identity()
+    if delete_item_permanently(username, item_type, item_id):
+        log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
+        return jsonify({'success': True}), 200
+    return jsonify({'error': 'An unexpected error occurred.'}), 500
