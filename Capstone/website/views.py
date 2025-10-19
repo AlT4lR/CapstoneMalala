@@ -578,16 +578,16 @@ def add_schedule_route():
     if not selected_branch:
         return jsonify({"error": "Branch not selected"}), 400
         
-    data = request.get_json()
-    if not data: 
-        return jsonify({"error": "JSON data is missing"}), 400
+    form_data = request.form
+    if not form_data: 
+        return jsonify({"error": "Form data is missing"}), 400
         
-    if add_schedule(username, selected_branch, data):
+    if add_schedule(username, selected_branch, form_data):
         log_user_activity(username, "Created a new schedule")
         
-        if data.get('notification_method') and data.get('notification_method') != 'none':
-            schedule_title = data.get('title', 'a new event')
-            schedule_date = data.get('date', '')
+        if form_data.get('notification_method') and form_data.get('notification_method') != 'none':
+            schedule_title = form_data.get('title', 'a new event')
+            schedule_date = form_data.get('date', '')
             try:
                 date_obj = datetime.strptime(schedule_date, '%Y-%m-%d')
                 formatted_date = date_obj.strftime('%B %d, %Y')
