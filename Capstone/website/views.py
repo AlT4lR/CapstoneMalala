@@ -1,5 +1,3 @@
-# website/views.py
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file, abort
@@ -100,6 +98,7 @@ def transactions():
     form = TransactionForm()
     return render_template('transactions.html', show_sidebar=True, form=form)
 
+# --- START OF MODIFICATION ---
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
@@ -108,7 +107,9 @@ def transactions_pending():
     if not selected_branch:
         return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
-    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True)
+    edit_form = EditTransactionForm() # Create an instance of the edit form
+    return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
+# --- END OF MODIFICATION ---
 
 @main.route('/transactions/paid')
 @jwt_required()
@@ -138,6 +139,28 @@ def transaction_folder_details(transaction_id):
         child_checks=child_checks,
         form=form,
         total_countered_check=total_countered_check,
+        show_sidebar=True
+    )
+
+@main.route('/transaction/paid/folder/<transaction_id>')
+@jwt_required()
+def paid_transaction_folder_details(transaction_id):
+    """Renders the read-only details page for a paid transaction folder."""
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+
+    # Security check: Ensure the folder exists and is actually 'Paid'
+    if not folder or folder.get('status') != 'Paid':
+        flash('Paid transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_paid'))
+    
+    # Fetch all child checks associated with this paid folder
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    
+    return render_template(
+        'paid_transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
         show_sidebar=True
     )
 

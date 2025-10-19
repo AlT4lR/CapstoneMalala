@@ -3,11 +3,8 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
-    <!-- --- START OF MODIFICATION: Made header responsive --- -->
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
-    <!-- --- END OF MODIFICATION --- -->
         <div>
-            <!-- The <p> tag with "Transaction (pending)" has been removed from here -->
             <h2 class="text-3xl font-bold uppercase tracking-wide">Transactions</h2>
             <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
                 <i class="fa-solid fa-arrow-left"></i>
@@ -27,9 +24,7 @@
     </header>
 
     <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- --- START OF MODIFICATION: Header hidden on mobile --- -->
         <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
-        <!-- --- END OF MODIFICATION --- -->
             <span class="col-span-5">Name</span>
             <span class="col-span-2">Date</span>
             <span class="col-span-3 text-right">Actions</span>
@@ -38,39 +33,44 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
-                <!-- --- START OF MODIFICATION: Responsive transaction item --- -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
-                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block px-4 py-3">
-                        <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center">
-                            <!-- Mobile View -->
-                            <div class="md:hidden">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex items-center gap-3">
-                                        <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                        <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                                    </div>
-                                    <div class="delete-btn-wrapper text-gray-500 hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
+                    <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center px-4 py-3">
+                        
+                        <!-- Mobile View -->
+                        <div class="md:hidden">
+                            <div class="flex justify-between items-start">
+                                <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
+                                    <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                                    <!-- --- START OF MODIFICATION --- -->
+                                    <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                                    <!-- --- END OF MODIFICATION --- -->
+                                </a>
+                                <div class="flex gap-4 text-gray-500">
+                                    <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <div class="delete-btn-wrapper hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </div>
                                 </div>
-                                <div class="text-sm text-gray-600 mt-2">
-                                    <strong>Date:</strong> {{ t.check_date }}
-                                </div>
                             </div>
-                            
-                            <!-- Desktop View -->
-                            <div class="hidden md:flex col-span-5 items-center gap-3">
-                                <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                <span class="font-semibold text-gray-800">{{ t.name }}</span>
-                            </div>
-                            <span class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</span>
-                            <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
-                                <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                            </div>
+                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2">
+                                <strong>Date:</strong> {{ t.check_date }}
+                            </a>
                         </div>
-                    </a>
+                        
+                        <!-- Desktop View -->
+                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3">
+                            <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                            <!-- --- START OF MODIFICATION --- -->
+                            <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                            <!-- --- END OF MODIFICATION --- -->
+                        </a>
+                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</a>
+                        <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
+                            <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
                 </div>
-                <!-- --- END OF MODIFICATION --- -->
                 {% else %}
                 <div class="flex items-center justify-center h-40">
                     <p class="text-gray-500">No pending transactions found.</p>
@@ -81,48 +81,134 @@
         </div>
     </div>
 </main>
+
+{% include "_edit_transaction_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Search Logic
+    // --- START OF MODIFICATION: Functional Search with Highlighting ---
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
     const noResultsMessage = document.getElementById('no-results-message');
 
     if (searchInput && transactionRows.length > 0) {
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
+            const searchTerm = this.value.trim();
+            const searchTermLower = searchTerm.toLowerCase();
             let visibleCount = 0;
+
             transactionRows.forEach(row => {
-                const name = row.dataset.name.toLowerCase();
-                if (name.includes(searchTerm)) {
+                const nameDisplayElement = row.querySelector('.transaction-name-display');
+                if (!nameDisplayElement) return;
+
+                const originalName = row.dataset.name;
+                const originalNameLower = originalName.toLowerCase();
+
+                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
                     row.style.display = 'block';
                     visibleCount++;
+
+                    if (searchTermLower === '') {
+                        nameDisplayElement.innerHTML = originalName;
+                    } else {
+                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+                    }
                 } else {
                     row.style.display = 'none';
                 }
             });
+
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
+    // --- END OF MODIFICATION ---
 
-    // --- START OF FIX ---
-    // This updated logic correctly handles clicking the delete button inside the link.
-    // It prevents the page from navigating away and allows the global delete handler
-    // in common.js to do its work without causing a recursion error.
-    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
-        button.addEventListener('click', function(event) {
-            // Prevent the <a> tag from navigating to the details page.
-            event.preventDefault();
-            
-            // NOTE: We DO NOT stop propagation. This allows the click event to
-            // bubble up to the document body, where the main listener in `common.js`
-            // can catch it and trigger the delete confirmation dialog.
+    // Edit Modal Logic (remains unchanged)
+    const editModal = document.getElementById('edit-transaction-modal');
+    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const editForm = document.getElementById('edit-transaction-form');
+
+    const openEditModal = () => editModal.classList.remove('hidden');
+    const closeEditModal = () => editModal.classList.add('hidden');
+
+    if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
+    if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+    if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const transactionId = this.dataset.id;
+            let response;
+            try {
+                response = await fetch(`/api/transactions/details/${transactionId}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server responded with status ${response.status}. Response: ${errorText}`);
+                }
+                const data = await response.json();
+                
+                document.getElementById('edit-transaction-id').value = transactionId;
+                document.getElementById('edit-name').value = data.name || '';
+                document.getElementById('edit-check-date').value = data.check_date || '';
+                document.getElementById('edit-due-date').value = data.due_date || '';
+                document.getElementById('edit-ewt').value = data.ewt || '0.00';
+                document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
+                document.getElementById('edit-notes').value = data.notes || '';
+                
+                openEditModal();
+            } catch (error) {
+                console.error('CRITICAL ERROR populating edit form:', error);
+                alert('Could not load transaction details for editing. Please check the developer console (F12) for more details.');
+            }
         });
     });
-    // --- END OF FIX ---
+
+    if (editForm) {
+        editForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const transactionId = document.getElementById('edit-transaction-id').value;
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch(`/api/transactions/update/${transactionId}`, {
+                    method: 'POST',
+                    body: new URLSearchParams(formData).toString(),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert('Error: ' + (result.error || 'Could not save changes.'));
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Save Changes';
+                }
+            } catch (error) {
+                console.error('Error submitting edit form:', error);
+                alert('A network error occurred.');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Changes';
+            }
+        });
+    }
+
+    // Delete button logic (remains unchanged)
+    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+        });
+    });
 });
 </script>
 {% endblock %}

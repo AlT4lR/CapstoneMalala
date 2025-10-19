@@ -65,27 +65,31 @@
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-semibold text-base">Recent Activity</h3>
-                        <!-- --- START OF MODIFICATION --- -->
                         <button id="refresh-activity-btn" class="text-xs font-semibold text-gray-500 hover:text-[#3a4d39]">Refresh</button>
-                        <!-- --- END OF MODIFICATION --- -->
                     </div>
                     <div class="text-xs">
                         <div class="grid grid-cols-3 text-gray-500 font-semibold mb-1">
                             <span class="col-span-2">Name</span>
                             <span>Date Modified</span>
                         </div>
+                        <!-- --- START OF MODIFICATION --- -->
                         <div id="activity-list-container" class="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-2">
+                        <!-- --- END OF MODIFICATION --- -->
                             {% for activity in recent_activities %}
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
                                     {% if activity.activity_type == 'User Log In' %}
                                         <i class="fa-solid fa-right-to-bracket text-green-600"></i>
                                     {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
+                                    {% elif 'Created' in activity.activity_type or 'Added' in activity.activity_type %}
                                         <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                                    {% elif 'Archived' in activity.activity_type %}
                                     {% elif 'Archived' in activity.activity_type %}
                                         <i class="fa-solid fa-box-archive text-red-600"></i>
                                     {% elif 'Paid' in activity.activity_type %}
                                         <i class="fa-solid fa-dollar-sign text-purple-600"></i>
+                                    {% elif 'Restored' in activity.activity_type %}
+                                        <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
                                     {% elif 'Restored' in activity.activity_type %}
                                         <i class="fa-solid fa-trash-arrow-up text-purple-600"></i>
                                     {% else %}
@@ -126,7 +130,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- --- START OF MODIFICATION: Added script for refresh functionality --- -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const refreshButton = document.getElementById('refresh-activity-btn');
@@ -197,5 +200,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<!-- --- END OF MODIFICATION --- -->
 {% endblock %}

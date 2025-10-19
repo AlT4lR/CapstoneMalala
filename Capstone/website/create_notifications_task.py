@@ -24,10 +24,13 @@ def check_due_transactions_and_notify():
         
         print(f"Checking for transactions due between {today_start} and {today_end}...")
 
+        # --- START OF MODIFICATION ---
+        # The query now checks the 'due_date' field instead of 'check_date'.
         due_transactions = db.transactions.find({
-            "check_date": {"$gte": today_start, "$lt": today_end},
+            "due_date": {"$gte": today_start, "$lt": today_end},
             "status": "Pending"
         })
+        # --- END OF MODIFICATION ---
 
         count = 0
         for transaction in due_transactions:
