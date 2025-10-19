@@ -1,3 +1,5 @@
+# website/views.py
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session, flash,
     make_response, current_app, send_from_directory, jsonify, send_file, abort
@@ -146,16 +148,13 @@ def transaction_folder_details(transaction_id):
 @main.route('/transaction/paid/folder/<transaction_id>')
 @jwt_required()
 def paid_transaction_folder_details(transaction_id):
-    """Renders the read-only details page for a paid transaction folder."""
     username = get_jwt_identity()
     folder = get_transaction_by_id(username, transaction_id, full_document=True)
 
-    # Security check: Ensure the folder exists and is actually 'Paid'
     if not folder or folder.get('status') != 'Paid':
         flash('Paid transaction folder not found.', 'error')
         return redirect(url_for('main.transactions_paid'))
     
-    # Fetch all child checks associated with this paid folder
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     
     return render_template(
@@ -174,7 +173,7 @@ def add_transaction_route():
     parent_id = request.form.get('parent_id') if request.form.get('parent_id') else None
     
     if form.validate_on_submit():
-        if not parent_id: # This is a new folder
+        if not parent_id: 
             if add_transaction(username, selected_branch, form.data):
                 log_user_activity(username, 'Created a new transaction folder')
                 flash('Successfully created a new transaction folder!', 'success')
@@ -182,7 +181,7 @@ def add_transaction_route():
             else:
                 flash('An error occurred while saving the folder.', 'error')
                 return jsonify({'success': False, 'error': 'Database error'}), 500
-        else: # This is a child check being added to a folder
+        else:
             if add_transaction(username, selected_branch, form.data, parent_id=parent_id):
                 log_user_activity(username, 'Added a new check to a folder')
                 flash('Successfully added a new check!', 'success')
@@ -437,7 +436,61 @@ def perform_ocr_on_image(image_path):
 @main.route('/api/invoices/<invoice_id>/download', methods=['GET'])
 @jwt_required()
 def download_invoice_as_pdf(invoice_id):
-    pass
+    username = get_jwt_identity()
+    invoice = get_invoice_by_id(username, invoice_id)
+    if not invoice:
+        abort(404)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    styles = getSampleStyleSheet()
+    
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(inch, height - inch, f"Invoice: {invoice.get('folder_name', 'N/A')}")
+    
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(inch, height - 1.5 * inch, "Extracted Text (OCR)")
+    ocr_text = invoice.get('extracted_text', 'No text was extracted.').replace('\n', '<br/>')
+    ocr_paragraph = Paragraph(ocr_text, styles['Normal'])
+    w, h = ocr_paragraph.wrapOn(p, width - 2 * inch, height)
+    ocr_paragraph.drawOn(p, inch, height - 1.6 * inch - h)
+    
+    if invoice.get('files'):
+        p.showPage() 
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(inch, height - inch, "Attached Images")
+        y_pos = height - 1.5 * inch
+        
+        for file_info in invoice['files']:
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file_info['filename'])
+            if os.path.exists(filepath):
+                try:
+                    img_reader = ImageReader(filepath)
+                    img_width, img_height = img_reader.getSize()
+                    
+                    max_width = width - 2 * inch
+                    if img_width > max_width:
+                        ratio = max_width / img_width
+                        img_width = max_width
+                        img_height *= ratio
+                    
+                    if y_pos - img_height < inch: 
+                        p.showPage()
+                        y_pos = height - inch
+
+                    p.drawImage(img_reader, inch, y_pos - img_height, width=img_width, height=img_height)
+                    y_pos -= (img_height + 0.5 * inch)
+
+                except Exception as e:
+                    logger.error(f"Could not process image for PDF: {filepath}, Error: {e}")
+                    p.drawString(inch, y_pos, f"[Could not load image: {file_info['filename']}]")
+                    y_pos -= 0.5*inch
+
+
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype='application/pdf')
 
 @main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])
 @jwt_required()
@@ -510,18 +563,45 @@ def add_loan_route():
 @jwt_required()
 def get_schedules_route():
     username = get_jwt_identity()
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return jsonify({"error": "Branch not selected"}), 400
+    
     start, end = request.args.get('start'), request.args.get('end')
-    if not start or not end: return jsonify({"error": "Start and end date are required"}), 400
-    return jsonify(get_schedules(username, start, end))
+    if not start or not end: 
+        return jsonify({"error": "Start and end date are required"}), 400
+    
+    return jsonify(get_schedules(username, selected_branch, start, end))
 
 @main.route('/api/schedules/add', methods=['POST'])
 @jwt_required()
 def add_schedule_route():
     username = get_jwt_identity()
-    if not request.form: return jsonify({"error": "Form data is missing"}), 400
-    if add_schedule(username, request.form):
+    selected_branch = session.get('selected_branch')
+    if not selected_branch:
+        return jsonify({"error": "Branch not selected"}), 400
+        
+    form_data = request.form
+    if not form_data: 
+        return jsonify({"error": "Form data is missing"}), 400
+        
+    if add_schedule(username, selected_branch, form_data):
         log_user_activity(username, "Created a new schedule")
+        
+        if form_data.get('notification_method') and form_data.get('notification_method') != 'none':
+            schedule_title = form_data.get('title', 'a new event')
+            schedule_date = form_data.get('date', '')
+            try:
+                date_obj = datetime.strptime(schedule_date, '%Y-%m-%d')
+                formatted_date = date_obj.strftime('%B %d, %Y')
+                message = f"Your event '{schedule_title}' is scheduled for {formatted_date}."
+                notification_url = url_for('main.schedules', _external=False)
+                add_notification(username, "New Event Created", message, notification_url)
+            except Exception as e:
+                logger.error(f"Failed to create notification for new schedule: {e}")
+
         return jsonify({"success": True})
+        
     return jsonify({"error": "Failed to create schedule"}), 500
 
 @main.route('/api/schedules/update/<schedule_id>', methods=['POST'])
@@ -529,10 +609,19 @@ def add_schedule_route():
 def update_schedule_route(schedule_id):
     username = get_jwt_identity()
     data = request.get_json()
-    if not data: return jsonify({'error': 'Invalid data'}), 400
+    if not data: 
+        return jsonify({'error': 'Invalid data'}), 400
+        
     if update_schedule(username, schedule_id, data):
         log_user_activity(username, "Updated a schedule")
+        
+        schedule_title = data.get('title', 'an event')
+        message = f"Your event '{schedule_title}' has been updated."
+        notification_url = url_for('main.schedules', _external=False)
+        add_notification(username, "Event Updated", message, notification_url)
+
         return jsonify({'success': True})
+        
     return jsonify({'error': 'Update failed'}), 500
 
 @main.route('/api/schedules/<schedule_id>', methods=['DELETE'])
