@@ -41,9 +41,7 @@
                             <div class="flex justify-between items-start">
                                 <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
                                     <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                    <!-- --- START OF MODIFICATION --- -->
                                     <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
-                                    <!-- --- END OF MODIFICATION --- -->
                                 </a>
                                 <div class="flex gap-4 text-gray-500">
                                     <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -60,9 +58,7 @@
                         <!-- Desktop View -->
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3">
                             <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                            <!-- --- START OF MODIFICATION --- -->
                             <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
-                            <!-- --- END OF MODIFICATION --- -->
                         </a>
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</a>
                         <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
@@ -88,7 +84,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- START OF MODIFICATION: Functional Search with Highlighting ---
+    // --- Search with Highlighting Logic ---
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -124,9 +120,8 @@ document.addEventListener('DOMContentLoaded', function() {
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
-    // --- END OF MODIFICATION ---
 
-    // Edit Modal Logic (remains unchanged)
+    // --- Edit Modal Logic ---
     const editModal = document.getElementById('edit-transaction-modal');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
@@ -142,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.edit-btn').forEach(button => {
         button.addEventListener('click', async function() {
             const transactionId = this.dataset.id;
-            let response;
+            let response; 
             try {
                 response = await fetch(`/api/transactions/details/${transactionId}`);
                 if (!response.ok) {
@@ -203,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Delete button logic (remains unchanged)
+    // --- Delete Button Logic ---
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();

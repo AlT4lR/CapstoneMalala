@@ -98,7 +98,7 @@ def transactions():
     form = TransactionForm()
     return render_template('transactions.html', show_sidebar=True, form=form)
 
-# --- START OF MODIFICATION ---
+# --- START OF FIX ---
 @main.route('/transactions/pending')
 @jwt_required()
 def transactions_pending():
@@ -107,9 +107,10 @@ def transactions_pending():
     if not selected_branch:
         return redirect(url_for('main.branches'))
     transactions = get_transactions_by_status(username, selected_branch, 'Pending')
-    edit_form = EditTransactionForm() # Create an instance of the edit form
+    # This form instance is required by the included '_edit_transaction_modal.html'
+    edit_form = EditTransactionForm() 
     return render_template('pending_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
-# --- END OF MODIFICATION ---
+# --- END OF FIX ---
 
 @main.route('/transactions/paid')
 @jwt_required()
@@ -200,7 +201,6 @@ def add_transaction_route():
     return redirect(redirect_url)
 
 
-# --- START OF MODIFICATION ---
 @main.route('/analytics')
 @jwt_required()
 def analytics():
@@ -212,7 +212,6 @@ def analytics():
     
     initial_data = get_analytics_data(username, selected_branch, datetime.now().year, datetime.now().month)
     return render_template('analytics.html', analytics_data=initial_data, show_sidebar=True)
-# --- END OF MODIFICATION ---
 
 @main.route('/invoice')
 @jwt_required()
@@ -275,7 +274,6 @@ def save_subscription_route():
     
     return jsonify({'error': 'Failed to save subscription'}), 500
 
-# --- START OF MODIFICATION ---
 @main.route('/api/analytics/summary', methods=['GET'])
 @jwt_required()
 def get_analytics_summary():
@@ -294,7 +292,6 @@ def get_analytics_summary():
 
     summary_data = get_analytics_data(username, selected_branch, year, month)
     return jsonify(summary_data)
-# --- END OF MODIFICATION ---
 
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
