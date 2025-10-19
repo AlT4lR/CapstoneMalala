@@ -6,13 +6,16 @@ from flask import (
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 import os
+from datetime import datetime, timedelta
+import pytz
 
 from . import main # Import the blueprint
 from ..models import (
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
-    get_unread_notifications, mark_notifications_as_read
+    get_unread_notifications, mark_notifications_as_read,
+    get_schedules
 )
 
 # --- Static Service Worker & Offline Page ---
@@ -58,6 +61,30 @@ def dashboard():
     pending_transactions = get_transactions_by_status(username, selected_branch, 'Pending')
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     recent_activities = get_recent_activity(username, limit=10)
+
+    # --- START OF MODIFICATION ---
+    start_date = datetime.now(pytz.utc)
+    end_date = start_date + timedelta(days=7)
+    raw_schedules = get_schedules(username, selected_branch, start_date.isoformat(), end_date.isoformat())
+
+    upcoming_schedules = []
+    for schedule in sorted(raw_schedules, key=lambda x: x['start'])[:4]: 
+        start_dt = datetime.fromisoformat(schedule['start'])
+        end_dt = datetime.fromisoformat(schedule['end']) if schedule.get('end') else start_dt + timedelta(hours=1)
+        
+        time_range_str = "All-day"
+        if not schedule.get('allDay'):
+            start_time = start_dt.strftime('%I:%M %p')
+            end_time = end_dt.strftime('%I:%M %p')
+            time_range_str = f"{start_time} - {end_time}"
+            
+        upcoming_schedules.append({
+            'title': schedule.get('title', 'Untitled Event'),
+            'time_range': time_range_str,
+            'full_date': start_dt.strftime('%b. %d, %Y'),
+        })
+    # --- END OF MODIFICATION ---
+
     return render_template(
         'dashboard.html',
         username=username,
@@ -65,7 +92,8 @@ def dashboard():
         show_sidebar=True,
         pending_count=len(pending_transactions),
         paid_count=len(paid_transactions),
-        recent_activities=recent_activities
+        recent_activities=recent_activities,
+        upcoming_schedules=upcoming_schedules
     )
 
 @main.route('/settings')

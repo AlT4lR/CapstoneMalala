@@ -1,3 +1,4 @@
+<!-- website/templates/dashboard.html -->
 {% extends "base.html" %}
 {% block title %}DecoOffice - Dashboard{% endblock %}
 
@@ -32,11 +33,25 @@
                     <h3 class="font-semibold text-base">Schedules</h3>
                     <a href="{{ url_for('main.schedules') }}" class="text-xs text-gray-500 hover:text-[#3a4d39]">See All...</a>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                    <div class="text-center text-gray-500 p-4 col-span-full">
-                        No schedules to show.
-                    </div>
+                <!-- --- START OF MODIFICATION --- -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {% for schedule in upcoming_schedules %}
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                            <div class="bg-[#3a4d39] text-white text-center text-sm font-semibold px-2 py-1.5">
+                                {{ schedule.time_range }}
+                            </div>
+                            <div class="p-3 text-center flex-grow flex flex-col justify-center">
+                                <p class="font-semibold text-gray-800">{{ schedule.title }}</p>
+                                <p class="text-xs text-gray-500 mt-1">{{ schedule.full_date }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-gray-500 p-4 col-span-full">
+                            No upcoming schedules for the next 7 days.
+                        </div>
+                    {% endfor %}
                 </div>
+                <!-- --- END OF MODIFICATION --- -->
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,9 +87,7 @@
                             <span class="col-span-2">Name</span>
                             <span>Date Modified</span>
                         </div>
-                        <!-- --- START OF MODIFICATION --- -->
                         <div id="activity-list-container" class="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-2">
-                            <!-- --- START OF FIX --- -->
                             {% for activity in recent_activities %}
                                 {% set activity_type = activity.activity_type %}
                                 {% set icon_class = 'fa-solid fa-info-circle' %}
@@ -112,7 +125,6 @@
                                 No recent activity found.
                             </div>
                             {% endfor %}
-                            <!-- --- END OF FIX --- -->
                         </div>
                     </div>
                 </div>

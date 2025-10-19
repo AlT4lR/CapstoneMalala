@@ -56,26 +56,28 @@
 .fc-theme-standard th {
   border-color: var(--border-color);
 }
-.fc-daygrid-day-frame {
-  background-color: var(--bg-light);
-  border-radius: 6px;
-}
+
+/* ✅ START OF FIX: The rule that colored the day frames has been removed. */
 .fc-daygrid-day:hover {
-  background-color: #eef0ea;
+  background-color: #eef0ea; /* The hover effect is kept for interactivity */
 }
+/* ✅ END OF FIX */
 
 /* Events */
 .fc-event {
-  background-color: var(--primary-green);
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 2px 6px;
-  color: #fff;
-  font-weight: 500;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  color: #fff !important;
+  font-weight: 500;
+}
+.fc-daygrid-event {
+    white-space: normal;
 }
 
-/* Year view and custom labels */
+
+/* Year view */
 .fc-yearGridMonth-frame {
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -87,7 +89,7 @@
   margin-bottom: 0.25rem;
 }
 
-/* Left panel (Views & Labels) */
+/* Left panel */
 #schedule-controls {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -132,9 +134,7 @@
     <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
         
         <!-- Left Panel: View Controls -->
-        <!-- ✅ START OF FIX: Correctly added the ID without invalid comments -->
         <aside id="schedule-controls" class="w-full md:w-56 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col gap-4">
-        <!-- ✅ END OF FIX -->
             <h3 class="font-bold text-lg text-[#3a4d39]">Views</h3>
             <div class="bg-gray-100 p-1 rounded-lg flex flex-col gap-1">
                 <button id="day-view-btn" class="view-btn px-3 py-1.5 text-left text-sm font-medium text-gray-600 rounded-md hover:bg-white hover:shadow">Day View</button>
