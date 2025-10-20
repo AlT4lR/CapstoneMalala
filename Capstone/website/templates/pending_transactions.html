@@ -79,129 +79,134 @@
 {% include "_edit_transaction_modal.html" %}
 {% endblock %}
 {% block scripts %}
+<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-// --- START OF MODIFICATION: Functional Search with Highlighting ---
-const searchInput = document.getElementById('search-input');
-const transactionRows = document.querySelectorAll('.transaction-row');
-const noResultsMessage = document.getElementById('no-results-message');
+    // Initialize date pickers in the "Edit Transaction" modal
+    flatpickr("#edit-check-date", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+    });
+    flatpickr("#edit-due-date", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+    });
 
-if (searchInput && transactionRows.length > 0) {
-searchInput.addEventListener('input', function() {
-const searchTerm = this.value.trim();
-const searchTermLower = searchTerm.toLowerCase();
-let visibleCount = 0;
+    const searchInput = document.getElementById('search-input');
+    const transactionRows = document.querySelectorAll('.transaction-row');
+    const noResultsMessage = document.getElementById('no-results-message');
 
-transactionRows.forEach(row => {
-const nameDisplayElement = row.querySelector('.transaction-name-display');
-if (!nameDisplayElement) return;
+    if (searchInput && transactionRows.length > 0) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            const searchTermLower = searchTerm.toLowerCase();
+            let visibleCount = 0;
 
-const originalName = row.dataset.name;
-const originalNameLower = originalName.toLowerCase();
+            transactionRows.forEach(row => {
+                const nameDisplayElement = row.querySelector('.transaction-name-display');
+                if (!nameDisplayElement) return;
 
-if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
-row.style.display = 'block';
-visibleCount++;
+                const originalName = row.dataset.name;
+                const originalNameLower = originalName.toLowerCase();
 
-if (searchTermLower === '') {
-nameDisplayElement.innerHTML = originalName;
-} else {
-const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
-}
-} else {
-row.style.display = 'none';
-}
-});
+                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
+                    row.style.display = 'block';
+                    visibleCount++;
 
-noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
-});
-}
-// --- END OF MODIFICATION ---
+                    if (searchTermLower === '') {
+                        nameDisplayElement.innerHTML = originalName;
+                    } else {
+                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+        });
+    }
 
-// --- Edit Modal Logic ---
-const editModal = document.getElementById('edit-transaction-modal');
-const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-const cancelEditBtn = document.getElementById('cancel-edit-btn');
-const editForm = document.getElementById('edit-transaction-form');
+    const editModal = document.getElementById('edit-transaction-modal');
+    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const editForm = document.getElementById('edit-transaction-form');
 
-const openEditModal = () => editModal.classList.remove('hidden');
-const closeEditModal = () => editModal.classList.add('hidden');
+    const openEditModal = () => editModal.classList.remove('hidden');
+    const closeEditModal = () => editModal.classList.add('hidden');
 
-if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
-if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
-if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+    if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
+    if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+    if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
 
-document.querySelectorAll('.edit-btn').forEach(button => {
-button.addEventListener('click', async function() {
-const transactionId = this.dataset.id;
-let response;
-try {
-response = await fetch(`/api/transactions/details/${transactionId}`);
-if (!response.ok) {
-const errorText = await response.text();
-throw new Error(`Server responded with status ${response.status}. Response: ${errorText}`);
-}
-const data = await response.json();
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const transactionId = this.dataset.id;
+            try {
+                const response = await fetch(`/api/transactions/details/${transactionId}`);
+                if (!response.ok) throw new Error('Failed to fetch transaction details');
+                const data = await response.json();
 
-document.getElementById('edit-transaction-id').value = transactionId;
-document.getElementById('edit-name').value = data.name || '';
-document.getElementById('edit-check-date').value = data.check_date || '';
-document.getElementById('edit-due-date').value = data.due_date || '';
-document.getElementById('edit-ewt').value = data.ewt || '0.00';
-document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
-document.getElementById('edit-notes').value = data.notes || '';
+                document.getElementById('edit-transaction-id').value = transactionId;
+                document.getElementById('edit-name').value = data.name || '';
+                document.getElementById('edit-check-date').value = data.check_date || '';
+                document.getElementById('edit-due-date').value = data.due_date || '';
+                document.getElementById('edit-ewt').value = data.ewt || '0.00';
+                document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
+                document.getElementById('edit-notes').value = data.notes || '';
 
-openEditModal();
-} catch (error) {
-console.error('CRITICAL ERROR populating edit form:', error);
-alert('Could not load transaction details for editing. Please check the developer console (F12) for more details.');
-}
-});
-});
+                openEditModal();
+            } catch (error) {
+                console.error('Error populating edit form:', error);
+                alert('Could not load transaction details for editing.');
+            }
+        });
+    });
 
-if (editForm) {
-editForm.addEventListener('submit', async function(event) {
-event.preventDefault();
-const transactionId = document.getElementById('edit-transaction-id').value;
-const submitButton = this.querySelector('button[type="submit"]');
-submitButton.disabled = true;
-submitButton.textContent = 'Saving...';
-const formData = new FormData(this);
+    if (editForm) {
+        editForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const transactionId = document.getElementById('edit-transaction-id').value;
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+            const formData = new FormData(this);
 
-try {
-const response = await fetch(`/api/transactions/update/${transactionId}`, {
-method: 'POST',
-body: new URLSearchParams(formData).toString(),
-headers: {
-'Content-Type': 'application/x-www-form-urlencoded',
-'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-}
-});
+            try {
+                const response = await fetch(`/api/transactions/update/${transactionId}`, {
+                    method: 'POST',
+                    body: new URLSearchParams(formData).toString(),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert('Error: ' + (result.error || 'Could not save changes.'));
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Save Changes';
+                }
+            } catch (error) {
+                console.error('Error submitting edit form:', error);
+                alert('A network error occurred.');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Changes';
+            }
+        });
+    }
 
-if (response.ok) {
-window.location.reload();
-} else {
-const result = await response.json();
-alert('Error: ' + (result.error || 'Could not save changes.'));
-submitButton.disabled = false;
-submitButton.textContent = 'Save Changes';
-}
-} catch (error) {
-console.error('Error submitting edit form:', error);
-alert('A network error occurred.');
-submitButton.disabled = false;
-submitButton.textContent = 'Save Changes';
-}
-});
-}
-
-// --- Delete Button Logic ---
-document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
-button.addEventListener('click', function(event) {
-event.preventDefault();
-});
-});
+    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+        });
+    });
 });
 </script>
+<!-- END OF MODIFICATION -->
 {% endblock %}

@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Invoice{% endblock %}
 
-<!-- START OF MODIFICATION: Add custom styles for scrollable file list -->
 {% block head %}
+<!-- START OF MODIFICATION: Added Flatpickr CSS and custom theme styles -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
     #file-list {
-        /* Set a max-height to trigger scrolling */
-        max-height: 24rem; /* 384px, adjust as needed */
-        overflow-y: auto; /* Enable vertical scrollbar when content overflows */
-        /* Add some padding to prevent content from touching the scrollbar */
+        max-height: 24rem; 
+        overflow-y: auto;
         padding-right: 8px;
     }
-    /* Custom scrollbar styling to match the theme */
     #file-list::-webkit-scrollbar {
         width: 8px;
     }
@@ -25,9 +23,35 @@
      #file-list::-webkit-scrollbar-thumb:hover {
         background: #b3b3b3;
     }
+
+    /* Custom styles for Flatpickr to match the application's theme */
+    .flatpickr-calendar {
+        background: #fafaf5;
+        border: 1px solid #d4d8c4;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+        background: #3a4d39;
+        border-color: #3a4d39;
+    }
+    .flatpickr-day.today {
+        border-color: #6f8a6e;
+    }
+    .flatpickr-day:hover {
+        background: #eef2e9;
+    }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month .flatpickr-monthDropdown-months {
+        color: #3a4d39;
+        font-weight: 600;
+    }
+    .numInputWrapper span:hover {
+        background: #eef2e9;
+    }
 </style>
-{% endblock %}
 <!-- END OF MODIFICATION -->
+{% endblock %}
 
 {% block content %}
 <main class="flex-1 p-6 sm:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
@@ -36,11 +60,9 @@
     <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
         <h2 class="text-2xl font-semibold uppercase tracking-wide">Invoice</h2>
         <div class="flex items-center gap-4">
-            <!-- --- START OF FIX --- -->
             <a href="{{ url_for('main.archive') }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
                 <i class="fa-solid fa-box-archive fa-lg"></i>
             </a>
-            <!-- --- END OF FIX --- -->
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -95,7 +117,9 @@
                 </div>
                 <div>
                     <label for="date" class="block text-sm font-semibold mb-2">Date</label>
-                    <input type="date" id="date" name="date" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                    <!-- START OF MODIFICATION: Replaced input type="date" with a standard text input for Flatpickr -->
+                    <input type="text" id="date" name="date" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]" placeholder="Select invoice date...">
+                    <!-- END OF MODIFICATION -->
                 </div>
                 
                 <!-- Action Buttons -->
@@ -110,4 +134,26 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/invoice.js') }}"></script>
+<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // This script runs AFTER the main invoice.js script
+    document.addEventListener("DOMContentLoaded", () => {
+        // Initialize the new dynamic date picker on the date input field
+        flatpickr("#date", {
+            // This format (YYYY-MM-DD) is required by the backend
+            dateFormat: "Y-m-d", 
+            
+            // This dynamically sets the default value to today's date
+            defaultDate: "today", 
+
+            // This creates a separate, user-friendly visible input
+            altInput: true, 
+
+            // This is the format the user will see (e.g., "October 20, 2025")
+            altFormat: "F j, Y", 
+        });
+    });
+</script>
+<!-- END OF MODIFICATION -->
 {% endblock %}

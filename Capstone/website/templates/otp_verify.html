@@ -40,16 +40,7 @@
             background-color: #ffffff;
         }
         
-        /* Style for auto-fading flash messages */
-        #flash-messages-overlay-container { 
-            transition: opacity 0.5s ease-out; 
-            position: relative; /* Adjust position for this specific layout */
-            top: auto;
-            left: auto;
-            transform: none;
-            max-width: 100%;
-            margin-bottom: 1.5rem; /* Add space between flash and text */
-        }
+        /* --- START OF FIX: The problematic CSS override has been removed from here --- */
 
         /* Animation for the card appearing */
         .card {
@@ -62,6 +53,11 @@
     </style>
 </head>
 <body class="bg-[#333333] font-poppins antialiased">
+
+    <!-- START OF FIX: Flash message include is now outside the main content card -->
+    {% include "_flash_messages.html" %}
+    <!-- END OF FIX -->
+
     <main class="flex items-center justify-center min-h-screen p-6">
         <div class="card w-full max-w-md bg-[#F5F3F0] shadow-2xl rounded-2xl p-8 sm:p-12 text-center">
 
@@ -81,7 +77,7 @@
                 {% endif %}
             </h1>
 
-            {% include "_flash_messages.html" %}
+            <!-- The flash message was removed from here -->
 
             <p class="text-gray-600 mb-8">
                 {% if is_2fa_login %}

@@ -2,10 +2,115 @@
 
 {% block title %}DecoOffice - Archive{% endblock %}
 
+{% block head %}
+<style>
+    /* Custom styles for the archive table and floating action bar */
+    .table-row {
+        min-height: 56px; /* 3.5rem */
+        transition: background-color 0.2s ease;
+    }
+    .table-cell {
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #3a4d39; border-radius: 10px; }
+
+    /* Floating action bar styles */
+    #bulk-actions-footer {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        z-index: 40;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        justify-content: center;
+        
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateX(-50%) translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    }
+    #bulk-actions-footer.visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* Confirmation Modal styles */
+    #confirm-modal {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        backdrop-filter: blur(4px);
+    }
+    #confirm-modal.active {
+        display: flex;
+    }
+
+    /* Toast styles */
+    #toast-success {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #e8f5e9;
+        color: #2e7d32;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: none;
+        z-index: 60;
+        font-weight: 600;
+        animation: fadeinout 3s ease-in-out;
+    }
+    @keyframes fadeinout {
+        0% { opacity: 0; transform: translate(-50%, -20px); }
+        15%, 85% { opacity: 1; transform: translate(-50%, 0); }
+        100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
-    
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-6 border-b border-[#d4d8c4] pb-3">
+
+    <!-- Toast -->
+    <div id="toast-success">Action Successful!</div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal">
+        <div class="bg-white rounded-lg shadow-xl p-6 text-center w-full max-w-sm m-4">
+            <div id="confirm-icon-container" class="mb-3">
+                <!-- Icon will be set by JS -->
+            </div>
+            <h2 class="text-lg font-bold text-gray-800 mb-2" id="confirm-title">Are you sure?</h2>
+            <p class="text-gray-600 text-sm mb-6" id="confirm-message">
+                This action cannot be undone.
+            </p>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-no" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button id="confirm-yes" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg hover:bg-opacity-90">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <div>
             <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Archive</h2>
             <a href="{{ back_url }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
@@ -14,128 +119,248 @@
             </a>
         </div>
         
-        <div class="flex items-center gap-3 self-end sm:self-center">
-             {% include "_notification_button.html" %}
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="relative flex-grow sm:flex-grow-0">
+                <input type="text" id="search-input" placeholder="Search Archive..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+             <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                <i class="fa-solid fa-box-archive fa-lg"></i>
+            </a>
+            {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <p class="text-sm text-gray-600 mb-6 max-w-2xl">
+    <p class="text-sm text-gray-600 mb-4 max-w-2xl">
         Archived items will be stored here. Items that have been in the archive for more than 30 days may be permanently deleted.
     </p>
 
-    <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
-        <div class="space-y-2 p-4">
+    <!-- Archive Table Card -->
+    <div id="archive-container" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden flex flex-col">
+        <div class="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-[#3a4d39] border-b table-row">
+            <div class="col-span-1 table-cell">
+                <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 hidden">
+            </div>
+            <div class="col-span-5 table-cell">Name</div>
+            <div class="col-span-3 table-cell">Date</div>
+            <div class="col-span-2 table-cell">Category</div>
+            <div class="col-span-1 table-cell justify-end">
+                <button id="toggle-selection-btn" title="Select items to delete" class="text-gray-500 hover:text-red-600">
+                    <i class="fas fa-trash-alt text-lg text-red-500"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="archive-list" class="flex-1 overflow-y-auto custom-scrollbar">
             {% for item in archived_items %}
-            <!-- --- START OF MODIFICATION: Responsive archived item card --- -->
-            <div class="bg-gray-50/50 p-3 rounded-lg border border-gray-200">
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                    <!-- Item Info (spans more on desktop) -->
-                    <div class="md:col-span-2">
-                        <p class="font-semibold text-gray-800">{{ item.name }}</p>
-                        <p class="text-xs text-gray-500">{{ item.details }}</p>
-                    </div>
+            <div class="grid grid-cols-12 gap-4 px-4 border-t items-center table-row archive-item hover:bg-gray-50" 
+                 data-id="{{ item.id }}" 
+                 data-type="{{ item.type }}"
+                 data-name="{{ item.name | escape }}">
+                
+                <div class="col-span-1 table-cell">
+                    <input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 hidden">
+                </div>
 
-                    <!-- Type Badge -->
-                    <div class="text-left mt-2 md:mt-0">
-                        {% if item.type == 'Transaction' %}
-                            <span class="px-2 py-0.5 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
-                                {{ item.type }}
-                            </span>
-                        {% elif item.type == 'Invoice' %}
-                            <span class="px-2 py-0.5 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                                {{ item.type }}
-                            </span>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Archived Date -->
-                    <div class="text-left md:text-right mt-2 md:mt-0">
-                        <p class="text-sm font-medium text-gray-700">{{ item.archived_at_str }}</p>
-                        <p class="text-xs text-gray-500">{{ item.relative_time }}</p>
-                    </div>
+                <div class="col-span-5 table-cell gap-3 font-medium text-gray-800">
+                    <!-- START OF MODIFICATION: Use display_category for icon -->
+                    {% if item.display_category == 'Folder' %}
+                        <i class="fas fa-folder text-gray-400 text-xl"></i>
+                    {% elif item.display_category == 'Image' %}
+                        <i class="fas fa-file-image text-gray-400 text-xl"></i>
+                    {% elif item.display_category == 'File' %}
+                        <i class="fas fa-file-alt text-gray-400 text-xl"></i>
+                    {% else %}
+                        <i class="fas fa-question-circle text-gray-400 text-xl"></i>
+                    {% endif %}
+                    <!-- END OF MODIFICATION -->
+                    <span class="truncate">{{ item.name }}</span>
+                </div>
 
-                    <!-- Actions -->
-                    <div class="flex items-center justify-start md:justify-end gap-3 mt-3 md:mt-0">
-                        <button class="restore-btn px-3 py-1 text-xs font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                                data-id="{{ item.id }}" data-type="{{ item.type }}">
-                            Restore
-                        </button>
-                        <button class="perm-delete-btn px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
-                                data-id="{{ item.id }}" data-type="{{ item.type }}" data-name="{{ item.name }}">
-                            Delete
-                        </button>
-                    </div>
+                <div class="col-span-3 table-cell text-gray-700 text-sm">{{ item.archived_at_str }}</div>
+
+                <div class="col-span-2 table-cell text-gray-700 text-sm">
+                    <!-- START OF MODIFICATION: Use display_category for text -->
+                    {{ item.display_category }}
+                    <!-- END OF MODIFICATION -->
+                </div>
+                <div class="col-span-1 table-cell justify-end individual-action">
+                    <button class="restore-btn text-gray-500 hover:text-green-600" title="Restore">
+                        <i class="fas fa-history text-lg"></i>
+                    </button>
                 </div>
             </div>
-            <!-- --- END OF MODIFICATION --- -->
             {% else %}
             <div class="flex items-center justify-center h-40">
                 <p class="text-gray-500">The archive is empty.</p>
             </div>
             {% endfor %}
+            <div id="no-results-message" class="hidden p-8 text-center text-gray-500">No results found.</div>
         </div>
     </div>
+
+    <!-- Floating Footer Buttons -->
+    <div id="bulk-actions-footer" class="hidden">
+        <button id="bulk-recover-btn" class="px-6 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-lg hover:bg-opacity-90 flex items-center gap-3 text-sm">
+            <i class="fas fa-history text-lg"></i>
+            <span>Recover</span>
+        </button>
+        <button id="bulk-delete-btn" class="px-6 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-lg hover:bg-opacity-90 flex items-center gap-3 text-sm">
+            <i class="fas fa-trash-alt text-lg"></i>
+            <span>Delete</span>
+        </button>
+    </div>
+
 </main>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const csrfToken = window.getCsrfToken ? window.getCsrfToken() : '';
-    document.querySelectorAll('.restore-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const id = this.dataset.id;
-            const type = this.dataset.type;
-            this.disabled = true;
-            this.textContent = 'Restoring...';
+    const csrfToken = window.getCSRFToken ? window.getCSRFToken() : '';
+    const toggleSelectionBtn = document.getElementById('toggle-selection-btn');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const itemCheckboxes = Array.from(document.querySelectorAll('.item-checkbox'));
+    const bulkActionsFooter = document.getElementById('bulk-actions-footer');
+    const toastSuccess = document.getElementById('toast-success');
+    const individualActions = document.querySelectorAll('.individual-action');
 
-            try {
-                const response = await fetch(`/api/archive/restore/${type}/${id}`, {
-                    method: 'POST',
+    // Custom Modal elements
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmTitle = document.getElementById('confirm-title');
+    const confirmMessage = document.getElementById('confirm-message');
+    const confirmIconContainer = document.getElementById('confirm-icon-container');
+    const confirmYes = document.getElementById('confirm-yes');
+    const confirmNo = document.getElementById('confirm-no');
+    
+    let confirmCallback = null;
+    let isSelectionMode = false;
+
+    // --- Custom Modal ---
+    function showConfirm({ title, message, iconHTML, onConfirm }) {
+        confirmTitle.textContent = title;
+        confirmMessage.textContent = message;
+        confirmIconContainer.innerHTML = iconHTML;
+        confirmModal.classList.add('active');
+        confirmCallback = onConfirm;
+    }
+    confirmNo.onclick = () => confirmModal.classList.remove('active');
+    confirmYes.onclick = () => {
+        confirmModal.classList.remove('active');
+        if (confirmCallback) confirmCallback();
+    };
+    confirmModal.onclick = (e) => {
+        if (e.target === confirmModal) confirmModal.classList.remove('active');
+    };
+
+    // --- Selection Mode Logic ---
+    function updateFooterVisibility() {
+        const anyChecked = itemCheckboxes.some(cb => cb.checked);
+        bulkActionsFooter.classList.toggle('visible', isSelectionMode && anyChecked);
+    }
+
+    toggleSelectionBtn.addEventListener('click', () => {
+        isSelectionMode = !isSelectionMode;
+        selectAllCheckbox.classList.toggle('hidden', !isSelectionMode);
+        itemCheckboxes.forEach(cb => cb.classList.toggle('hidden', !isSelectionMode));
+        individualActions.forEach(div => div.classList.toggle('hidden', isSelectionMode));
+        
+        toggleSelectionBtn.innerHTML = isSelectionMode 
+            ? '<i class="fas fa-times text-red-500 text-lg"></i>' 
+            : '<i class="fas fa-trash-alt text-lg text-red-500"></i>';
+
+        if (!isSelectionMode) {
+            selectAllCheckbox.checked = false;
+            itemCheckboxes.forEach(cb => cb.checked = false);
+        }
+        updateFooterVisibility();
+    });
+
+    selectAllCheckbox.addEventListener('change', (e) => {
+        itemCheckboxes.forEach(cb => {
+            if (cb.closest('.archive-item').style.display !== 'none') {
+                cb.checked = e.target.checked;
+            }
+        });
+        updateFooterVisibility();
+    });
+    itemCheckboxes.forEach(cb => cb.addEventListener('change', updateFooterVisibility));
+
+    // --- Action Handlers ---
+    async function performAction(action, items) {
+        if (items.length === 0) return;
+        try {
+            for (const item of items) {
+                const url = `/api/archive/${action}/${item.type}/${item.id}`;
+                await fetch(url, {
+                    method: action === 'delete' ? 'DELETE' : 'POST',
                     headers: { 'X-CSRF-Token': csrfToken }
                 });
-                window.location.reload();
-            } catch (error) {
-                console.error('Error restoring item:', error);
-                window.location.reload();
             }
+            toastSuccess.textContent = action === 'delete' ? 'Deleted Successfully!!' : 'Recovered Successfully!!';
+            toastSuccess.style.display = 'block';
+        } catch (error) {
+            console.error(`Error during bulk ${action}:`, error);
+            alert(`An error occurred. Please try again.`);
+        } finally {
+            setTimeout(() => window.location.reload(), 2800);
+        }
+    }
+    
+    // Individual Restore Action
+    document.querySelectorAll('.restore-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            if (isSelectionMode) return;
+            const itemElement = e.target.closest('.archive-item');
+            const itemData = itemElement.dataset;
+            showConfirm({
+                title: 'Confirm Recovery',
+                message: `Are you sure you want to restore "${itemData.name}"?`,
+                iconHTML: '<i class="fas fa-history text-3xl text-green-500"></i>',
+                onConfirm: () => performAction('restore', [itemData])
+            });
         });
     });
 
-    document.querySelectorAll('.perm-delete-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const type = this.dataset.type;
-            const name = this.dataset.name;
-            const btn = this;
+    // Bulk Actions
+    document.getElementById('bulk-recover-btn').addEventListener('click', () => {
+        const selectedItems = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.closest('.archive-item').dataset);
+        if (selectedItems.length > 0) {
+            showConfirm({
+                title: 'Confirm Recovery',
+                message: `Are you sure you want to restore ${selectedItems.length} selected item(s)?`,
+                iconHTML: '<i class="fas fa-history text-3xl text-green-500"></i>',
+                onConfirm: () => performAction('restore', selectedItems)
+            });
+        }
+    });
 
-            if (typeof window.showCustomConfirm === 'function') {
-                const message = `Are you sure you want to PERMANENTLY delete "${name}"? This action cannot be undone.`;
-                const dialogIconContainer = document.getElementById('custom-dialog-icon-container');
-                const originalIcon = dialogIconContainer.innerHTML;
-                dialogIconContainer.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-5xl text-red-600"></i>`;
+    document.getElementById('bulk-delete-btn').addEventListener('click', () => {
+        const selectedItems = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.closest('.archive-item').dataset);
+        if (selectedItems.length > 0) {
+            showConfirm({
+                title: 'Confirm Permanent Deletion',
+                message: `The selected ${selectedItems.length} item(s) will be removed permanently. This action cannot be undone.`,
+                iconHTML: '<i class="fas fa-trash-alt text-3xl text-red-500"></i>',
+                onConfirm: () => performAction('delete', selectedItems)
+            });
+        }
+    });
 
-                window.showCustomConfirm(message, async () => {
-                    btn.disabled = true;
-                    btn.textContent = 'Deleting...';
-                    try {
-                        const response = await fetch(`/api/archive/delete/${type}/${id}`, {
-                            method: 'DELETE',
-                            headers: { 'X-CSRF-Token': csrfToken }
-                        });
-                        window.location.reload();
-                    } catch (error) {
-                        console.error('Error deleting item:', error);
-                        window.location.reload();
-                    }
-                    dialogIconContainer.innerHTML = originalIcon;
-                });
-            } else {
-                if (confirm(`Are you sure you want to PERMANENTLY delete "${name}"? This cannot be undone.`)) {
-                    // Fallback logic
-                }
-            }
+    // --- Search Logic ---
+    const searchInput = document.getElementById('search-input');
+    const archiveItems = document.querySelectorAll('.archive-item');
+    const noResultsMessage = document.getElementById('no-results-message');
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        let visibleCount = 0;
+        archiveItems.forEach(item => {
+            const name = item.dataset.name.toLowerCase();
+            const isVisible = name.includes(searchTerm);
+            item.style.display = isVisible ? 'grid' : 'none';
+            if (isVisible) visibleCount++;
         });
+        noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
     });
 });
 </script>

@@ -69,7 +69,6 @@
                     </span>
                 </div>
             </div>
-            <!-- --- START OF FIX --- -->
             <!-- Table Body -->
             <div class="flex-1 overflow-y-auto">
                 {% for loan in loans %}
@@ -87,7 +86,6 @@
                 <p class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
                 {% endfor %}
             </div>
-            <!-- --- END OF FIX --- -->
         </div>
         <div class="mt-4 text-right">
             <button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button>
@@ -115,7 +113,8 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-2">Date Issued</label>
-                    <input type="date" name="date_issued" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
+                    <!-- MODIFIED: Changed type to text for Flatpickr -->
+                    <input type="text" id="date_issued" name="date_issued" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-2">Bank Name</label>
@@ -123,7 +122,8 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-2">Date Paid</label>
-                    <input type="date" name="date_paid" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg">
+                    <!-- MODIFIED: Changed type to text for Flatpickr -->
+                    <input type="text" id="date_paid" name="date_paid" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold mb-2">Amount</label>
@@ -140,8 +140,23 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize date pickers in the "Create Loan" modal
+        flatpickr("#date_issued", {
+            dateFormat: "Y-m-d",
+            defaultDate: "today",
+            altInput: true,
+            altFormat: "F j, Y",
+        });
+        flatpickr("#date_paid", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "F j, Y",
+        });
+
         // --- Billings Summary Logic ---
         const monthYearDisplay = document.getElementById('billing-month-year');
         const prevMonthBtn = document.getElementById('prev-month-btn');
@@ -209,7 +224,6 @@
             const firstDayOfMonth = new Date(year, month, 1);
             const startWeekNum = getWeekNumber(firstDayOfMonth);
 
-            // --- START OF MODIFICATION: Always create 4 weeks ---
             for (let i = 0; i < 4; i++) {
                 const weekNum = startWeekNum + i;
                 const button = document.createElement('button');
@@ -222,16 +236,14 @@
             const today = new Date();
             if (today.getFullYear() === year && today.getMonth() === month) {
                  const todayWeekNum = getWeekNumber(today);
-                 // Check if today's week falls within the first 4 weeks of the month
                  if (todayWeekNum >= startWeekNum && todayWeekNum < startWeekNum + 4) {
                      currentWeek = todayWeekNum;
                  } else {
-                     currentWeek = startWeekNum; // Default to week 1 if not in range
+                     currentWeek = startWeekNum;
                  }
             } else {
-                currentWeek = startWeekNum; // Default to the first week for other months
+                currentWeek = startWeekNum;
             }
-            // --- END OF MODIFICATION ---
 
             updateBillingSummary(year, currentWeek);
         }
@@ -256,7 +268,6 @@
         
         renderControls();
 
-        // --- Create Loan Modal Logic (Remains unchanged) ---
         const modal = document.getElementById('add-loan-modal');
         const openBtn = document.getElementById('create-loan-btn');
         const closeBtn = document.getElementById('close-loan-modal-btn');
@@ -317,4 +328,5 @@
         }
     });
 </script>
+<!-- END OF MODIFICATION -->
 {% endblock %}
