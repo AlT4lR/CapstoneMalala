@@ -14,7 +14,7 @@ from ..models import (
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
-    get_unread_notifications, mark_notifications_as_read,
+    get_notifications, mark_single_notification_as_read, # MODIFIED IMPORT
     get_schedules
 )
 
@@ -139,18 +139,24 @@ def notification_status():
 
 @main.route('/api/notifications', methods=['GET'])
 @jwt_required()
-def get_notifications():
+def get_notifications_route():
     username = get_jwt_identity()
-    notifications = get_unread_notifications(username)
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 25))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid page or limit parameter.'}), 400
+        
+    notifications = get_notifications(username, page, limit)
     return jsonify(notifications)
 
-@main.route('/api/notifications/read', methods=['POST'])
+@main.route('/api/notifications/read/<notification_id>', methods=['POST'])
 @jwt_required()
-def mark_read():
+def mark_read_single(notification_id):
     username = get_jwt_identity()
-    if mark_notifications_as_read(username):
+    if mark_single_notification_as_read(username, notification_id):
         return jsonify({'success': True})
-    return jsonify({'error': 'Failed to mark notifications as read'}), 500
+    return jsonify({'error': 'Failed to mark notification as read'}), 500
     
 @main.route('/api/archive/restore/<item_type>/<item_id>', methods=['POST'])
 @jwt_required()
