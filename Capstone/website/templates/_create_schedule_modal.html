@@ -1,14 +1,14 @@
 <!-- website/templates/_create_schedule_modal.html -->
-<!-- ✅ ADDED: 'modal-backdrop' class -->
+<!-- --- START OF MODIFICATION --- -->
 <div id="create-schedule-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <!-- ✅ ADDED: 'modal-content' class -->
     <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
+<!-- --- END OF MODIFICATION --- -->
         <form id="schedule-form" method="POST" class="space-y-4">
             <input type="hidden" id="schedule-id" name="schedule_id" value="">
 
             <!-- Header -->
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
+                <h2 id="modal-title" class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
                 <div class="flex items-center gap-2">
                     <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Discard</button>
                 </div>
@@ -39,7 +39,6 @@
                 </div>
             </div>
 
-            <!-- Labels & Location -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="schedule-location" class="text-sm font-semibold">Location</label>
@@ -63,7 +62,6 @@
             <!-- Footer -->
             <div class="flex justify-between items-center pt-4">
                 <div>
-                    <!-- Delete button only shown when editing -->
                     <button type="button" id="delete-schedule-btn" onclick="if(document.getElementById('schedule-id').value){ window.deleteSchedule(document.getElementById('schedule-id').value); }" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
                 </div>
                 <div class="flex gap-2">
@@ -75,37 +73,5 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('create-schedule-modal');
-        const deleteBtn = document.getElementById('delete-schedule-btn');
-        const cancelBtn = document.getElementById('cancel-schedule-btn');
-        const discardBtn = document.getElementById('discard-schedule-btn');
-        const scheduleIdInput = document.getElementById('schedule-id');
-
-        // ✅ UPDATED: Helper function for smooth closing animation
-        const closeModal = () => {
-            modal.classList.remove('active');
-            modal.addEventListener('transitionend', () => {
-                modal.classList.add('hidden');
-                if (deleteBtn) deleteBtn.classList.add('hidden');
-            }, { once: true });
-        };
-
-        const observer = new MutationObserver(() => {
-            if (scheduleIdInput.value) {
-                deleteBtn.classList.remove('hidden');
-            } else {
-                deleteBtn.classList.add('hidden');
-            }
-        });
-        observer.observe(scheduleIdInput, { attributes: true, childList: false, subtree: false });
-
-        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-        if (discardBtn) discardBtn.addEventListener('click', closeModal);
-        // Close modal when clicking outside the content area
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-    });
-</script>
+<!-- --- START OF MODIFICATION: The inline script block has been removed --- -->
+<!-- --- END OF MODIFICATION --- -->
