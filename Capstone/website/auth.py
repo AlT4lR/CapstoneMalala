@@ -95,7 +95,10 @@ def login():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        if current_app.add_user(form.username.data, form.email.data, form.password.data):
+        # --- START OF FIX: Call add_user only once and store the result ---
+        user_added_successfully = current_app.add_user(form.username.data, form.email.data, form.password.data)
+        if user_added_successfully:
+        # --- END OF FIX ---
             otp = current_app.set_user_otp(form.username.data, otp_type='email')
             if otp:
                 send_otp_email(form.email.data, otp)
@@ -119,9 +122,7 @@ def verify_otp():
         if is_2fa_login:
             if current_app.verify_user_otp(username, otp_input, otp_type='2fa'):
                 
-                # --- START OF MODIFICATION ---
                 current_app.log_user_activity(username, 'User Log In')
-                # --- END OF MODIFICATION ---
 
                 access_token = create_access_token(identity=username)
                 response = make_response(redirect(url_for('main.root_route')))

@@ -16,7 +16,8 @@
                 </div>
                 <div>
                     {{ edit_form.check_date.label(class="block text-sm font-semibold mb-2") }}
-                    {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                    <!-- MODIFIED: Changed type to text for Flatpickr -->
+                    {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
                 </div>
                 <div>
                     {{ edit_form.ewt.label(class="block text-sm font-semibold mb-2") }}
@@ -25,6 +26,11 @@
                 <div>
                     {{ edit_form.countered_check.label(class="block text-sm font-semibold mb-2") }}
                     {{ edit_form.countered_check(id="edit-countered-check", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
+                </div>
+                <!-- MODIFIED: Added Due Date field to the edit form -->
+                <div class="md:col-span-2">
+                    {{ edit_form.due_date.label(class="block text-sm font-semibold mb-2") }}
+                    {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
                 </div>
                 <div class="md:col-span-2">
                     <label for="edit-notes" class="block text-sm font-semibold mb-2">Notes</label>

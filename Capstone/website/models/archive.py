@@ -46,16 +46,33 @@ def get_archived_items(username):
     for collection_name in collections_to_check:
         try:
             for doc in db[collection_name].find({'username': username, 'isArchived': True}):
-                items.append({
+                # --- START OF MODIFICATION ---
+                # Base item structure
+                item = {
                     'id': str(doc['_id']),
                     'name': doc.get('name') or doc.get('folder_name', 'Archived Item'),
-                    'type': collection_name.rstrip('s').capitalize(),
+                    'type': collection_name.rstrip('s').capitalize(), # 'Transaction' or 'Invoice' for API calls
                     'details': f"Archived on {doc.get('archivedAt', datetime.now(pytz.utc)).strftime('%Y-%m-%d')}",
                     'archived_at_str': doc.get('archivedAt').strftime('%b %d, %Y') if doc.get('archivedAt') else 'N/A',
                     'relative_time': format_relative_time(doc.get('archivedAt')) if doc.get('archivedAt') else 'N/A'
-                })
+                }
+
+                # Add a separate key for display purposes to differentiate folders from files
+                if item['type'] == 'Transaction':
+                    if doc.get('parent_id') is not None:
+                        item['display_category'] = 'File' # This is an individual check
+                    else:
+                        item['display_category'] = 'Folder' # This is a transaction folder
+                elif item['type'] == 'Invoice':
+                    item['display_category'] = 'Image'
+                else:
+                    item['display_category'] = item['type'] # Fallback
+
+                items.append(item)
+                # --- END OF MODIFICATION ---
         except Exception as e:
             logger.error(f"Error fetching archived items from {collection_name} for {username}: {e}")
-    items.sort(key=lambda x: x['relative_time'], reverse=True)
+    
+    # Sort by archiving time after all items have been collected
+    items.sort(key=lambda x: x.get('archivedAt', datetime.now(pytz.utc)) if isinstance(x.get('archivedAt'), datetime) else datetime.now(pytz.utc), reverse=True)
     return items
-

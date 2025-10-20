@@ -12,6 +12,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- START OF MODIFICATION: Added Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- END OF MODIFICATION -->
 
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
@@ -51,6 +55,33 @@
             transform: scale(1) translateY(0);
             opacity: 1;
         }
+
+        /* START OF MODIFICATION: Custom styles for Flatpickr theme */
+        .flatpickr-calendar {
+            background: #fafaf5;
+            border: 1px solid #d4d8c4;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: #3a4d39;
+            border-color: #3a4d39;
+        }
+        .flatpickr-day.today {
+            border-color: #6f8a6e;
+        }
+        .flatpickr-day:hover {
+            background: #eef2e9;
+        }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            color: #3a4d39;
+            font-weight: 600;
+        }
+        .numInputWrapper span:hover {
+            background: #eef2e9;
+        }
+        /* END OF MODIFICATION */
     </style>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -68,7 +99,6 @@
 
         <div class="flex-1 flex flex-col relative overflow-y-auto">
             {% if show_sidebar %}
-            <!-- --- START OF MODIFICATION --- -->
             <header class="lg:hidden flex justify-between items-center p-4 bg-[#fafaf5] border-b sticky top-0 z-20">
                 <button id="sidebar-open-btn">
                     <i class="fas fa-bars fa-lg text-gray-600"></i>
@@ -78,7 +108,6 @@
                     {% include "_notification_button.html" %}
                 </div>
             </header>
-            <!-- --- END OF MODIFICATION --- -->
             {% endif %}
 
             <!-- Main content container -->

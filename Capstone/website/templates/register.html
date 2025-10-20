@@ -82,6 +82,13 @@
                         {{ form.username(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your username") }}
                         <i class="fas fa-user absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
+                    {% if form.username.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.username.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
                 <!-- Email Field -->
@@ -91,6 +98,13 @@
                         {{ form.email(class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Enter your email") }}
                         <i class="fas fa-envelope absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
+                    {% if form.email.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.email.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
                 <!-- Password Field with Tooltip -->
@@ -127,6 +141,15 @@
                             </ul>
                         </div>
                     </div>
+                    <!-- START OF FIX: Display validation errors for the password field -->
+                    {% if form.password.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.password.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <!-- END OF FIX -->
                 </div>
                 
                 <!-- Confirm Password Field -->
@@ -136,6 +159,15 @@
                         {{ form.confirm_password(id="confirm_password", class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green", placeholder="Confirm your password") }}
                         <i id="toggleConfirmPassword" class="fas fa-eye absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
                     </div>
+                    <!-- START OF FIX: Display validation errors for the confirm_password field -->
+                    {% if form.confirm_password.errors %}
+                        <div class="text-red-500 text-xs mt-1">
+                            {% for error in form.confirm_password.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <!-- END OF FIX -->
                 </div>
 
                 <!-- Register Button -->

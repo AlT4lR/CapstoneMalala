@@ -13,9 +13,7 @@
 
         <form id="create-transaction-folder-form" action="{{ url_for('main.add_transaction_route') }}" method="POST" class="space-y-6" novalidate>
             
-            <!-- --- START OF FIX --- -->
             {{ form.hidden_tag() }}
-            <!-- --- END OF FIX --- -->
 
             <!-- Form Fields updated to include Due Date -->
             <div class="space-y-4">
@@ -25,11 +23,13 @@
                 </div>
                 <div>
                     <label for="check_date" class="block text-sm font-medium mb-2">Date Created</label>
-                    {{ form.check_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
+                    <!-- MODIFIED: Changed type to text for Flatpickr -->
+                    {{ form.check_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", type="text") }}
                 </div>
                 <div>
                     <label for="due_date" class="block text-sm font-medium mb-2">Due Date</label>
-                    {{ form.due_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
+                    <!-- MODIFIED: Changed type to text for Flatpickr -->
+                    {{ form.due_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", type="text") }}
                 </div>
             </div>
 

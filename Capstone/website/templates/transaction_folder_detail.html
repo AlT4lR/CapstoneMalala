@@ -96,8 +96,18 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize date picker in the "Add Check" modal
+    flatpickr("#check_date", {
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+        altInput: true,
+        altFormat: "F j, Y",
+    });
+
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
@@ -128,14 +138,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const finalNotes = notesTextarea.value;
         const finalAmount = parseFloat(checkAmountInput.value);
 
-        // --- START OF MODIFICATION: Removed client-side alert. Validation is now server-side. ---
-        // if (isNaN(finalAmount) || finalAmount <= 0) {
-        //     alert('Please enter a valid check amount.');
-        //     checkAmountInput.focus();
-        //     return;
-        // }
-        // --- END OF MODIFICATION ---
-
         paidBtn.disabled = true;
         paidBtn.textContent = 'Processing...';
 
@@ -153,19 +155,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (response.ok) {
-                 // Server will have flashed a success message. Reload to display it and redirect.
                  window.location.href = "{{ url_for('main.transactions_paid') }}";
             } else {
-                // Server will have flashed an error message. Reload to display it.
                 window.location.reload();
             }
            
         } catch (error) {
             console.error('Error:', error);
-            // On network error, also reload to let the user see what happened.
             window.location.reload();
         }
     });
 });
 </script>
+<!-- END OF MODIFICATION -->
 {% endblock %}
