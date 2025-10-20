@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const fileList = document.getElementById("file-list");
     // --- START OF MODIFICATION ---
     const MAX_FILES = 10; // Define the upload limit
+    const invoiceForm = document.getElementById('invoice-form');
+    const uploadBtn = document.getElementById('upload-btn');
+    let filesToUpload = [];
     // --- END OF MODIFICATION ---
 
     if (!dropZone || !fileInput || !fileList) {
@@ -32,11 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Core Functions ---
     const handleFiles = (files) => {
         // --- START OF MODIFICATION: File limit logic ---
-        const existingFilesCount = fileList.children.length;
+        const existingFilesCount = filesToUpload.length;
         const allowedNewFilesCount = MAX_FILES - existingFilesCount;
 
         if (files.length > allowedNewFilesCount) {
-            alert(`You can only upload a maximum of 10 files in total. Please select ${allowedNewFilesCount > 0 ? `up to ${allowedNewFilesCount} more files.` : 'no more files.'}`);
+            alert(`You can only upload a maximum of ${MAX_FILES} files in total. Please select ${allowedNewFilesCount > 0 ? `up to ${allowedNewFilesCount} more files.` : 'no more files.'}`);
             if (allowedNewFilesCount <= 0) return; // Stop if the list is already full
         }
         
@@ -48,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const fileId = `file-${Date.now()}-${Math.random()}`;
             const fileItemHTML = createFileItemHTML(file, fileId);
             fileList.insertAdjacentHTML('beforeend', fileItemHTML);
+            filesToUpload.push(file);
 
             // Add event listener to the new remove button
             document.getElementById(fileId).querySelector('.remove-btn').addEventListener('click', () => {
@@ -74,11 +78,13 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     };
     
+    // --- START OF MODIFICATION ---
     const removeFile = (file, fileId) => {
         // Remove from the array
         filesToUpload = filesToUpload.filter(f => !(f.name === file.name && f.size === file.size));
         // Remove from the DOM
-        document.getElementById(fileId).remove();
+        const element = document.getElementById(fileId);
+        if (element) element.remove();
     };
     // --- END OF MODIFICATION ---
 
@@ -100,15 +106,20 @@ document.addEventListener("DOMContentLoaded", () => {
             formData.append('folder-name', document.getElementById('folder-name').value);
             formData.append('categories', document.getElementById('categories').value);
             formData.append('date', document.getElementById('date').value);
+            
+            // Append files
+            filesToUpload.forEach(file => {
+                formData.append('files', file);
+            });
 
-        progressBarContainer.classList.add('hidden');
-        statusText.innerHTML = '<i class="fa-solid fa-check text-green-600"></i> Done';
-        
-        // Replace the simple 'X' button with the red trash can icon.
-        actionContainer.innerHTML = `<button class="remove-btn text-red-500 hover:text-red-700 transition-colors"><i class="fa-solid fa-trash-can"></i></button>`;
-        
-        actionContainer.querySelector('.remove-btn').addEventListener('click', () => fileItem.remove());
-    };
+            try {
+                const response = await fetch('/api/invoices/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                         'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
 
                 if (!response.ok) {
                     throw new Error(`Server responded with status: ${response.status}`);
