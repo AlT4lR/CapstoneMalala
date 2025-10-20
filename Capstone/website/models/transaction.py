@@ -13,7 +13,9 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
     if db is None: return False
     try:
         check_date_obj = transaction_data.get('check_date')
+        # --- START OF MODIFICATION ---
         due_date_obj = transaction_data.get('due_date')
+        # --- END OF MODIFICATION ---
         countered_check_val = transaction_data.get('countered_check')
         ewt_val = transaction_data.get('ewt')
 
@@ -22,7 +24,9 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
             'name': transaction_data.get('name_of_issued_check'),
             'check_no': transaction_data.get('check_no'),
             'check_date': pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time())) if check_date_obj else datetime.now(pytz.utc),
+            # --- START OF MODIFICATION ---
             'due_date': pytz.utc.localize(datetime.combine(due_date_obj, datetime.min.time())) if due_date_obj else None,
+            # --- END OF MODIFICATION ---
             'countered_check': float(countered_check_val or 0.0),
             'amount': float(countered_check_val or 0.0),
             'ewt': float(ewt_val or 0.0),

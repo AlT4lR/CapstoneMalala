@@ -33,7 +33,6 @@
             animation: fadeInDown 0.5s ease-out forwards;
         }
 
-        /* --- START OF MODIFICATION: Generic Modal Animation Styles --- */
         .modal-backdrop {
             opacity: 0;
             visibility: hidden;
@@ -52,7 +51,6 @@
             transform: scale(1) translateY(0);
             opacity: 1;
         }
-        /* --- END OF MODIFICATION --- */
     </style>
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -69,17 +67,19 @@
         {% endif %}
 
         <div class="flex-1 flex flex-col relative overflow-y-auto">
-            <!-- --- START OF MODIFICATION: Added mobile header with hamburger menu --- -->
             {% if show_sidebar %}
+            <!-- --- START OF MODIFICATION --- -->
             <header class="lg:hidden flex justify-between items-center p-4 bg-[#fafaf5] border-b sticky top-0 z-20">
                 <button id="sidebar-open-btn">
                     <i class="fas fa-bars fa-lg text-gray-600"></i>
                 </button>
                 <div class="text-lg font-bold text-[#3a4d39]">DecoOffice</div>
-                <div><!-- Spacer --></div>
+                <div class="flex items-center">
+                    {% include "_notification_button.html" %}
+                </div>
             </header>
-            {% endif %}
             <!-- --- END OF MODIFICATION --- -->
+            {% endif %}
 
             <!-- Main content container -->
             <main class="flex-1 flex flex-col">
@@ -95,7 +95,6 @@
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             window.getCSRFToken = () => csrfToken;
 
-            // --- START OF MODIFICATION: Mobile sidebar logic ---
             const sidebar = document.getElementById('sidebar');
             const openBtn = document.getElementById('sidebar-open-btn');
             const closeBtn = document.getElementById('sidebar-close-btn');
@@ -118,7 +117,6 @@
             if(openBtn) openBtn.addEventListener('click', openSidebar);
             if(closeBtn) closeBtn.addEventListener('click', closeSidebar);
             if(overlay) overlay.addEventListener('click', closeSidebar);
-            // --- END OF MODIFICATION ---
         });
     </script>
     {% block scripts %}{% endblock %}

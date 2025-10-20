@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const monthlyTotalDisplay = document.getElementById('monthly-total-display');
     const prevYearBtn = document.getElementById('prev-year-btn');
     const nextYearBtn = document.getElementById('next-year-btn');
+    // --- START OF MODIFICATION ---
+    const analyticsTitle = document.getElementById('analytics-title');
+    // --- END OF MODIFICATION ---
 
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
@@ -135,6 +138,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderAnalytics(data) {
         yearDisplay.textContent = `YEAR ${data.year}`;
+        // --- START OF MODIFICATION ---
+        analyticsTitle.textContent = `Total of Monthly Billings for ${data.year}`;
+        // --- END OF MODIFICATION ---
         totalEarningDisplay.textContent = currencyFormatter.format(data.total_year_earning);
         monthlyTotalDisplay.textContent = currencyFormatter.format(data.current_month_total);
         renderChart(data.chart_data);

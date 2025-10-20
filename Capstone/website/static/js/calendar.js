@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthViewBtn = document.getElementById('month-view-btn');
     const yearViewBtn = document.getElementById('year-view-btn');
 
+    // --- START OF MODIFICATION: Mobile Sidebar Refs ---
+    const mobileControlsBtn = document.getElementById('mobile-controls-btn');
+    const sidebar = document.getElementById('schedule-controls');
+    const overlay = document.getElementById('sidebar-overlay');
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+    // --- END OF MODIFICATION ---
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const labelColors = {
@@ -31,35 +38,21 @@ document.addEventListener('DOMContentLoaded', function() {
         'Personal': '#f59e0b',
         'Others': '#6b7280'
     };
-
-    // ✅ START OF MODIFICATION: Animation Helper Functions
-    const openModal = () => {
-        modal.classList.remove('hidden');
-        // Slight delay to allow the browser to register the removal of 'hidden' before adding 'active'
-        setTimeout(() => modal.classList.add('active'), 10);
-    };
-
-    const closeModal = () => {
-        modal.classList.remove('active');
-        // Wait for the CSS transition to finish before hiding the element completely
-        modal.addEventListener('transitionend', () => {
-            modal.classList.add('hidden');
-        }, { once: true });
-    };
-    // ✅ END OF MODIFICATION
+    
+    // --- START OF MODIFICATION: Responsive Calendar Config ---
+    const isMobile = window.innerWidth < 768;
 
     // --- FullCalendar Setup ---
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: ''
-        },
+        initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+        headerToolbar: isMobile ? 
+            { left: 'prev,next', center: 'title', right: 'today' } : 
+            { left: 'prev,next today', center: 'title', right: '' },
         selectable: true,
         editable: true,
         height: '100%',
         events: `/api/schedules`,
+    // --- END OF MODIFICATION ---
 
         eventDidMount: function(info) {
             const label = info.event.extendedProps.label || 'Others';
@@ -80,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             allDayToggle.checked = info.allDay;
             scheduleLabelInput.value = 'Others';
-            openModal(); // ✅ Use helper
+            modal.classList.remove('hidden');
         },
 
         eventClick: function(info) {
@@ -97,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimeInput.value = event.startStr.slice(11, 16);
                 endTimeInput.value = event.endStr ? event.endStr.slice(11, 16) : '';
             }
-            openModal(); // ✅ Use helper
+            modal.classList.remove('hidden');
         },
 
         eventDrop: (info) => handleEventUpdate(info.event),
@@ -111,51 +104,34 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const formData = new FormData(this);
         const id = scheduleIdInput.value;
+        const isUpdate = !!id;
+
+        const date = formData.get('date');
+        const allDay = formData.has('all_day');
+        const startTime = formData.get('start_time') || '00:00';
+        const endTime = formData.get('end_time');
+
+        const payload = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            location: formData.get('location'),
+            label: formData.get('label'),
+            allDay: allDay,
+            start: allDay ? new Date(`${date}T00:00:00`).toISOString() : new Date(`${date}T${startTime}:00`).toISOString(),
+            end: allDay ? null : (endTime ? new Date(`${date}T${endTime}:00`).toISOString() : null)
+        };
+
+        const url = isUpdate ? `/api/schedules/update/${id}` : '/api/schedules/add';
 
         try {
-            let response;
-
-            if (id) {
-                // UPDATE (send as JSON)
-                const url = `/api/schedules/update/${id}`;
-                const payload = {
-                    title: formData.get('title'),
-                    description: formData.get('description'),
-                    location: formData.get('location'),
-                    label: formData.get('label'),
-                    allDay: formData.has('all_day')
-                };
-
-                const date = formData.get('date');
-                if (payload.allDay) {
-                    payload.start = new Date(date + 'T00:00:00Z').toISOString();
-                } else {
-                    const startTime = formData.get('start_time') || '00:00';
-                    const endTime = formData.get('end_time');
-                    payload.start = new Date(`${date}T${startTime}:00Z`).toISOString();
-                    if (endTime) {
-                        payload.end = new Date(`${date}T${endTime}:00Z`).toISOString();
-                    }
-                }
-
-                response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                // CREATE (send as form-data)
-                const url = '/api/schedules/add';
-                response = await fetch(url, {
-                    method: 'POST',
-                    body: new URLSearchParams(formData),
-                    headers: { 'X-CSRF-Token': csrfToken }
-                });
-            }
-
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify(payload)
+            });
             const result = await response.json();
             if (result.success) {
-                closeModal(); // ✅ Use helper
+                modal.classList.add('hidden');
                 calendar.refetchEvents();
             } else {
                 alert('Error: ' + (result.error || 'Could not save schedule.'));
@@ -203,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const result = await response.json();
                 if (result.success) {
-                    closeModal(); // ✅ Use helper
+                    modal.classList.add('hidden');
                     calendar.refetchEvents();
                 } else {
                     alert('Error: ' + (result.error || 'Could not delete schedule.'));
@@ -241,7 +217,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     yearViewBtn.addEventListener('click', () => {
-        calendar.changeView('yearGrid');
+        calendar.changeView('listYear'); 
         setActiveView(yearViewBtn);
     });
+
+    // --- START OF MODIFICATION: Mobile Sidebar Logic ---
+    function openSidebar() {
+        if(sidebar && overlay) {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        }
+    }
+    function closeSidebar() {
+        if(sidebar && overlay) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    }
+
+    if(mobileControlsBtn) mobileControlsBtn.addEventListener('click', openSidebar);
+    if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+    if(overlay) overlay.addEventListener('click', closeSidebar);
+    // --- END OF MODIFICATION ---
 });
