@@ -47,7 +47,7 @@ def get_analytics_data(username, branch, year, month):
                 'is_current_month': i == month
             })
 
-        # --- START OF MODIFICATION: Correctly calculate week of the month ---
+        # --- MODIFICATION: Limit to weeks 1-4 ---
         weekly_pipeline = [
             {'$match': {'username': username, 'branch': branch, 'status': 'Paid', 'paidAt': {'$gte': month_start, '$lt': month_end}}},
             {'$group': {
@@ -57,7 +57,15 @@ def get_analytics_data(username, branch, year, month):
             {'$sort': {'_id': 1}}
         ]
         weekly_docs = list(db.transactions.aggregate(weekly_pipeline))
-        weekly_breakdown = [{'week': f"Week {doc['_id']}", 'total': doc['total']} for doc in weekly_docs]
+        weekly_totals_dict = {doc['_id']: doc['total'] for doc in weekly_docs}
+        
+        # Changed range to (1, 5) to include only weeks 1, 2, 3, and 4.
+        weekly_breakdown = []
+        for i in range(1, 5): 
+            weekly_breakdown.append({
+                'week': f"Week {i}",
+                'total': weekly_totals_dict.get(i, 0.0)
+            })
         # --- END OF MODIFICATION ---
         
         current_month_total = monthly_totals.get(month, 0.0)
