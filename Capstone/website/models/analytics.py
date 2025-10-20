@@ -41,18 +41,24 @@ def get_analytics_data(username, branch, year, month):
             percentage = (total / max_earning * 100) if max_earning > 0 else 0
             chart_data.append({
                 'month_name': month_name[i][:3].upper(),
+                'month_name_full': month_name[i],
                 'total': total,
                 'percentage': percentage,
                 'is_current_month': i == month
             })
 
+        # --- START OF MODIFICATION: Correctly calculate week of the month ---
         weekly_pipeline = [
             {'$match': {'username': username, 'branch': branch, 'status': 'Paid', 'paidAt': {'$gte': month_start, '$lt': month_end}}},
-            {'$group': {'_id': {'$week': '$paidAt'}, 'total': {'$sum': '$amount'}}},
+            {'$group': {
+                '_id': {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]},
+                'total': {'$sum': '$amount'}
+            }},
             {'$sort': {'_id': 1}}
         ]
         weekly_docs = list(db.transactions.aggregate(weekly_pipeline))
-        weekly_breakdown = [{'week': f"Week {i + 1}", 'total': doc['total']} for i, doc in enumerate(weekly_docs)]
+        weekly_breakdown = [{'week': f"Week {doc['_id']}", 'total': doc['total']} for doc in weekly_docs]
+        # --- END OF MODIFICATION ---
         
         current_month_total = monthly_totals.get(month, 0.0)
 
