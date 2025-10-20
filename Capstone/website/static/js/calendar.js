@@ -85,10 +85,10 @@ document.addEventListener('DOMContentLoaded', function() {
         selectable: true,
         editable: true,
         
-        // --- START OF FIX: Make calendar height responsive to content ---
-        height: 'auto',
+        // --- START OF FIX: Set height back to 100% to fill the container ---
+        height: '100%',
         // --- END OF FIX ---
-
+        
         events: `/api/schedules`,
         eventTimeFormat: {
             hour: 'numeric',

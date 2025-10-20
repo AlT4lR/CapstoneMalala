@@ -73,12 +73,9 @@
   color: #fff !important;
   font-weight: 500;
 }
-
-/* --- START OF FIX: Allow event titles to wrap --- */
 .fc-daygrid-event {
     white-space: normal;
 }
-/* --- END OF FIX --- */
 
 
 /* Year view */
@@ -121,27 +118,25 @@
 {% endblock %}
 
 {% block content %}
+<!-- --- START OF MODIFICATION: Added flexbox classes to main container --- -->
 <main class="relative flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1]">
+<!-- --- END OF MODIFICATION --- -->
     
-    <!-- --- START OF MODIFICATION --- -->
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 flex-shrink-0">
         <div>
             <h2 class="text-3xl font-bold text-[#3a4d39] uppercase tracking-wide">Schedules</h2>
             <p class="text-gray-500 text-sm mt-1">Manage your events and appointments.</p>
         </div>
         <div class="flex items-center gap-4">
-            <!-- Mobile Controls Button -->
             <button id="mobile-controls-btn" class="md:hidden px-4 py-2 bg-white border rounded-lg shadow-sm flex items-center gap-2">
                 <i class="fa-solid fa-sliders"></i> 
                 <span>Controls</span>
             </button>
-            <!-- Notification button only for desktop -->
             <div class="hidden md:flex items-center">
                  {% include "_notification_button.html" %}
             </div>
         </div>
     </header>
-    <!-- --- END OF MODIFICATION --- -->
 
     <!-- Calendar Layout -->
     <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
@@ -149,12 +144,12 @@
         <!-- Sidebar Overlay (for mobile) -->
         <div id="sidebar-overlay" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
         
-        <!-- Left Panel: Now an off-canvas menu on mobile -->
+        <!-- Left Panel -->
         <aside id="schedule-controls" 
                class="w-72 bg-white p-4 flex flex-col gap-4 fixed inset-y-0 left-0 z-50
                       -translate-x-full transition-transform duration-300 ease-in-out
                       md:w-56 md:relative md:translate-x-0 md:inset-auto md:z-auto 
-                      border-r md:border md:rounded-lg md:shadow-sm">
+                      border-r md:border md:rounded-lg md:shadow-sm flex-shrink-0">
             
             <div class="flex justify-between items-center md:hidden">
                 <h3 class="font-bold text-lg text-[#3a4d39]">Controls</h3>
@@ -181,19 +176,18 @@
             </div>
         </aside>
 
-        <!-- Right Panel: Main Calendar -->
-        <div class="flex-1 bg-white p-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <!-- --- START OF MODIFICATION: Added flex and flex-col to calendar container --- -->
+        <div class="flex-1 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+        <!-- --- END OF MODIFICATION --- -->
             <div id="calendar" class="h-full custom-scrollbar"></div>
         </div>
     </div>
 </main>
 
-<!-- Use the existing modal template from the codebase -->
 {% include "_create_schedule_modal.html" %}
 
 {% endblock %}
 
 {% block scripts %}
-<!-- Load the correct, backend-connected calendar script -->
 <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 {% endblock %}
