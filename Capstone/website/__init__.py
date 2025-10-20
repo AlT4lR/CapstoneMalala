@@ -111,10 +111,12 @@ def create_app(config_name='dev'):
     app.get_invoice_by_id = get_invoice_by_id
     app.archive_invoice = archive_invoice
 
+    # --- START OF FIX ---
     app.add_notification = add_notification
-    app.get_unread_notifications = get_unread_notifications
+    app.get_notifications = get_notifications # Changed from get_unread_notifications
     app.get_unread_notification_count = get_unread_notification_count
-    app.mark_notifications_as_read = mark_notifications_as_read
+    app.mark_single_notification_as_read = mark_single_notification_as_read # Changed from mark_notifications_as_read
+    # --- END OF FIX ---
 
     app.add_loan = add_loan
     app.get_loans = get_loans

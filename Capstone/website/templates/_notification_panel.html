@@ -6,17 +6,17 @@
     <div class="p-4 border-b">
         <div class="flex justify-between items-center">
             <h2 class="text-xl font-bold text-[#3a4d39]">Notifications</h2>
-            <!-- Optional: Add a search bar or settings icon later -->
         </div>
     </div>
 
-    <!-- Notification items will be injected here by JavaScript -->
+    <!-- Notification items will be injected here. Fixed height and scroll are applied. -->
     <div id="notification-list" class="max-h-96 overflow-y-auto custom-scrollbar">
-        <!-- Loading state -->
-        <p id="notification-loader" class="text-center text-gray-500 p-8">Loading...</p>
+        <!-- Initially empty. JS will populate this area. -->
     </div>
 
-    <div class="p-3 bg-gray-50 border-t text-center rounded-b-2xl">
+    <!-- Footer for the loading indicator and "View All" link -->
+    <div id="notification-list-footer" class="p-3 bg-gray-50 border-t text-center rounded-b-2xl">
+        <p id="notification-loader" class="text-center text-gray-500 p-4" style="display: none;">Loading...</p>
         <a href="#" class="font-semibold text-[#3a4d39] hover:underline">View all notifications</a>
     </div>
 </div>
