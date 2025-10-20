@@ -165,17 +165,6 @@
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
-        function getWeeksInMonth(year, month) {
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const startWeek = getWeekNumber(firstDay);
-            const endWeek = getWeekNumber(lastDay);
-            if (startWeek > endWeek) {
-                return (52 - startWeek) + endWeek + 1;
-            }
-            return endWeek - startWeek + 1;
-        }
-
         async function updateBillingSummary(year, week) {
             totalCheckAmountEl.textContent = '...';
             totalEwtEl.textContent = '...';
@@ -217,11 +206,11 @@
             monthYearDisplay.textContent = `${monthName} ${year}`;
             weekButtonsContainer.innerHTML = '';
 
-            const numWeeks = getWeeksInMonth(year, month);
             const firstDayOfMonth = new Date(year, month, 1);
             const startWeekNum = getWeekNumber(firstDayOfMonth);
 
-            for (let i = 0; i < numWeeks; i++) {
+            // --- START OF MODIFICATION: Always create 4 weeks ---
+            for (let i = 0; i < 4; i++) {
                 const weekNum = startWeekNum + i;
                 const button = document.createElement('button');
                 button.dataset.weekIndex = weekNum;
@@ -232,10 +221,17 @@
             
             const today = new Date();
             if (today.getFullYear() === year && today.getMonth() === month) {
-                 currentWeek = getWeekNumber(today);
+                 const todayWeekNum = getWeekNumber(today);
+                 // Check if today's week falls within the first 4 weeks of the month
+                 if (todayWeekNum >= startWeekNum && todayWeekNum < startWeekNum + 4) {
+                     currentWeek = todayWeekNum;
+                 } else {
+                     currentWeek = startWeekNum; // Default to week 1 if not in range
+                 }
             } else {
-                currentWeek = startWeekNum;
+                currentWeek = startWeekNum; // Default to the first week for other months
             }
+            // --- END OF MODIFICATION ---
 
             updateBillingSummary(year, currentWeek);
         }
@@ -260,6 +256,7 @@
         
         renderControls();
 
+        // --- Create Loan Modal Logic (Remains unchanged) ---
         const modal = document.getElementById('add-loan-modal');
         const openBtn = document.getElementById('create-loan-btn');
         const closeBtn = document.getElementById('close-loan-modal-btn');
