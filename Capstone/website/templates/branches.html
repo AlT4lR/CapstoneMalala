@@ -32,7 +32,12 @@
     <div class="relative min-h-screen flex flex-col items-center justify-center p-6">
 
         <!-- --- START OF MODIFICATION --- -->
-        <!-- The <header> containing the logout button has been removed. -->
+        <header class="absolute top-0 right-0 p-6">
+            <a href="{{ url_for('auth.logout') }}" class="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-2">
+                <span>Logout</span>
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </header>
         <!-- --- END OF MODIFICATION --- -->
 
         <main class="text-center">

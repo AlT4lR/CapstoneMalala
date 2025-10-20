@@ -2,208 +2,206 @@
 {% block title %}DecoOffice - Pending Transactions{% endblock %}
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
-    
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
-        <div>
-            <h2 class="text-3xl font-bold uppercase tracking-wide">Transactions</h2>
-            <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>Go Back...</span>
-            </a>
+    <div>
+        <h2 class="text-3xl font-bold uppercase tracking-wide">Transactions</h2>
+        <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Go Back...</span>
+        </a>
+    </div>
+    <div class="flex items-center gap-4 w-full sm:w-auto">
+        <div class="relative flex-grow sm:flex-grow-0">
+            <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
-        <div class="flex items-center gap-4 w-full sm:w-auto">
-            <div class="relative flex-grow sm:flex-grow-0">
-                <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-            </div>
-            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
-                <i class="fa-solid fa-box-archive fa-lg"></i>
-            </a>
-            {% include "_notification_button.html" %}
-        </div>
-    </header>
+        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+            <i class="fa-solid fa-box-archive fa-lg"></i>
+        </a>
+        {% include "_notification_button.html" %}
+    </div>
+</header>
 
-    <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
-            <span class="col-span-5">Name</span>
-            <span class="col-span-2">Date</span>
-            <span class="col-span-3 text-right">Actions</span>
-        </div>
+<div class="flex-1 flex flex-col overflow-hidden">
+    <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
+        <span class="col-span-5">Name</span>
+        <span class="col-span-2">Date</span>
+        <span class="col-span-3 text-right">Actions</span>
+    </div>
 
-        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <div id="transaction-list-container" class="space-y-3 md:space-y-2">
-                {% for t in transactions %}
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
-                    <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center px-4 py-3">
-                        
-                        <!-- Mobile View -->
-                        <div class="md:hidden">
-                            <div class="flex justify-between items-start">
-                                <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
-                                    <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                    <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
-                                </a>
-                                <div class="flex gap-4 text-gray-500">
-                                    <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <div class="delete-btn-wrapper hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <div id="transaction-list-container" class="space-y-3 md:space-y-2">
+            {% for t in transactions %}
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
+                <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center px-4 py-3">
+                    
+                    <!-- Mobile View -->
+                    <div class="md:hidden">
+                        <div class="flex justify-between items-start">
+                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
+                                <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                                <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                            </a>
+                            <div class="flex gap-4 text-gray-500">
+                                <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <div class="delete-btn-wrapper hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
+                                    <i class="fa-solid fa-trash-can"></i>
                                 </div>
                             </div>
-                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2">
-                                <strong>Date:</strong> {{ t.check_date }}
-                            </a>
                         </div>
-                        
-                        <!-- Desktop View -->
-                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3">
-                            <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                            <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2">
+                            <strong>Date:</strong> {{ t.check_date }}
                         </a>
-                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</a>
-                        <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
-                            <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
+                    </div>
+                    
+                    <!-- Desktop View -->
+                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3">
+                        <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
+                        <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                    </a>
+                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</a>
+                    <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
+                        <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
-                {% else %}
-                <div class="flex items-center justify-center h-40">
-                    <p class="text-gray-500">No pending transactions found.</p>
-                </div>
-                {% endfor %}
-                <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
             </div>
+            {% else %}
+            <div class="flex items-center justify-center h-40">
+                <p class="text-gray-500">No pending transactions found.</p>
+            </div>
+            {% endfor %}
+            <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
         </div>
     </div>
+</div>
 </main>
-
 {% include "_edit_transaction_modal.html" %}
 {% endblock %}
-
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Search with Highlighting Logic ---
-    const searchInput = document.getElementById('search-input');
-    const transactionRows = document.querySelectorAll('.transaction-row');
-    const noResultsMessage = document.getElementById('no-results-message');
+// --- START OF MODIFICATION: Functional Search with Highlighting ---
+const searchInput = document.getElementById('search-input');
+const transactionRows = document.querySelectorAll('.transaction-row');
+const noResultsMessage = document.getElementById('no-results-message');
 
-    if (searchInput && transactionRows.length > 0) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim();
-            const searchTermLower = searchTerm.toLowerCase();
-            let visibleCount = 0;
+if (searchInput && transactionRows.length > 0) {
+searchInput.addEventListener('input', function() {
+const searchTerm = this.value.trim();
+const searchTermLower = searchTerm.toLowerCase();
+let visibleCount = 0;
 
-            transactionRows.forEach(row => {
-                const nameDisplayElement = row.querySelector('.transaction-name-display');
-                if (!nameDisplayElement) return;
+transactionRows.forEach(row => {
+const nameDisplayElement = row.querySelector('.transaction-name-display');
+if (!nameDisplayElement) return;
 
-                const originalName = row.dataset.name;
-                const originalNameLower = originalName.toLowerCase();
+const originalName = row.dataset.name;
+const originalNameLower = originalName.toLowerCase();
 
-                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
-                    row.style.display = 'block';
-                    visibleCount++;
+if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
+row.style.display = 'block';
+visibleCount++;
 
-                    if (searchTermLower === '') {
-                        nameDisplayElement.innerHTML = originalName;
-                    } else {
-                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
-                    }
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+if (searchTermLower === '') {
+nameDisplayElement.innerHTML = originalName;
+} else {
+const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+}
+} else {
+row.style.display = 'none';
+}
+});
 
-            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
-        });
-    }
+noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+});
+}
+// --- END OF MODIFICATION ---
 
-    // --- Edit Modal Logic ---
-    const editModal = document.getElementById('edit-transaction-modal');
-    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-    const cancelEditBtn = document.getElementById('cancel-edit-btn');
-    const editForm = document.getElementById('edit-transaction-form');
+// --- Edit Modal Logic ---
+const editModal = document.getElementById('edit-transaction-modal');
+const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const editForm = document.getElementById('edit-transaction-form');
 
-    const openEditModal = () => editModal.classList.remove('hidden');
-    const closeEditModal = () => editModal.classList.add('hidden');
+const openEditModal = () => editModal.classList.remove('hidden');
+const closeEditModal = () => editModal.classList.add('hidden');
 
-    if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
-    if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
-    if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
+if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
 
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const transactionId = this.dataset.id;
-            let response; 
-            try {
-                response = await fetch(`/api/transactions/details/${transactionId}`);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server responded with status ${response.status}. Response: ${errorText}`);
-                }
-                const data = await response.json();
-                
-                document.getElementById('edit-transaction-id').value = transactionId;
-                document.getElementById('edit-name').value = data.name || '';
-                document.getElementById('edit-check-date').value = data.check_date || '';
-                document.getElementById('edit-due-date').value = data.due_date || '';
-                document.getElementById('edit-ewt').value = data.ewt || '0.00';
-                document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
-                document.getElementById('edit-notes').value = data.notes || '';
-                
-                openEditModal();
-            } catch (error) {
-                console.error('CRITICAL ERROR populating edit form:', error);
-                alert('Could not load transaction details for editing. Please check the developer console (F12) for more details.');
-            }
-        });
-    });
+document.querySelectorAll('.edit-btn').forEach(button => {
+button.addEventListener('click', async function() {
+const transactionId = this.dataset.id;
+let response;
+try {
+response = await fetch(`/api/transactions/details/${transactionId}`);
+if (!response.ok) {
+const errorText = await response.text();
+throw new Error(`Server responded with status ${response.status}. Response: ${errorText}`);
+}
+const data = await response.json();
 
-    if (editForm) {
-        editForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const transactionId = document.getElementById('edit-transaction-id').value;
-            const submitButton = this.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Saving...';
-            const formData = new FormData(this);
-            
-            try {
-                const response = await fetch(`/api/transactions/update/${transactionId}`, {
-                    method: 'POST',
-                    body: new URLSearchParams(formData).toString(),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                    }
-                });
-                
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    const result = await response.json();
-                    alert('Error: ' + (result.error || 'Could not save changes.'));
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Save Changes';
-                }
-            } catch (error) {
-                console.error('Error submitting edit form:', error);
-                alert('A network error occurred.');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Save Changes';
-            }
-        });
-    }
+document.getElementById('edit-transaction-id').value = transactionId;
+document.getElementById('edit-name').value = data.name || '';
+document.getElementById('edit-check-date').value = data.check_date || '';
+document.getElementById('edit-due-date').value = data.due_date || '';
+document.getElementById('edit-ewt').value = data.ewt || '0.00';
+document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
+document.getElementById('edit-notes').value = data.notes || '';
 
-    // --- Delete Button Logic ---
-    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
-        button.addEventListener('click', function(event) {
-            event.preventDefault();
-        });
-    });
+openEditModal();
+} catch (error) {
+console.error('CRITICAL ERROR populating edit form:', error);
+alert('Could not load transaction details for editing. Please check the developer console (F12) for more details.');
+}
+});
+});
+
+if (editForm) {
+editForm.addEventListener('submit', async function(event) {
+event.preventDefault();
+const transactionId = document.getElementById('edit-transaction-id').value;
+const submitButton = this.querySelector('button[type="submit"]');
+submitButton.disabled = true;
+submitButton.textContent = 'Saving...';
+const formData = new FormData(this);
+
+try {
+const response = await fetch(`/api/transactions/update/${transactionId}`, {
+method: 'POST',
+body: new URLSearchParams(formData).toString(),
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded',
+'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+}
+});
+
+if (response.ok) {
+window.location.reload();
+} else {
+const result = await response.json();
+alert('Error: ' + (result.error || 'Could not save changes.'));
+submitButton.disabled = false;
+submitButton.textContent = 'Save Changes';
+}
+} catch (error) {
+console.error('Error submitting edit form:', error);
+alert('A network error occurred.');
+submitButton.disabled = false;
+submitButton.textContent = 'Save Changes';
+}
+});
+}
+
+// --- Delete Button Logic ---
+document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
+button.addEventListener('click', function(event) {
+event.preventDefault();
+});
+});
 });
 </script>
 {% endblock %}
