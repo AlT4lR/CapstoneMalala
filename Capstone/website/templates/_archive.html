@@ -4,20 +4,16 @@
 
 {% block head %}
 <style>
-    /* Custom styles for the archive table and floating action bar */
-    .table-row {
-        min-height: 56px; /* 3.5rem */
+    /* Custom styles for the archive table */
+    .table-row-item {
         transition: background-color 0.2s ease;
-    }
-    .table-cell {
-        display: flex;
-        align-items: center;
     }
     
     /* Custom Scrollbar */
     .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #3a4d39; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8f9fa; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d3d3d3; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b0b0b0; }
 
     /* Floating action bar styles */
     #bulk-actions-footer {
@@ -135,57 +131,51 @@
         Archived items will be stored here. Items that have been in the archive for more than 30 days may be permanently deleted.
     </p>
 
-    <!-- Archive Table Card -->
-    <div id="archive-container" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden flex flex-col">
-        <div class="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-[#3a4d39] border-b table-row">
-            <div class="col-span-1 table-cell">
+    <!-- White container for the archive list -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col">
+        <!-- List Header -->
+        <div class="grid grid-cols-12 gap-4 px-4 py-3 text-sm font-medium text-gray-500 border-b border-gray-200">
+            <div class="col-span-1">
                 <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 hidden">
             </div>
-            <div class="col-span-5 table-cell">Name</div>
-            <div class="col-span-3 table-cell">Date</div>
-            <div class="col-span-2 table-cell">Category</div>
-            <div class="col-span-1 table-cell justify-end">
-                <button id="toggle-selection-btn" title="Select items to delete" class="text-gray-500 hover:text-red-600">
-                    <i class="fas fa-trash-alt text-lg text-red-500"></i>
+            <div class="col-span-4">Name</div>
+            <div class="col-span-3 text-center">Date</div>
+            <div class="col-span-3 text-center">Category</div>
+            <div class="col-span-1 text-right">
+                <button id="toggle-selection-btn" title="Select items to delete" class="text-gray-400 hover:text-red-500">
+                    <i class="fas fa-trash-alt text-base"></i>
                 </button>
             </div>
         </div>
 
-        <div id="archive-list" class="flex-1 overflow-y-auto custom-scrollbar">
+        <!-- Scrollable List Body -->
+        <div id="archive-list" class="flex-1 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
             {% for item in archived_items %}
-            <div class="grid grid-cols-12 gap-4 px-4 border-t items-center table-row archive-item hover:bg-gray-50" 
+            <div class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50" 
                  data-id="{{ item.id }}" 
                  data-type="{{ item.type }}"
                  data-name="{{ item.name | escape }}">
                 
-                <div class="col-span-1 table-cell">
+                <div class="col-span-1">
                     <input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 hidden">
                 </div>
 
-                <div class="col-span-5 table-cell gap-3 font-medium text-gray-800">
-                    <!-- START OF MODIFICATION: Use display_category for icon -->
+                <div class="col-span-4 flex items-center gap-3 font-medium text-gray-800">
                     {% if item.display_category == 'Folder' %}
                         <i class="fas fa-folder text-gray-400 text-xl"></i>
                     {% elif item.display_category == 'Image' %}
                         <i class="fas fa-file-image text-gray-400 text-xl"></i>
-                    {% elif item.display_category == 'File' %}
-                        <i class="fas fa-file-alt text-gray-400 text-xl"></i>
                     {% else %}
-                        <i class="fas fa-question-circle text-gray-400 text-xl"></i>
+                        <i class="fas fa-file-alt text-gray-400 text-xl"></i>
                     {% endif %}
-                    <!-- END OF MODIFICATION -->
-                    <span class="truncate">{{ item.name }}</span>
+                    <span class="truncate text-sm">{{ item.name }}</span>
                 </div>
 
-                <div class="col-span-3 table-cell text-gray-700 text-sm">{{ item.archived_at_str }}</div>
-
-                <div class="col-span-2 table-cell text-gray-700 text-sm">
-                    <!-- START OF MODIFICATION: Use display_category for text -->
-                    {{ item.display_category }}
-                    <!-- END OF MODIFICATION -->
-                </div>
-                <div class="col-span-1 table-cell justify-end individual-action">
-                    <button class="restore-btn text-gray-500 hover:text-green-600" title="Restore">
+                <div class="col-span-3 text-center text-gray-600 text-sm">{{ item.archived_at_str }}</div>
+                <div class="col-span-3 text-center text-gray-600 text-sm">{{ item.display_category }}</div>
+                
+                <div class="col-span-1 text-right individual-action">
+                    <button class="restore-btn text-gray-400 hover:text-green-600" title="Restore">
                         <i class="fas fa-history text-lg"></i>
                     </button>
                 </div>
@@ -267,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         toggleSelectionBtn.innerHTML = isSelectionMode 
             ? '<i class="fas fa-times text-red-500 text-lg"></i>' 
-            : '<i class="fas fa-trash-alt text-lg text-red-500"></i>';
+            : '<i class="fas fa-trash-alt text-base"></i>';
 
         if (!isSelectionMode) {
             selectAllCheckbox.checked = false;
