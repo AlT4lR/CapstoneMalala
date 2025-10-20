@@ -41,11 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const isMobile = window.innerWidth < 768;
 
-    // --- START OF FIX: Centralized Modal Control ---
     const openModal = (data = {}) => {
-        form.reset(); // Clear previous data
+        form.reset();
         
-        // Populate form based on provided data
         scheduleIdInput.value = data.id || '';
         scheduleTitleInput.value = data.title || '';
         scheduleDateInput.value = data.date || new Date().toISOString().slice(0, 10);
@@ -56,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
         locationInput.value = data.location || '';
         scheduleLabelInput.value = data.label || 'Others';
 
-        // Update modal title and delete button visibility
         if (data.id) {
             modalTitle.textContent = 'Edit Schedule';
             deleteBtn.classList.remove('hidden');
@@ -65,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteBtn.classList.add('hidden');
         }
 
-        // Show modal with animation
         modal.classList.remove('hidden');
         setTimeout(() => modal.classList.add('active'), 10);
     };
@@ -75,11 +71,9 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true });
     };
 
-    // Add listeners to close the modal
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (discardBtn) discardBtn.addEventListener('click', closeModal);
     if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    // --- END OF FIX ---
 
 
     // --- FullCalendar Setup ---
@@ -90,8 +84,17 @@ document.addEventListener('DOMContentLoaded', function() {
             { left: 'prev,next today', center: 'title', right: '' },
         selectable: true,
         editable: true,
-        height: '100%',
+        
+        // --- START OF FIX: Make calendar height responsive to content ---
+        height: 'auto',
+        // --- END OF FIX ---
+
         events: `/api/schedules`,
+        eventTimeFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            meridiem: 'short'
+        },
 
         eventDidMount: function(info) {
             const label = info.event.extendedProps.label || 'Others';
@@ -102,7 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
 
-        // --- START OF FIX: Use the new openModal function ---
         select: function(info) {
             openModal({
                 date: info.startStr.slice(0, 10),
@@ -126,7 +128,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 label: event.extendedProps.label
             });
         },
-        // --- END OF FIX ---
 
         eventDrop: (info) => handleEventUpdate(info.event),
         eventResize: (info) => handleEventUpdate(info.event),

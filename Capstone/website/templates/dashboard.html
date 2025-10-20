@@ -3,9 +3,11 @@
 {% block title %}DecoOffice - Dashboard{% endblock %}
 
 {% block content %}
-<div class="flex-1 p-4 sm:p-6 text-[#3a4d39]">
+<!-- --- START OF MODIFICATION: Reduced main padding for a tighter layout --- -->
+<div class="flex-1 p-4 text-[#3a4d39] flex flex-col h-full">
+<!-- --- END OF MODIFICATION --- -->
 
-    <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2">
+    <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2 flex-shrink-0">
         <h1 class="text-2xl font-semibold">Home</h1>
         <div class="flex items-center gap-3">
             <a href="{{ url_for('main.archive', back=request.path) }}" class="hover:text-[#3a4d39]" title="Archive">
@@ -15,17 +17,18 @@
         </div>
     </header>
 
-    <section class="bg-[#eceee3] rounded-lg p-5 mb-4">
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#3a4d39] leading-tight">
+    <!-- --- START OF MODIFICATION: Reduced padding and font size --- -->
+    <section class="bg-[#eceee3] rounded-lg p-4 mb-4 flex-shrink-0">
+        <h2 class="text-xl sm:text-2xl font-extrabold text-[#3a4d39] leading-tight">
             Welcome, {{ username | capitalize }}!
         </h2>
-        <p class="text-sm sm:text-base text-gray-600 mt-1">
+        <p class="text-sm text-gray-600 mt-1">
             Here’s the summary of the {{ selected_branch | upper }} branch.
         </p>
     </section>
+    <!-- --- END OF MODIFICATION --- -->
 
-    <section class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-
+    <section class="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-0">
         <div class="order-2 lg:order-1 lg:col-span-2 xl:col-span-3 flex flex-col gap-4">
 
             <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
@@ -33,15 +36,14 @@
                     <h3 class="font-semibold text-base">Schedules</h3>
                     <a href="{{ url_for('main.schedules') }}" class="text-xs text-gray-500 hover:text-[#3a4d39]">See All...</a>
                 </div>
-                <!-- --- START OF MODIFICATION --- -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3">
                     {% for schedule in upcoming_schedules %}
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                            <div class="bg-[#3a4d39] text-white text-center text-sm font-semibold px-2 py-1.5">
+                            <div class="bg-[#3a4d39] text-white text-center text-xs font-semibold px-2 py-1.5">
                                 {{ schedule.time_range }}
                             </div>
-                            <div class="p-3 text-center flex-grow flex flex-col justify-center">
-                                <p class="font-semibold text-gray-800">{{ schedule.title }}</p>
+                            <div class="p-2 text-center flex-grow flex flex-col justify-center">
+                                <p class="font-semibold text-sm text-gray-800">{{ schedule.title }}</p>
                                 <p class="text-xs text-gray-500 mt-1">{{ schedule.full_date }}</p>
                             </div>
                         </div>
@@ -51,30 +53,31 @@
                         </div>
                     {% endfor %}
                 </div>
-                <!-- --- END OF MODIFICATION --- -->
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                     <h3 class="font-semibold text-base mb-3">Quick Actions</h3>
+                    <!-- --- START OF MODIFICATION: Reduced link padding --- -->
                     <div class="flex flex-col gap-1.5">
                         <a href="{{ url_for('main.transactions') }}" 
-                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-truck-fast"></i> Transactions
                         </a>
                         <a href="{{ url_for('main.analytics') }}" 
-                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-chart-line"></i> Analytics
                         </a>
                         <a href="{{ url_for('main.invoice') }}" 
-                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-download"></i> Download Invoice
                         </a>
                         <a href="{{ url_for('main.schedules') }}" 
-                            class="flex items-center gap-2 font-semibold p-2.5 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
+                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
                             <i class="fa-solid fa-calendar-plus"></i> Add Scheduled Task
                         </a>
                     </div>
+                    <!-- --- END OF MODIFICATION --- -->
                 </div>
 
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
@@ -131,16 +134,22 @@
             </div>
         </div>
 
-        <div class="order-1 lg:order-2 grid grid-cols-2 lg:flex lg:flex-col gap-4">
-            <a href="{{ url_for('main.transactions_pending') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
+        <!-- --- START OF MODIFICATION: Reduced gap, padding, and font sizes --- -->
+        <div class="order-1 lg:order-2 grid grid-cols-2 lg:flex lg:flex-col gap-3">
+            <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-3 text-center">
+                <div id="clock-date" class="font-semibold text-sm text-gray-500 border-b pb-2 mb-2">Loading...</div>
+                <p id="clock-time" class="text-2xl sm:text-3xl font-bold text-[#3a4d39] mt-1 tracking-wider"></p>
+            </div>
+            <a href="{{ url_for('main.transactions_pending') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-3 text-center hover:shadow-md transition">
                 <h4 class="font-semibold text-base text-[#3a4d39]">Pendings</h4>
-                <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ pending_count }}</p>
+                <p class="text-2xl sm:text-3xl font-bold text-[#3a4d39] mt-1">{{ pending_count }}</p>
             </a>
-            <a href="{{ url_for('main.transactions_paid') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 text-center hover:shadow-md transition">
+            <a href="{{ url_for('main.transactions_paid') }}" class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-3 text-center hover:shadow-md transition">
                 <h4 class="font-semibold text-base text-[#3a4d39]">Paid</h4>
-                <p class="text-3xl sm:text-4xl font-bold text-[#3a4d39] mt-1">{{ paid_count }}</p>
+                <p class="text-2xl sm:text-3xl font-bold text-[#3a4d39] mt-1">{{ paid_count }}</p>
             </a>
         </div>
+        <!-- --- END OF MODIFICATION --- -->
     </section>
 </div>
 {% endblock %}
@@ -209,6 +218,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.textContent = 'Refresh';
             }
         });
+    }
+
+    const timeElement = document.getElementById('clock-time');
+    const dateElement = document.getElementById('clock-date');
+
+    if (timeElement && dateElement) {
+        function updateClock() {
+            const now = new Date();
+
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes} <span class="text-lg">${ampm}</span>`;
+
+            const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+
+            timeElement.innerHTML = formattedTime;
+            dateElement.textContent = formattedDate;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
     }
 });
 </script>
