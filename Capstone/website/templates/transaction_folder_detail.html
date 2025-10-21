@@ -1,171 +1,109 @@
-<!-- website/templates/transaction_folder_detail.html -->
+<!-- website/templates/paid_transaction_folder_detail.html -->
 {% extends "base.html" %}
 {% block title %}DecoOffice - {{ folder.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .table-header {
+        background-color: #3a4d39;
+        color: white;
+    }
+    .table-row:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-white text-[#3a4d39]">
     
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold uppercase">Transactions</h2>
-      <div class="flex items-center gap-4">
-        <div class="relative">
-          <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-        </div>
-        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
-        {% include "_notification_button.html" %}
-      </div>
-    </header>
-
-    <!-- "Go Back" button link is now correct -->
-    <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
-      <i class="fa-solid fa-arrow-left"></i>
-      Go Back...
-    </a>
-    <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
-
-    <!-- Main content grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
-
-      <!-- Left side container -->
-      <div class="lg:col-span-2 flex flex-col">
-        <!-- White box for the scrollable list -->
-        <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
-          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
-            <span class="col-span-3">Name of issued Checked</span>
-            <span class="col-span-2">Check No.</span>
-            <span class="col-span-2">Check Date</span>
-            <span class="col-span-2">EWT</span>
-            <span class="col-span-3">Countered Check</span>
-          </div>
-
-          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
-              {% for check in child_checks %}
-              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row hover:bg-gray-50 transition-colors">
-                <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
-                <span class="col-span-2">{{ check.check_no }}</span>
-                <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
-                <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
-                <div class="col-span-3 flex justify-between items-center">
-                  <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
-                  <div class="flex gap-3 text-gray-400">
-                    <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
-                    <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {% else %}
-              <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
-              {% endfor %}
-          </div>
-        </div>
+    <!-- Document Container -->
+    <div class="max-w-4xl mx-auto w-full border border-gray-300 p-6 flex-1 flex flex-col">
         
-        <div class="mt-4">
-            <button id="create-issued-check-btn" class="px-5 py-2 border border-gray-300 rounded-md font-semibold hover:bg-gray-50 transition">
-              Create Issued Checked
-            </button>
-        </div>
-      </div>
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+            <h1 class="text-2xl font-bold tracking-wider">CLEARED ISSUED CHECKS</h1>
+        </header>
 
-      <!-- Right side -->
-      <div class="flex flex-col space-y-4">
-        <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
-          <label class="font-medium text-sm">Notes</label>
-          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
-          
-          <label class="font-medium text-sm">Total Countered Checks</label>
-          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
-          
-          <label for="check-amount-input" class="font-medium text-sm">Final Check Amount</label>
-          <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
+        <!-- Company Info -->
+        <section class="flex justify-between items-start mb-6">
+            <div>
+                <h2 class="text-lg font-semibold">DECOLORES RETAIL CORPORATION</h2>
+                <p class="text-gray-600">#{{ folder._id }}</p>
+                <p class="text-gray-600 font-medium">{{ folder.name }} ({{ folder.branch }})</p>
+                <p class="text-gray-600">{{ folder.paidAt.strftime('%B %d, %Y') if folder.paidAt else 'N/A' }}</p>
+            </div>
+            <!-- Placeholder for logo if available -->
+            <div class="w-24 h-24 border-2 border-green-700 rounded-full flex items-center justify-center bg-gray-50">
+                <span class="text-green-700 font-bold text-sm">LOGO</span>
+            </div>
+        </section>
+
+        <!-- Back Button & Download -->
+         <div class="flex justify-between items-center mb-4">
+            <a href="{{ url_for('main.transactions_paid') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                Go Back...
+            </a>
+            <a href="{{ url_for('main.download_transaction_pdf', transaction_id=folder._id) }}" class="px-4 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 flex items-center gap-2">
+                <i class="fa-solid fa-download"></i>
+                Download PDF
+            </a>
         </div>
 
-        <div class="flex justify-end">
-            <button id="paid-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
-              Paid
-            </button>
+        <!-- Checks Table -->
+        <div class="w-full border-t border-b border-gray-400 flex-grow">
+            <!-- Table Header -->
+            <div class="grid grid-cols-5 gap-2 p-2 table-header font-semibold text-sm">
+                <div class="col-span-1">Name Issued Check</div>
+                <div class="col-span-1 text-center">Check No.</div>
+                <div class="col-span-1 text-center">Check Date</div>
+                <div class="col-span-1 text-right">EWT</div>
+                <div class="col-span-1 text-right">Countered Check</div>
+            </div>
+            <!-- Table Body -->
+            <div class="text-sm">
+                {% for check in child_checks %}
+                <div class="grid grid-cols-5 gap-2 p-2 border-b">
+                    <div class="col-span-1 truncate">{{ check.name }}</div>
+                    <div class="col-span-1 text-center">{{ check.check_no }}</div>
+                    <div class="col-span-1 text-center">{{ check.check_date.strftime('%m/%d/%Y') }}</div>
+                    <div class="col-span-1 text-right">₱{{ "{:,.2f}".format(check.ewt) }}</div>
+                    <div class="col-span-1 text-right">₱{{ "{:,.2f}".format(check.countered_check) }}</div>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-500">No issued checks found for this transaction.</div>
+                {% endfor %}
+            </div>
         </div>
-      </div>
 
+        <!-- Summary Section -->
+        <section class="mt-4 self-end w-full max-w-sm">
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-700">Countered Checks</span>
+                    <span class="font-semibold">₱ {{ "{:,.2f}".format(total_countered_check) }}</span>
+                </div>
+                <div class="flex justify-between border-t pt-2 mt-2">
+                    <span class="text-gray-700 font-bold">Check Amount</span>
+                    <span class="font-bold text-lg">₱ {{ "{:,.2f}".format(folder.amount) }}</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notes Section -->
+        <section class="mt-auto pt-8">
+            <h3 class="font-bold mb-2">Notes</h3>
+            <div class="w-full p-3 bg-gray-50 border border-gray-300 rounded-md min-h-[100px] text-sm whitespace-pre-wrap">
+                {{ folder.notes or 'No notes provided.' }}
+            </div>
+        </section>
     </div>
 </main>
-
-{% include "_add_check_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
-<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize date picker in the "Add Check" modal
-    flatpickr("#check_date", {
-        dateFormat: "Y-m-d",
-        defaultDate: "today",
-        altInput: true,
-        altFormat: "F j, Y",
-    });
-
-    const createCheckModal = document.getElementById('add-check-modal');
-    const openCreateBtn = document.getElementById('create-issued-check-btn');
-    const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
-    
-    if (createCheckModal && openCreateBtn && closeCreateBtn) {
-        const openModal = () => {
-            createCheckModal.classList.remove('hidden');
-            setTimeout(() => createCheckModal.classList.add('active'), 10);
-        };
-        const closeModal = () => {
-            createCheckModal.classList.remove('active');
-            createCheckModal.addEventListener('transitionend', () => {
-                createCheckModal.classList.add('hidden');
-            }, { once: true });
-        };
-
-        openCreateBtn.addEventListener('click', openModal);
-        closeCreateBtn.addEventListener('click', closeModal);
-        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
-    }
-
-    const paidBtn = document.getElementById('paid-btn');
-    const notesTextarea = document.getElementById('notes-textarea');
-    const checkAmountInput = document.getElementById('check-amount-input');
-
-    paidBtn.addEventListener('click', async () => {
-        const folderId = "{{ folder._id }}";
-        const finalNotes = notesTextarea.value;
-        const finalAmount = parseFloat(checkAmountInput.value);
-
-        paidBtn.disabled = true;
-        paidBtn.textContent = 'Processing...';
-
-        try {
-            const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                },
-                body: JSON.stringify({ 
-                    notes: finalNotes,
-                    amount: finalAmount 
-                })
-            });
-
-            if (response.ok) {
-                 window.location.href = "{{ url_for('main.transactions_paid') }}";
-            } else {
-                window.location.reload();
-            }
-           
-        } catch (error) {
-            console.error('Error:', error);
-            window.location.reload();
-        }
-    });
-});
+// No scripts needed for this view as modals have been removed.
 </script>
-<!-- END OF MODIFICATION -->
 {% endblock %}
