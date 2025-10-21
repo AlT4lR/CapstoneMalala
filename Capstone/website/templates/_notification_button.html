@@ -1,4 +1,9 @@
+<!-- website/templates/_notification_button.html -->
+
 <button class="notification-btn relative text-gray-500 hover:text-gray-800">
     <i class="fa-regular fa-bell fa-lg"></i>
-    <span id="notification-indicator" class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white hidden"></span>
+    
+    <!-- START OF FIX: Changed from id="notification-indicator" to class="notification-indicator" -->
+    <span class="notification-indicator absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white hidden"></span>
+    <!-- END OF FIX -->
 </button>
