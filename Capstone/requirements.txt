@@ -4,6 +4,7 @@ Flask-JWT-Extended
 Flask-Limiter
 Flask-Talisman
 pymongo
+pytz
 Flask-WTF
 python-dotenv
 bcrypt
