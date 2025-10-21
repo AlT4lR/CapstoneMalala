@@ -33,10 +33,11 @@
                 <p class="text-gray-600 font-medium">{{ folder.name }} ({{ folder.branch }})</p>
                 <p class="text-gray-600">{{ folder.paidAt.strftime('%B %d, %Y') if folder.paidAt else 'N/A' }}</p>
             </div>
-            <!-- Placeholder for logo if available -->
+            <!-- START OF MODIFICATION: Replaced image tag with a styled placeholder div -->
             <div class="w-24 h-24 border-2 border-green-700 rounded-full flex items-center justify-center bg-gray-50">
                 <span class="text-green-700 font-bold text-sm">LOGO</span>
             </div>
+            <!-- END OF MODIFICATION -->
         </section>
 
         <!-- Back Button & Download -->

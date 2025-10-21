@@ -1,6 +1,6 @@
 # website/views/transactions.py
 
-from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort
+from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -8,7 +8,10 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
 import io
+import os
+import logging
 
 from . import main # Import the blueprint
 from ..forms import TransactionForm, EditTransactionForm
@@ -17,6 +20,8 @@ from ..models import (
     get_transaction_by_id, get_child_transactions_by_parent_id,
     mark_folder_as_paid, archive_transaction, update_transaction
 )
+
+logger = logging.getLogger(__name__)
 
 @main.route('/transactions')
 @jwt_required()
@@ -179,7 +184,7 @@ def download_transaction_pdf(transaction_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # --- Drawing the new PDF layout ---
+    # --- Drawing the PDF layout ---
     p.setFont("Helvetica-Bold", 14)
     p.drawCentredString(width / 2.0, height - 0.5 * inch, "CLEARED ISSUED CHECKS")
 
@@ -189,6 +194,10 @@ def download_transaction_pdf(transaction_id):
     p.drawString(0.5 * inch, height - 1.4 * inch, f"Branch: {folder.get('branch', 'N/A')}")
     paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
     p.drawString(0.5 * inch, height - 1.6 * inch, paid_date)
+
+    # --- START OF MODIFICATION: Logo drawing logic is removed from PDF generation ---
+    # The code that tried to load an image file has been deleted.
+    # --- END OF MODIFICATION ---
 
     # Table headers
     y_pos = height - 2.2 * inch
