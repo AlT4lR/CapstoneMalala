@@ -191,7 +191,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- REVISED NOTIFICATION PANEL LOGIC ---
     const notificationBtns = document.querySelectorAll('.notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
-    const notificationIndicator = document.getElementById('notification-indicator');
+    // --- START OF FIX ---
+    const notificationIndicators = document.querySelectorAll('.notification-indicator');
+    // --- END OF FIX ---
     const notificationList = document.getElementById('notification-list');
     const notificationLoader = document.getElementById('notification-loader');
     
@@ -206,11 +208,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/api/notifications/status');
             if (!response.ok) return;
             const data = await response.json();
-            if (data.unread_count > 0) {
-                notificationIndicator.classList.remove('hidden');
-            } else {
-                notificationIndicator.classList.add('hidden');
-            }
+            // --- START OF FIX ---
+            // Loop through all indicator elements on the page
+            notificationIndicators.forEach(indicator => {
+                if (data.unread_count > 0) {
+                    indicator.classList.remove('hidden');
+                } else {
+                    indicator.classList.add('hidden');
+                }
+            });
+            // --- END OF FIX ---
         } catch (error) {
             console.error('Error checking notification status:', error);
         }

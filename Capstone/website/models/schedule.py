@@ -1,96 +1,103 @@
-# website/views/schedules.py
+# website/models/schedule.py
 
-from flask import render_template, request, jsonify, url_for, session
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
 import logging
+from datetime import datetime
+import pytz
+from bson.objectid import ObjectId
+from flask import current_app
 
-from . import main # Import the blueprint
-from ..models import (
-    log_user_activity, add_schedule, get_schedules, 
-    update_schedule, delete_schedule, add_notification
-)
-
-@main.route('/schedules')
-@jwt_required()
-def schedules():
-    return render_template('schedules.html', show_sidebar=True)
-
-# --- Schedule API Routes ---
-@main.route('/api/schedules', methods=['GET'])
-@jwt_required()
-def get_schedules_route():
-    username = get_jwt_identity()
-    selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        return jsonify({"error": "Branch not selected"}), 400
-    
-    start, end = request.args.get('start'), request.args.get('end')
-    if not start or not end: 
-        return jsonify({"error": "Start and end date are required"}), 400
-    
-    return jsonify(get_schedules(username, selected_branch, start, end))
-# Configure logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
 
-@main.route('/api/schedules/add', methods=['POST'])
-@jwt_required()
-def add_schedule_route():
-    username = get_jwt_identity()
-    selected_branch = session.get('selected_branch')
-    if not selected_branch:
-        return jsonify({"error": "Branch not selected"}), 400
-        
-    data = request.get_json()
-    if not data: 
-        return jsonify({"error": "JSON data is missing"}), 400
-        
-    if add_schedule(username, selected_branch, data):
-        log_user_activity(username, "Created a new schedule")
-        
-        # --- START OF FIX: Removed faulty condition to ensure notification is always created ---
-        schedule_title = data.get('title', 'a new event')
-        schedule_date = data.get('date', '')
-        try:
-            date_obj = datetime.strptime(schedule_date, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%B %d, %Y')
-            message = f"Your event '{schedule_title}' is scheduled for {formatted_date}."
-            notification_url = url_for('main.schedules', _external=False)
-            add_notification(username, "New Event Created", message, notification_url)
-        except Exception as e:
-            logger.error(f"Failed to create notification for new schedule: {e}")
-        # --- END OF FIX ---
+def add_schedule(username, branch, data):
+    """Adds a new schedule to the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        start_dt = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(data['end'].replace('Z', '+00:00')) if data.get('end') else None
 
-        return jsonify({"success": True})
-        
-    return jsonify({"error": "Failed to create schedule"}), 500
+        schedule_doc = {
+            'username': username,
+            'branch': branch,
+            'title': data.get('title', 'Untitled Event'),
+            'description': data.get('description', ''),
+            'location': data.get('location', ''),
+            'label': data.get('label', 'Others'),
+            'allDay': data.get('allDay', False),
+            'start': start_dt,
+            'end': end_dt,
+            'createdAt': datetime.now(pytz.utc)
+        }
+        db.schedules.insert_one(schedule_doc)
+        return True
+    except Exception as e:
+        logger.error(f"Error adding schedule for {username}: {e}", exc_info=True)
+        return False
 
-@main.route('/api/schedules/update/<schedule_id>', methods=['POST'])
-@jwt_required()
-def update_schedule_route(schedule_id):
-    username = get_jwt_identity()
-    data = request.get_json()
-    if not data: 
-        return jsonify({'error': 'Invalid data'}), 400
-        
-    if update_schedule(username, schedule_id, data):
-        log_user_activity(username, "Updated a schedule")
-        
-        schedule_title = data.get('title', 'an event')
-        message = f"Your event '{schedule_title}' has been updated."
-        notification_url = url_for('main.schedules', _external=False)
-        add_notification(username, "Event Updated", message, notification_url)
+def get_schedules(username, branch, start_str, end_str):
+    """Fetches schedules for a given user, branch, and date range."""
+    db = current_app.db
+    if db is None: return []
+    
+    try:
+        start_dt = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
 
-        return jsonify({'success': True})
+        query = {
+            'username': username,
+            'branch': branch,
+            'start': {'$gte': start_dt, '$lt': end_dt}
+        }
         
-    return jsonify({'error': 'Update failed'}), 500
+        schedules_list = []
+        for doc in db.schedules.find(query):
+            schedules_list.append({
+                'id': str(doc['_id']),
+                'title': doc.get('title'),
+                'start': doc['start'].isoformat(),
+                'end': doc['end'].isoformat() if doc.get('end') else None,
+                'allDay': doc.get('allDay', False),
+                'description': doc.get('description', ''),
+                'location': doc.get('location', ''),
+                'label': doc.get('label', 'Others')
+            })
+        return schedules_list
+    except Exception as e:
+        logger.error(f"Error fetching schedules for {username}: {e}", exc_info=True)
+        return []
 
-@main.route('/api/schedules/<schedule_id>', methods=['DELETE'])
-@jwt_required()
-def delete_schedule_route(schedule_id):
-    username = get_jwt_identity()
-    if delete_schedule(username, schedule_id):
-        log_user_activity(username, "Deleted a schedule")
-        return jsonify({'success': True})
-    return jsonify({'error': 'Delete failed'}), 500
+def update_schedule(username, schedule_id, data):
+    """Updates an existing schedule in the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        start_dt = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(data['end'].replace('Z', '+00:00')) if data.get('end') else None
+        
+        update_doc = {
+            '$set': {
+                'title': data.get('title'),
+                'description': data.get('description'),
+                'location': data.get('location'),
+                'label': data.get('label'),
+                'allDay': data.get('allDay'),
+                'start': start_dt,
+                'end': end_dt,
+            }
+        }
+        result = db.schedules.update_one({'_id': ObjectId(schedule_id), 'username': username}, update_doc)
+        return result.modified_count > 0
+    except Exception as e:
+        logger.error(f"Error updating schedule {schedule_id}: {e}", exc_info=True)
+        return False
+
+def delete_schedule(username, schedule_id):
+    """Deletes a schedule from the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        result = db.schedules.delete_one({'_id': ObjectId(schedule_id), 'username': username})
+        return result.deleted_count > 0
+    except Exception as e:
+        logger.error(f"Error deleting schedule {schedule_id}: {e}", exc_info=True)
+        return False
