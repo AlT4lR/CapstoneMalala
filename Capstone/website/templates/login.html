@@ -10,9 +10,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     
-    <!-- --- START OF MODIFICATION: Added Favicon --- -->
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
-    <!-- --- END OF MODIFICATION --- -->
 
     <style>
         #flash-messages-overlay-container { transition: opacity 0.5s ease-out; }
@@ -35,7 +33,7 @@
 </head>
 <body class="bg-brand-dark font-poppins antialiased">
 
-<div class="flex items-center justify-center min-h-screen p-6">
+<div class="flex items-center justify-center min-h-screen p-4 sm:p-6">
     <div class="w-full max-w-5xl mx-auto bg-brand-cream rounded-2xl shadow-2xl grid md:grid-cols-2">
 
         <!-- Left Panel -->
@@ -51,8 +49,10 @@
         </div>
 
         <!-- Right Panel (Form) -->
-        <div class="p-8 sm:p-16 flex flex-col justify-center">
-            <h2 class="text-3xl font-bold text-brand-dark mb-8">Login</h2>
+        <!-- --- START OF MODIFICATION: Responsive padding and headings --- -->
+        <div class="p-8 sm:p-12 md:p-16 flex flex-col justify-center">
+            <h2 class="text-2xl sm:text-3xl font-bold text-brand-dark mb-8">Login</h2>
+        <!-- --- END OF MODIFICATION --- -->
             
             {% include "_flash_messages.html" %}
 
@@ -88,6 +88,15 @@
                 <button type="submit" class="w-full bg-brand-green text-white py-3 mt-4 rounded-full font-bold shadow-md hover:bg-opacity-90 transition-colors">
                     Login
                 </button>
+
+                <!-- --- START OF MODIFICATION: Added mobile-only signup link --- -->
+                <div class="text-center pt-4 md:hidden">
+                    <span class="text-sm text-gray-600">Don't have an account? </span>
+                    <a href="{{ url_for('auth.register') }}" class="font-semibold text-brand-green hover:underline">
+                        Sign Up
+                    </a>
+                </div>
+                <!-- --- END OF MODIFICATION --- -->
             </form>
         </div>
     </div>

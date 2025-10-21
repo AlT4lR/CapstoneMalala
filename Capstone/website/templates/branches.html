@@ -31,25 +31,24 @@
 <body class="bg-brand-dark font-poppins text-white antialiased">
     <div class="relative min-h-screen flex flex-col items-center justify-center p-6">
 
-        <!-- --- START OF MODIFICATION --- -->
         <header class="absolute top-0 right-0 p-6">
             <a href="{{ url_for('auth.logout') }}" class="text-gray-300 hover:text-white transition-colors duration-200 flex items-center gap-2">
                 <span>Logout</span>
                 <i class="fa-solid fa-right-from-bracket"></i>
             </a>
         </header>
-        <!-- --- END OF MODIFICATION --- -->
 
         <main class="text-center">
+            <!-- --- START OF MODIFICATION: Responsive text and layout --- -->
             <div class="mb-12">
-                <h1 class="text-4xl font-bold text-brand-cream mb-2">DecoOffice</h1>
-                <p class="text-lg text-gray-300">Please select your assigned branch to continue.</p>
+                <h1 class="text-3xl sm:text-4xl font-bold text-brand-cream mb-2">DecoOffice</h1>
+                <p class="text-base sm:text-lg text-gray-300">Please select your assigned branch to continue.</p>
             </div>
 
-            <div class="flex flex-col md:flex-row justify-center items-center gap-10">
+            <div class="flex flex-col md:flex-row justify-center items-center gap-8 sm:gap-10">
                 <!-- Montalban Branch Card -->
                 <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" 
-                   class="group w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
+                   class="group w-full max-w-xs sm:w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
                           transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
                     <i class="fa-solid fa-building-columns text-7xl text-brand-dark mb-6 transition-transform group-hover:-translate-y-1"></i>
                     <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Montalban</span>
@@ -57,12 +56,13 @@
                 
                 <!-- Laguna Branch Card -->
                 <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" 
-                   class="group w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
+                   class="group w-full max-w-xs sm:w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
                           transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
                     <i class="fa-solid fa-building-columns text-7xl text-brand-dark mb-6 transition-transform group-hover:-translate-y-1"></i>
                     <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Laguna</span>
                 </a>
             </div>
+            <!-- --- END OF MODIFICATION --- -->
         </main>
     </div>
 </body>

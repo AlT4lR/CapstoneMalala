@@ -105,6 +105,39 @@
     #prev-year-btn:hover, #next-year-btn:hover {
         background-color: #e6e9dd;
     }
+
+    /* --- START OF MODIFICATION: Responsive Styles --- */
+    @media (max-width: 768px) {
+        .chart-container {
+            padding: 1rem;
+        }
+        .analytics-title {
+            font-size: 1.1rem;
+        }
+        #year-display {
+            font-size: 1rem;
+        }
+        .y-axis-labels {
+            font-size: 0.7rem;
+            padding-right: 0.5rem;
+        }
+        #x-axis-labels-container {
+            margin-top: 2rem;
+            height: 40px;
+        }
+        #x-axis-labels-container span {
+            font-size: 0.65rem;
+            transform: rotate(-45deg);
+            transform-origin: top right;
+            text-align: right;
+            padding-right: 5px;
+            white-space: nowrap;
+        }
+        .bar-wrapper, #x-axis-labels-container span {
+             width: 8%; /* Make bars slightly wider to fill space */
+        }
+    }
+    /* --- END OF MODIFICATION --- */
 </style>
 {% endblock %}
 
@@ -142,14 +175,18 @@
             <!-- Chart -->
             <div class="lg:col-span-2">
                 <div class="flex h-80 min-w-full">
-                    <div class="flex flex-col justify-between text-sm text-gray-500 pr-4 py-2">
+                    <!-- --- START OF MODIFICATION: Added y-axis-labels class --- -->
+                    <div class="flex flex-col justify-between text-sm text-gray-500 pr-4 py-2 y-axis-labels">
                         <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
                     </div>
+                    <!-- --- END OF MODIFICATION --- -->
                     <div id="bar-chart-container" class="w-full flex justify-between items-end border-b-2 border-l-2 border-gray-200 px-2 relative">
                         <div id="chart-tooltip"></div>
                     </div>
                 </div>
-                <div id="x-axis-labels-container" class="w-full flex justify-between pl-[44px] px-2 mt-2"></div>
+                <!-- --- START OF MODIFICATION: Adjusted padding for better alignment on mobile --- -->
+                <div id="x-axis-labels-container" class="w-full flex justify-between pl-10 sm:pl-[44px] px-2 mt-2"></div>
+                <!-- --- END OF MODIFICATION --- -->
             </div>
 
             <!-- Weekly Breakdown -->
@@ -187,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         chartData.forEach((month, index) => {
             const barWrapper = document.createElement('div');
-            barWrapper.className = 'w-[7%] h-full flex flex-col justify-end items-center cursor-pointer group';
+            barWrapper.className = 'w-[7%] h-full flex flex-col justify-end items-center cursor-pointer group bar-wrapper';
             barWrapper.dataset.index = index;
 
             const isCurrentMonth = (index + 1) === activeMonthIndex;
@@ -234,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
     }
 
-    // --- START OF MODIFICATION: New function to render an empty state ---
     function renderEmptyWeeklyBreakdown() {
         weeklyContainer.innerHTML = `
             <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-md h-full flex items-center justify-center min-h-[200px]">
@@ -244,7 +280,6 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         `;
     }
-    // --- END OF MODIFICATION ---
 
     // --- DATA FETCHING ---
     async function updateAnalyticsView(year, month) {
@@ -272,7 +307,6 @@ document.addEventListener('DOMContentLoaded', function () {
     prevYearBtn.addEventListener('click', () => updateAnalyticsView(currentYear - 1, selectedMonth || 1));
     nextYearBtn.addEventListener('click', () => updateAnalyticsView(currentYear + 1, selectedMonth || 1));
 
-    // --- START OF MODIFICATION: Combined click listener for selection and deselection ---
     chartMainContainer.addEventListener('click', (e) => {
         const barWrapper = e.target.closest('.group');
         const isYearNav = e.target.closest('#prev-year-btn') || e.target.closest('#next-year-btn');
@@ -293,7 +327,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-    // --- END OF MODIFICATION ---
 
     barChartContainer.addEventListener('mouseover', (e) => {
         const barWrapper = e.target.closest('.group');
