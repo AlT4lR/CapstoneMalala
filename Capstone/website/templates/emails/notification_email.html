@@ -1,0 +1,14 @@
+<!-- website/templates/emails/notification_email.html -->
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+    <h2 style="color: #4A5C49;">{{ title }}</h2>
+    <p>{{ message|safe }}</p>
+    
+    {% if url %}
+        <p>You can view the details by clicking the button below:</p>
+        <a href="{{ url }}" class="button">View Details</a>
+    {% endif %}
+    
+    <p>Thank you,<br>The DecoOffice Team</p>
+{% endblock %}
