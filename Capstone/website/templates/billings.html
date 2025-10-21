@@ -49,48 +49,69 @@
         </div>
     </section>
 
-    <!-- Loans Section -->
+    <!-- --- START OF MODIFICATION: Fully Responsive Loans Section --- -->
     <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 flex-1 flex flex-col">
-        <h2 class="text-lg font-bold mb-3">Loans</h2>
-        <div class="flex-1 flex flex-col min-h-0">
-            <!-- Table Header -->
-            <div class="border-b-2 border-[#3a4d39]">
-                <div class="bg-[#3a4d39] text-white grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold">
-                    <span class="col-span-3">Name Of Loans</span>
-                    <span class="col-span-2">Bank Name</span>
-                    <span class="col-span-2">Amount</span>
-                    <span class="col-span-2">Date Issued</span>
-                    <span class="col-span-3 flex justify-between items-center">
-                        <span>Date Paid</span>
-                        <div class="relative">
-                            <input type="text" placeholder="Search loans..." class="w-32 sm:w-40 pl-8 pr-2 py-1 bg-white/20 placeholder-white/70 rounded-md text-sm focus:outline-none focus:bg-white/30">
-                            <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70"></i>
-                        </div>
-                    </span>
-                </div>
+        <!-- Section Header with Search -->
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
+            <h2 class="text-lg font-bold">Loans</h2>
+            <div class="relative">
+                <input type="text" id="loan-search-input" placeholder="Search loans..." class="w-full sm:w-48 pl-8 pr-2 py-1.5 bg-gray-100 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#6f8a6e]">
+                <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
+        </div>
+
+        <div class="flex-1 flex flex-col min-h-0">
+            <!-- Table Header (Desktop Only) -->
+            <div class="hidden sm:grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold bg-[#3a4d39] text-white rounded-t-md">
+                <span class="col-span-3">Name Of Loans</span>
+                <span class="col-span-2">Bank Name</span>
+                <span class="col-span-2">Amount</span>
+                <span class="col-span-2">Date Issued</span>
+                <span class="col-span-2">Date Paid</span>
+                <span class="col-span-1 text-right">Actions</span>
+            </div>
+
             <!-- Table Body -->
-            <div class="flex-1 overflow-y-auto">
+            <div id="loan-list-container" class="flex-1 overflow-y-auto">
                 {% for loan in loans %}
-                <div class="grid grid-cols-12 items-center px-3 py-2 border-b text-sm hover:bg-gray-50">
-                    <span class="col-span-3 font-medium">{{ loan.name }}</span>
-                    <span class="col-span-2 text-gray-600">{{ loan.bank_name }}</span>
-                    <span class="col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
-                    <span class="col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
-                    <div class="col-span-3 flex justify-between items-center">
-                        <span class="text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
+                <!-- Container for each loan item -->
+                <div class="loan-item sm:grid sm:grid-cols-12 sm:items-center sm:px-3 sm:py-2.5 border-b text-sm hover:bg-gray-50" data-name="{{ loan.name | lower }}">
+                    
+                    <!-- Mobile Card View -->
+                    <div class="p-3 sm:hidden">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="font-semibold text-gray-800">{{ loan.name }}</p>
+                            <button class="text-gray-400 hover:text-[#3a4d39] p-1 -mt-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                        </div>
+                        <div class="space-y-1 text-gray-600">
+                            <p><strong class="font-medium text-gray-500">Bank:</strong> {{ loan.bank_name }}</p>
+                            <p><strong class="font-medium text-gray-500">Amount:</strong> ₱ {{ "{:,.2f}".format(loan.amount) }}</p>
+                            <p><strong class="font-medium text-gray-500">Issued:</strong> {{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</p>
+                            <p><strong class="font-medium text-gray-500">Paid:</strong> {{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table Row View -->
+                    <span class="hidden sm:block col-span-3 font-medium">{{ loan.name }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.bank_name }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
+                    <div class="hidden sm:flex col-span-1 justify-end">
                         <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
                     </div>
                 </div>
                 {% else %}
-                <p class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
+                <p id="no-loans-message" class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
                 {% endfor %}
+                <p id="no-loan-results-message" class="hidden text-center text-gray-500 p-8">No loans found matching your search.</p>
             </div>
         </div>
         <div class="mt-4 text-right">
-            <button id="create-loan-btn" class="px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button>
+            <button id="create-loan-btn" class="w-full sm:w-auto px-6 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">Create Loan</button>
         </div>
     </section>
+    <!-- --- END OF MODIFICATION --- -->
 </main>
 
 <!-- Create Loan Modal -->
@@ -113,7 +134,6 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-2">Date Issued</label>
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
                     <input type="text" id="date_issued" name="date_issued" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg" required>
                 </div>
                 <div>
@@ -122,7 +142,6 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-2">Date Paid</label>
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
                     <input type="text" id="date_paid" name="date_paid" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg">
                 </div>
                 <div class="md:col-span-2">
@@ -140,7 +159,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- START OF MODIFICATION: Added Flatpickr JS and initialization script -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -268,6 +286,7 @@
         
         renderControls();
 
+        // --- Loan Modal Logic ---
         const modal = document.getElementById('add-loan-modal');
         const openBtn = document.getElementById('create-loan-btn');
         const closeBtn = document.getElementById('close-loan-modal-btn');
@@ -326,7 +345,37 @@
                 }
             });
         }
+
+        // --- START OF MODIFICATION: Loan Search Logic ---
+        const loanSearchInput = document.getElementById('loan-search-input');
+        const loanItems = document.querySelectorAll('.loan-item');
+        const noLoanResultsMessage = document.getElementById('no-loan-results-message');
+        const noLoansMessage = document.getElementById('no-loans-message');
+
+        if (loanSearchInput) {
+            loanSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+                
+                loanItems.forEach(item => {
+                    const name = item.dataset.name;
+                    if (name.includes(searchTerm)) {
+                        item.style.display = 'grid'; // Use 'grid' for desktop, it will behave as block on mobile
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                if (noLoanResultsMessage) {
+                    noLoanResultsMessage.style.display = (visibleCount === 0 && loanItems.length > 0) ? 'block' : 'none';
+                }
+                if (noLoansMessage) {
+                    noLoansMessage.style.display = (visibleCount > 0 || searchTerm !== '') ? 'none' : 'block';
+                }
+            });
+        }
+        // --- END OF MODIFICATION ---
     });
 </script>
-<!-- END OF MODIFICATION -->
 {% endblock %}
