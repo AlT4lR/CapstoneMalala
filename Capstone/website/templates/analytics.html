@@ -201,8 +201,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     // --- STATE MANAGEMENT ---
     let currentYear = new Date().getFullYear();
-    let selectedMonth = null; // Set to null initially
+    let selectedMonth = null;
     let fullChartData = [];
+    let activeBarElement = null;
 
     // --- DOM ELEMENTS ---
     const chartMainContainer = document.getElementById('chart-main-container');
@@ -216,11 +217,44 @@ document.addEventListener('DOMContentLoaded', function () {
     
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
+    // --- TOOLTIP FUNCTIONS ---
+    function showTooltip(barWrapper) {
+        if (!barWrapper || !fullChartData || fullChartData.length === 0) {
+            hideTooltip();
+            return;
+        }
+        const index = parseInt(barWrapper.dataset.index, 10);
+        const month = fullChartData[index];
+
+        tooltip.innerHTML = `
+            <p class="text-xs text-gray-500">Total Earning</p>
+            <p class="font-bold text-lg text-[#3a4d39]">${currencyFormatter.format(month.total)}</p>
+        `;
+        
+        const barRect = barWrapper.getBoundingClientRect();
+        const containerRect = barChartContainer.getBoundingClientRect();
+        
+        tooltip.style.left = `${barRect.left - containerRect.left + barRect.width / 2}px`;
+        tooltip.style.top = `${barRect.top - containerRect.top}px`;
+        tooltip.style.opacity = '1';
+        tooltip.style.visibility = 'visible';
+        activeBarElement = barWrapper;
+    }
+
+    function hideTooltip() {
+        if (tooltip) {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+        }
+        activeBarElement = null;
+    }
+
     // --- RENDER FUNCTIONS ---
     function renderChart(chartData, activeMonthIndex) {
         barChartContainer.innerHTML = ''; 
         xAxisContainer.innerHTML = '';    
-        fullChartData = chartData; 
+        if (!chartData) return;
+        fullChartData = chartData;
 
         chartData.forEach((month, index) => {
             const barWrapper = document.createElement('div');
@@ -228,11 +262,13 @@ document.addEventListener('DOMContentLoaded', function () {
             barWrapper.dataset.index = index;
 
             const isCurrentMonth = (index + 1) === activeMonthIndex;
+            const barFillColor = isCurrentMonth ? 'bg-[#3a4d39]' : 'bg-gray-300';
+            const barHoverColor = isCurrentMonth ? 'group-hover:bg-[#4b5e4a]' : 'group-hover:bg-gray-400';
             
             barWrapper.innerHTML = `
                 <div class="relative w-full h-full flex flex-col justify-end ${isCurrentMonth ? 'active-bar' : ''} rounded-t-md overflow-hidden border-b-0">
                     <div class="bg-gray-200 w-full" style="height: ${100 - month.percentage}%;"></div>
-                    <div class="bg-[#3a4d39] w-full group-hover:bg-[#4b5e4a]" style="height: ${month.percentage}%;"></div>
+                    <div class="${barFillColor} ${barHoverColor} w-full" style="height: ${month.percentage}%;"></div>
                 </div>
             `;
             barChartContainer.appendChild(barWrapper);
@@ -285,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function updateAnalyticsView(year, month) {
         barChartContainer.innerHTML = '<p class="w-full text-center py-20 text-gray-500">Loading...</p>';
         weeklyContainer.innerHTML = '';
+        hideTooltip();
         
         try {
             const response = await fetch(`/api/analytics/summary?year=${year}&month=${month}`);
@@ -293,10 +330,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
             currentYear = data.year;
             selectedMonth = month;
+            fullChartData = data.chart_data;
             
             yearDisplay.textContent = `YEAR ${data.year}`;
             renderChart(data.chart_data, month);
-            renderWeeklyBreakdown(data.weekly_breakdown, data.current_month_name, data.year, data.current_month_total);
+            
+            if (month) {
+                renderWeeklyBreakdown(data.weekly_breakdown, data.current_month_name, data.year, data.current_month_total);
+                const activeBar = barChartContainer.querySelector('.active-bar');
+                if(activeBar) {
+                    showTooltip(activeBar.closest('.bar-wrapper'));
+                }
+            } else {
+                 renderEmptyWeeklyBreakdown();
+            }
+
         } catch (error) {
             console.error(error);
             barChartContainer.innerHTML = '<p class="w-full text-center py-20 text-red-500">Failed to load data.</p>';
@@ -304,54 +352,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- EVENTS ---
-    prevYearBtn.addEventListener('click', () => updateAnalyticsView(currentYear - 1, selectedMonth || 1));
-    nextYearBtn.addEventListener('click', () => updateAnalyticsView(currentYear + 1, selectedMonth || 1));
+    prevYearBtn.addEventListener('click', () => {
+        const newYear = currentYear - 1;
+        selectedMonth = null;
+        updateAnalyticsView(newYear, selectedMonth);
+    });
+    nextYearBtn.addEventListener('click', () => {
+        const newYear = currentYear + 1;
+        selectedMonth = null;
+        updateAnalyticsView(newYear, selectedMonth);
+    });
 
     chartMainContainer.addEventListener('click', (e) => {
         const barWrapper = e.target.closest('.group');
         const isYearNav = e.target.closest('#prev-year-btn') || e.target.closest('#next-year-btn');
 
         if (barWrapper) {
-            // A bar was clicked, so we select it.
             const monthIndex = parseInt(barWrapper.dataset.index, 10);
             const newSelectedMonth = monthIndex + 1;
-            if (newSelectedMonth !== selectedMonth) {
+
+            if (newSelectedMonth === selectedMonth) {
+                selectedMonth = null;
+                renderChart(fullChartData, null);
+                renderEmptyWeeklyBreakdown();
+                hideTooltip();
+            } else {
                 updateAnalyticsView(currentYear, newSelectedMonth);
             }
         } else if (!isYearNav) {
-            // Click was outside a bar and not on the year navigation. Deselect.
             if (selectedMonth !== null) {
                 selectedMonth = null;
-                renderChart(fullChartData, null); // Re-render with no active bar
+                renderChart(fullChartData, null);
                 renderEmptyWeeklyBreakdown();
+                hideTooltip();
             }
         }
-    });
-
-    barChartContainer.addEventListener('mouseover', (e) => {
-        const barWrapper = e.target.closest('.group');
-        if (barWrapper && fullChartData.length > 0) {
-            const index = parseInt(barWrapper.dataset.index, 10);
-            const month = fullChartData[index];
-
-            tooltip.innerHTML = `
-                <p class="text-xs text-gray-500">Total Earning</p>
-                <p class="font-bold text-lg text-[#3a4d39]">${currencyFormatter.format(month.total)}</p>
-            `;
-            
-            const barRect = barWrapper.getBoundingClientRect();
-            const containerRect = barChartContainer.getBoundingClientRect();
-            
-            tooltip.style.left = `${barRect.left - containerRect.left + barRect.width / 2}px`;
-            tooltip.style.top = `${barRect.top - containerRect.top}px`;
-            tooltip.style.opacity = '1';
-            tooltip.style.visibility = 'visible';
-        }
-    });
-
-    barChartContainer.addEventListener('mouseleave', () => {
-        tooltip.style.opacity = '0';
-        tooltip.style.visibility = 'hidden';
     });
 
     // --- INITIAL LOAD ---
@@ -359,12 +394,16 @@ document.addEventListener('DOMContentLoaded', function () {
     fullChartData = initialData.chart_data;
     currentYear = initialData.year;
     
-    // Default to showing current month's data on first load
     const initialMonthIndex = initialData.chart_data.findIndex(m => m.is_current_month);
     selectedMonth = initialMonthIndex > -1 ? initialMonthIndex + 1 : new Date().getMonth() + 1;
 
     renderChart(initialData.chart_data, selectedMonth);
     renderWeeklyBreakdown(initialData.weekly_breakdown, initialData.current_month_name, initialData.year, initialData.current_month_total);
+
+    const initialActiveBar = barChartContainer.querySelector('.active-bar');
+    if (initialActiveBar) {
+        showTooltip(initialActiveBar.closest('.bar-wrapper'));
+    }
 });
 </script>
 {% endblock %}
