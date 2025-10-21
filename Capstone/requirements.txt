@@ -1,0 +1,16 @@
+bcrypt
+Flask
+Flask-JWT-Extended
+Flask-Limiter
+Flask-Mail
+Flask-Talisman
+Flask-WTF
+Pillow
+pyotp
+pymongo
+pytesseract
+pytz        
+python-dotenv
+qrcode
+reportlab
+waitress
