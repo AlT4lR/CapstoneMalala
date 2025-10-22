@@ -1,4 +1,5 @@
 bcrypt
+email-validator
 Flask
 Flask-JWT-Extended
 Flask-Limiter
@@ -9,7 +10,7 @@ Pillow
 pyotp
 pymongo
 pytesseract
-pytz        
+pytz
 python-dotenv
 qrcode
 reportlab
