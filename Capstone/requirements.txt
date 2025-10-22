@@ -14,3 +14,4 @@ python-dotenv
 qrcode
 reportlab
 waitress
+pywwebpush
