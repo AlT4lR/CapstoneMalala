@@ -120,26 +120,21 @@
 {% block content %}
 <main class="relative flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1]">
     
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 flex-shrink-0">
-        <div>
-            <h2 class="text-3xl font-bold text-[#3a4d39] uppercase tracking-wide">Schedules</h2>
-            <p class="text-gray-500 text-sm mt-1">Manage your events and appointments.</p>
-        </div>
+    <!-- --- START OF MODIFICATION: Updated header to match dashboard style --- -->
+    <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2 flex-shrink-0">
+        <h1 class="text-2xl font-semibold">Schedules</h1>
         <div class="flex items-center gap-4">
-            <button id="mobile-controls-btn" class="md:hidden px-4 py-2 bg-white border rounded-lg shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-sliders"></i> 
+             <button id="mobile-controls-btn" class="md:hidden px-4 py-2 bg-white border rounded-lg shadow-sm flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-sliders"></i>
                 <span>Controls</span>
             </button>
-            <!-- --- START OF MODIFICATION: Added Archive button --- -->
-            <div class="flex items-center gap-4">
-                 <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
-                    <i class="fa-solid fa-box-archive fa-lg"></i>
-                </a>
-                 {% include "_notification_button.html" %}
-            </div>
-            <!-- --- END OF MODIFICATION --- -->
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                <i class="fa-solid fa-box-archive fa-lg"></i>
+            </a>
+            {% include "_notification_button.html" %}
         </div>
     </header>
+    <!-- --- END OF MODIFICATION --- -->
 
     <!-- Calendar Layout -->
     <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">

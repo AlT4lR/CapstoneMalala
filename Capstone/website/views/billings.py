@@ -14,25 +14,28 @@ def billings():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = LoanForm()
-    # --- START OF MODIFICATION: Reverted to passing the simple, sorted list of loans ---
     loans = get_loans(username, selected_branch)
-    # Sort by date issued, most recent first
+    # Sort by date issued, most recent first, to ensure a consistent order
     loans.sort(key=lambda l: l['date_issued'] or datetime.min, reverse=True)
     return render_template('billings.html', show_sidebar=True, form=form, loans=loans)
-    # --- END OF MODIFICATION ---
 
 # --- Billings & Loans API Routes ---
 @main.route('/api/billings/summary', methods=['GET'])
 @jwt_required()
 def get_billings_summary():
     username = get_jwt_identity()
+    # --- START OF MODIFICATION: Get selected branch from session ---
+    selected_branch = session.get('selected_branch')
+    # --- END OF MODIFICATION ---
     try:
         year = int(request.args.get('year'))
         week = int(request.args.get('week'))
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid year or week parameter'}), 400
 
-    summary_data = get_weekly_billing_summary(username, year, week)
+    # --- START OF MODIFICATION: Pass selected_branch to the model function ---
+    summary_data = get_weekly_billing_summary(username, selected_branch, year, week)
+    # --- END OF MODIFICATION ---
     return jsonify(summary_data)
 
 @main.route('/api/loans/add', methods=['POST'])
