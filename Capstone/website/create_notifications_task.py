@@ -52,6 +52,47 @@ def check_due_transactions_and_notify():
         else:
             print(f"Successfully created {count} notifications.")
 
+# --- START OF NEW FUNCTION ---
+def check_upcoming_schedules_and_notify():
+    """
+    Scans for schedules starting today and creates reminder notifications for the respective users.
+    """
+    with app.app_context():
+        db = app.db
+        if db is None:
+            print("Error: Database connection not available for schedules check.")
+            return
+
+        today_start = datetime.now(pytz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        
+        print(f"Checking for schedules starting between {today_start} and {today_end}...")
+
+        upcoming_schedules = db.schedules.find({
+            "start": {"$gte": today_start, "$lt": today_end}
+        })
+
+        count = 0
+        for schedule in upcoming_schedules:
+            count += 1
+            username = schedule['username']
+            schedule_title = schedule.get('title', 'an untitled event')
+            
+            title = "Upcoming Schedule Reminder"
+            message = f"Reminder: Your event '{schedule_title}' is scheduled for today."
+            url = url_for('main.schedules', _external=False)
+
+            add_notification(username, title, message, url)
+            print(f"  - Created schedule reminder for user '{username}' regarding '{schedule_title}'.")
+        
+        if count == 0:
+            print("No schedules starting today.")
+        else:
+            print(f"Successfully created {count} schedule reminders.")
+# --- END OF NEW FUNCTION ---
+
 
 if __name__ == '__main__':
     check_due_transactions_and_notify()
+    print("\n" + "="*30 + "\n")
+    check_upcoming_schedules_and_notify()
