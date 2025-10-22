@@ -50,7 +50,10 @@ def get_analytics_data(username, branch, year, month):
         ]
         monthly_totals_docs = list(db.transactions.aggregate(month_pipeline))
         monthly_totals = {doc['_id']: doc['total'] for doc in monthly_totals_docs}
-        max_earning = max(monthly_totals.values()) if monthly_totals else 0
+        
+        # --- START OF FIX: Prevent error on years with no transactions ---
+        max_earning = max(monthly_totals.values(), default=0)
+        # --- END OF FIX ---
 
         # --- Generate Chart Data ---
         chart_data = []
@@ -84,7 +87,6 @@ def get_analytics_data(username, branch, year, month):
         weekly_totals_dict = {doc['_id']: doc['total'] for doc in weekly_docs}
         
         weekly_breakdown = []
-        # Loop exactly 4 times for a 4-week month structure
         for i in range(1, 5): 
             weekly_breakdown.append({
                 'week': f"Week {i}",
@@ -118,7 +120,6 @@ def get_weekly_billing_summary(username, year, week):
         start_of_week = datetime.fromisocalendar(year, week, 1).replace(tzinfo=pytz.utc)
         end_of_week = start_of_week + timedelta(days=7)
         
-        # 1. Find all NON-ARCHIVED parent transaction folders paid within the specified week
         parent_folders = list(db.transactions.find({
             'username': username,
             'status': 'Paid',
@@ -127,16 +128,13 @@ def get_weekly_billing_summary(username, year, week):
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }))
 
-        # 2. Calculate the total "Check Amount" from these parent folders
         total_check_amount = sum(folder.get('amount', 0) for folder in parent_folders)
         
-        # 3. Aggregate EWT and Countered Check amounts from the children of those folders
         parent_ids = [folder['_id'] for folder in parent_folders]
         total_ewt = 0
         total_countered = 0
         
         if parent_ids:
-            # Child checks are inherently filtered because we only look for children of non-archived parents.
             child_pipeline = [
                 {'$match': {
                     'parent_id': {'$in': parent_ids}
@@ -152,7 +150,6 @@ def get_weekly_billing_summary(username, year, week):
                 total_ewt = child_result[0].get('total_ewt', 0)
                 total_countered = child_result[0].get('total_countered', 0)
 
-        # 4. Calculate total of other NON-ARCHIVED loans paid in the same week
         loans_pipeline = [
             {'$match': {
                 'username': username,
@@ -167,7 +164,6 @@ def get_weekly_billing_summary(username, year, week):
         loans_result = list(db.loans.aggregate(loans_pipeline))
         total_loans = loans_result[0]['total_loans'] if loans_result else 0
 
-        # 5. Assemble the final summary dictionary
         summary = {
             'check_amount': total_check_amount,
             'ewt_collected': total_ewt,
