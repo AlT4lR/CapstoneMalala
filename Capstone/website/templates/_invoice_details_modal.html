@@ -1,42 +1,41 @@
 <!-- website/templates/_invoice_details_modal.html -->
 <div id="invoice-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
     
-    <div id="modal-content" class="bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+    <div id="modal-content" class="bg-[#f6f7f1] rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
         
-        <header class="bg-[#f6f7f1] text-[#3a4d39] flex justify-between items-center p-2 pl-4 flex-shrink-0 border-b border-gray-300">
+        <header class="bg-[#eef2e9] text-[#3a4d39] flex justify-between items-center p-2 pl-4 flex-shrink-0 border-b border-gray-300">
             <div class="flex items-center gap-3">
-                <button id="close-modal-btn" class="hover:bg-gray-200 rounded-full p-1 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                <button id="close-modal-btn" class="hover:bg-gray-300 rounded-full p-2 transition-colors"><i class="fas fa-times fa-lg"></i></button>
                 <i class="fa-solid fa-image text-lg"></i>
-                <h2 id="modal-invoice-title" class="text-lg font-semibold truncate">Salary for workers</h2>
+                <h2 id="modal-invoice-title" class="text-lg font-semibold truncate">Invoice Title</h2>
             </div>
             <button id="modal-delete-btn" class="text-red-500 hover:bg-red-100 rounded-full p-2 transition-colors" title="Delete">
                 <i class="fa-solid fa-trash-can"></i>
             </button>
         </header>
 
-        <!-- --- START OF MODIFICATION: Main body now stacks vertically on mobile --- -->
-        <main class="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden bg-[#eef2e9]">
+        <main class="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden bg-white">
             
-            <!-- Image Container (takes full width on mobile, 2/3 on desktop) -->
-            <div id="modal-image-container" class="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center p-4 relative bg-[#fafaf5]">
+            <!-- Image Container -->
+            <div id="modal-image-container" class="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center p-4 relative bg-[#f6f7f1]">
                  <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain hidden">
+                 <p id="modal-image-placeholder" class="text-gray-500 hidden">No Image Available</p>
                 <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-[#3a4d39] rounded-md text-white shadow-lg">
                     <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-l-md">+</button>
                     <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-r-md border-l border-white/20">-</button>
                 </div>
             </div>
 
-            <!-- Extracted Text Container (takes full width on mobile, 1/3 on desktop) -->
-            <div class="w-full md:w-1/3 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-white">
-                <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-50 flex-shrink-0">Extracted Text (OCR)</h3>
+            <!-- Extracted Text Container -->
+            <div class="w-full md:w-1/3 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-gray-50">
+                <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-100 flex-shrink-0">Extracted Text (OCR)</h3>
                 <pre id="modal-ocr-text" class="flex-1 p-3 overflow-y-auto text-xs text-gray-700 whitespace-pre-wrap font-sans"></pre>
             </div>
         </main>
-        <!-- --- END OF MODIFICATION --- -->
 
-        <footer class="p-4 flex justify-end gap-3 flex-shrink-0 bg-[#fafaf5] border-t">
-            <button id="modal-edit-btn" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Edit</button>
-            <a id="modal-download-btn" href="#" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-md hover:bg-opacity-90">Download</a>
+        <footer class="p-3 flex justify-end gap-3 flex-shrink-0 bg-[#eef2e9] border-t">
+            <button id="modal-edit-btn" class="px-6 py-2 bg-white border border-gray-400 text-[#3a4d39] font-semibold rounded-lg shadow-sm hover:bg-gray-100">Edit</button>
+            <a id="modal-download-btn" href="#" class="px-6 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90">Download</a>
         </footer>
     </div>
 </div>

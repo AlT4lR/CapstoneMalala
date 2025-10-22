@@ -27,12 +27,34 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
+# --- Tesseract Configuration ---
+# Ensure this path is correct for your system.
+try:
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+except Exception as e:
+    logger.warning(f"Could not set the Tesseract path. OCR will likely fail. Error: {e}")
+
+
 def perform_ocr_on_image(image_path):
+    # --- START OF MODIFICATION: More detailed error handling ---
     try:
-        return pytesseract.image_to_string(Image.open(image_path))
+        # Use a timeout to prevent the process from hanging on difficult images
+        return pytesseract.image_to_string(Image.open(image_path), timeout=15)
+    except pytesseract.TesseractNotFoundError:
+        # This error is specific: the tesseract.exe file was not found at the path.
+        logger.error("TESSERACT NOT FOUND: The 'tesseract.exe' file was not found at the specified path.")
+        return "OCR Error: Tesseract executable not found. Please check the server configuration."
+    except RuntimeError as timeout_error:
+        # This catches the timeout error specifically
+        logger.error(f"OCR timed out for image {image_path}: {timeout_error}")
+        return "OCR failed: Processing timed out. The image may be too complex."
     except Exception as e:
-        logger.error(f"OCR failed for image {image_path}: {e}")
-        return "OCR failed: Could not read text from image."
+        # This catches all other errors (e.g., bad installation, missing language files)
+        # and logs the actual error message for debugging.
+        logger.error(f"An unexpected OCR error occurred for image {image_path}: {e}")
+        return f"OCR failed: An unexpected error occurred. Check server logs for details. (Error: {str(e)[:100]})"
+    # --- END OF MODIFICATION ---
+
 
 @main.route('/invoice')
 @jwt_required()
@@ -162,3 +184,9 @@ def download_invoice_as_pdf(invoice_id):
     p.save()
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype='application/pdf')
+
+@main.route('/invoices/uploads/<path:filename>')
+@jwt_required()
+def uploaded_invoice_file(filename):
+    """Provides a secure endpoint to access uploaded invoice files."""
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
