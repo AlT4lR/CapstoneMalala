@@ -3,9 +3,7 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
     
-    <!-- --- START OF MODIFICATION: Made header responsive --- -->
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 border-b border-[#d4d8c4] pb-3">
-    <!-- --- END OF MODIFICATION --- -->
         <h2 class="text-2xl font-semibold uppercase tracking-wide">Invoice</h2>
         <div class="flex items-center gap-4 w-full sm:w-auto">
             <div class="relative flex-grow sm:flex-grow-0">
@@ -26,7 +24,6 @@
         </a>
     </div>
 
-    <!-- --- START OF MODIFICATION: Replaced table with responsive div structure --- -->
     <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
         <!-- Header -->
         <div class="hidden md:grid grid-cols-3 p-3 bg-[#3a4d39] text-white font-semibold text-sm">
@@ -59,7 +56,6 @@
             <div id="no-results-row" class="hidden p-8 text-center text-gray-500">No results found.</div>
         </div>
     </div>
-    <!-- --- END OF MODIFICATION --- -->
 </main>
 
 {% include "_invoice_details_modal.html" %}
@@ -91,10 +87,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- START OF MODIFICATION: Updated modal logic ---
     const modal = document.getElementById('invoice-details-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const modalTitle = document.getElementById('modal-invoice-title');
     const modalImage = document.getElementById('modal-invoice-image');
+    const imagePlaceholder = document.getElementById('modal-image-placeholder');
     const modalOcrText = document.getElementById('modal-ocr-text');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
     const modalDeleteBtn = document.getElementById('modal-delete-btn');
@@ -112,12 +110,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 modalTitle.textContent = data.folder_name || 'Invoice Details';
+                
+                // Check if there are files and set the image source
                 if (data.files && data.files.length > 0) {
-                     modalImage.src = `/uploads/invoices/${data.files[0].filename}`;
+                     // Use the new, correct route to load the image
+                     modalImage.src = `/invoices/uploads/${data.files[0].filename}`;
                      modalImage.classList.remove('hidden');
+                     imagePlaceholder.classList.add('hidden');
                 } else {
+                     // If no image, hide the img tag and show a placeholder
                      modalImage.src = '';
                      modalImage.classList.add('hidden');
+                     imagePlaceholder.classList.remove('hidden');
                 }
                 
                 modalOcrText.textContent = data.extracted_text || 'No text could be extracted from this image.';
@@ -135,7 +139,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     closeModalBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
+        // Close modal only if the click is on the backdrop, not the content
+        if (e.target.id === 'invoice-details-modal') {
+             closeModal();
+        }
     });
 
     modalDeleteBtn.addEventListener('click', function() {
@@ -143,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const invoiceName = this.dataset.name;
         if (!invoiceId) return;
 
+        // Assuming you have a custom confirmation dialog function
         window.showCustomConfirm(`Are you sure you want to archive "${invoiceName}"?`, async () => {
             try {
                 const response = await fetch(`/api/invoices/${invoiceId}`, {
@@ -161,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    // --- END OF MODIFICATION ---
 });
 </script>
 {% endblock %}
