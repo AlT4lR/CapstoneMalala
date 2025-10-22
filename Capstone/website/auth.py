@@ -27,15 +27,17 @@ def get_serializer():
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
     """Handles missing JWTs."""
-    if request.is_json or request.path.startswith('/api/'):
+    # If the request is a background API call, return a JSON error.
+    if request.path.startswith('/api/'):
         return jsonify(msg="Missing Authorization Header"), 401
+    # Otherwise, it's a normal page load, so redirect to login.
     flash('Please log in to access this page.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.invalid_token_loader
 def invalid_token_response(callback):
     """Handles invalid JWTs."""
-    if request.is_json or request.path.startswith('/api/'):
+    if request.path.startswith('/api/'):
         return jsonify(msg="Your session is invalid. Please log in again."), 401
     flash('Your session has expired or is invalid. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
@@ -43,7 +45,7 @@ def invalid_token_response(callback):
 @jwt.expired_token_loader
 def expired_token_response(jwt_header, jwt_payload):
     """Handles expired JWTs."""
-    if request.is_json or request.path.startswith('/api/'):
+    if request.path.startswith('/api/'):
         return jsonify(msg="Your session has expired. Please log in again."), 401
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
