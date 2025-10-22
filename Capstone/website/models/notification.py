@@ -6,20 +6,58 @@ import pytz
 from bson import ObjectId
 from flask import current_app
 from .helpers import format_relative_time
-# The problematic top-level import has been removed from here.
+import json
+from pywebpush import webpush, WebPushException
 
 logger = logging.getLogger(__name__)
+
+
+# --- START OF MODIFICATION: Added Web Push Sending Logic ---
+
+def _send_web_push_notification(subscriptions, payload_data):
+    """
+    Sends a web push notification to all provided subscriptions.
+    """
+    if not subscriptions:
+        return
+
+    try:
+        vapid_private_key = current_app.config.get('VAPID_PRIVATE_KEY')
+        vapid_claim_email = current_app.config.get('VAPID_CLAIM_EMAIL')
+
+        if not vapid_private_key or not vapid_claim_email:
+            logger.warning("VAPID keys are not configured. Cannot send web push notifications.")
+            return
+
+        for sub in subscriptions:
+            try:
+                webpush(
+                    subscription_info=sub,
+                    data=json.dumps(payload_data),
+                    vapid_private_key=vapid_private_key,
+                    vapid_claims={"sub": f"mailto:{vapid_claim_email}"}
+                )
+                logger.info(f"Successfully sent web push notification.")
+            except WebPushException as ex:
+                # This often happens if a subscription is expired or invalid.
+                # You might want to add logic here to remove the subscription from the database.
+                logger.error(f"WebPushException: {ex}")
+                if ex.response and ex.response.status_code == 410:
+                    logger.warning(f"Subscription has expired or is no longer valid: {sub.get('endpoint')}")
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while sending web push notifications: {e}", exc_info=True)
+
 
 def add_notification(username, title, message, url):
     db = current_app.db
     if db is None: return False
     try:
-        # --- START OF FIX ---
-        # Import the necessary modules locally, only when this function is called.
+        # Locally import modules to prevent circular dependencies
         from website.utils.email_utils import send_notification_email
-        from .user import get_user_by_username
-        # --- END OF FIX ---
+        from .user import get_user_by_username, get_user_push_subscriptions
         
+        # 1. Save the notification to the database
         db.notifications.insert_one({
             'username': username,
             'title': title,
@@ -29,7 +67,7 @@ def add_notification(username, title, message, url):
             'createdAt': datetime.now(pytz.utc)
         })
 
-        # --- Email Sending Logic ---
+        # 2. Send Email Notification
         try:
             user = get_user_by_username(username)
             if user and user.get('email'):
@@ -44,10 +82,29 @@ def add_notification(username, title, message, url):
         except Exception as e:
             logger.error(f"Failed to trigger email notification for user {username}: {e}")
         
+        # 3. Send Web Push Notification
+        try:
+            subscriptions = get_user_push_subscriptions(username)
+            if subscriptions:
+                push_payload = {
+                    "title": title,
+                    "body": message,
+                    "icon": "/static/imgs/icons/logo.ico", # Optional: path to an icon
+                    "data": {
+                        "url": url
+                    }
+                }
+                _send_web_push_notification(subscriptions, push_payload)
+        except Exception as e:
+            logger.error(f"Failed to trigger web push notification for user {username}: {e}")
+
         return True
     except Exception as e:
         logger.error(f"Error adding notification for {username}: {e}", exc_info=True)
         return False
+
+# --- END OF MODIFICATION ---
+
 
 def get_notifications(username, page=1, limit=25):
     """ Fetches notifications for a user with pagination. """
