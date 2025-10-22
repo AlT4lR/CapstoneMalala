@@ -203,6 +203,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- START OF MODIFICATION ---
     const checkNotificationStatus = async () => {
+        // --- START OF FIX: Use querySelectorAll to find ALL indicators ---
+        const notificationIndicators = document.querySelectorAll('.notification-indicator');
+        if (notificationIndicators.length === 0) return;
+        // --- END OF FIX ---
+
         try {
             // Tell fetch not to follow redirects.
             const response = await fetch('/api/notifications/status', { redirect: 'manual' });
@@ -224,6 +229,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     indicator.classList.add('hidden');
                 }
             });
+
+            // --- START OF FIX: Loop through each indicator and update it ---
+            notificationIndicators.forEach(indicator => {
+                if (data.unread_count > 0) {
+                    indicator.classList.remove('hidden');
+                } else {
+                    indicator.classList.add('hidden');
+                }
+            });
+            // --- END OF FIX ---
         } catch (error) {
             console.error('Error checking notification status:', error);
         }
