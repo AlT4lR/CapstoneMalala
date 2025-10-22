@@ -228,10 +228,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const relevantWeeks = weeklyData.filter(w => w.total > 0);
         const dataToShow = relevantWeeks.length > 0 ? relevantWeeks : weeklyData;
 
+        // --- START OF MODIFICATION: Added text wrapping classes ---
         let weeklyRows = dataToShow.map(week => `
-            <div class="flex justify-between items-center text-sm">
-                <span class="text-gray-600">${week.week}</span>
-                <span class="font-semibold text-gray-800 font-mono">${currencyFormatter.format(week.total)}</span>
+            <div class="flex justify-between items-center text-sm gap-4">
+                <span class="text-gray-600 flex-shrink-0">${week.week}</span>
+                <span class="font-semibold text-gray-800 font-mono text-right break-all">${currencyFormatter.format(week.total)}</span>
             </div>
         `).join('');
 
@@ -239,11 +240,12 @@ document.addEventListener('DOMContentLoaded', function () {
             <h4 class="font-bold text-center text-gray-800 mb-4 uppercase">${monthName} ${year}</h4>
             <div class="space-y-3">${weeklyRows}</div>
             <hr class="my-4 border-gray-300">
-            <div class="flex justify-between items-center font-bold text-base text-[#3a4d39]">
-                <span>Total</span>
-                <span class="font-mono">${currencyFormatter.format(monthTotal)}</span>
+            <div class="flex justify-between items-center font-bold text-base text-[#3a4d39] gap-4">
+                <span class="flex-shrink-0">Total</span>
+                <span class="font-mono text-right break-all">${currencyFormatter.format(monthTotal)}</span>
             </div>
         `;
+        // --- END OF MODIFICATION ---
     }
 
     function renderEmptyWeeklyBreakdown() {

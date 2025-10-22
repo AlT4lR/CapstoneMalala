@@ -130,9 +130,14 @@
                 <i class="fa-solid fa-sliders"></i> 
                 <span>Controls</span>
             </button>
-            <div class="hidden md:flex items-center">
+            <!-- --- START OF MODIFICATION: Added Archive button --- -->
+            <div class="flex items-center gap-4">
+                 <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                    <i class="fa-solid fa-box-archive fa-lg"></i>
+                </a>
                  {% include "_notification_button.html" %}
             </div>
+            <!-- --- END OF MODIFICATION --- -->
         </div>
     </header>
 

@@ -28,28 +28,30 @@
                 </div>
             </div>
             <!-- Right Side: Summary Cards -->
+            <!-- START OF MODIFICATION: Added 'break-all' to number containers -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Check Amount</div>
-                    <div id="total-check-amount" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold">₱0.00</div>
+                    <div id="total-check-amount" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total EWT Collected</div>
-                    <div id="total-ewt" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold">₱0.00</div>
+                    <div id="total-ewt" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Countered Check</div>
-                    <div id="total-countered-check" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold">₱0.00</div>
+                    <div id="total-countered-check" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total amt of other loans</div>
-                    <div id="total-loans" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold">₱0.00</div>
+                    <div id="total-loans" class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2">₱0.00</div>
                 </div>
             </div>
+            <!-- END OF MODIFICATION -->
         </div>
     </section>
 
-    <!-- --- START OF MODIFICATION: Fully Responsive Loans Section --- -->
+    <!-- --- START OF MODIFICATION: Fully Responsive and Grouped Loans Section --- -->
     <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 flex-1 flex flex-col">
         <!-- Section Header with Search -->
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
@@ -71,38 +73,54 @@
                 <span class="col-span-1 text-right">Actions</span>
             </div>
 
-            <!-- Table Body -->
+            <!-- Table Body with Weekly Grouping -->
             <div id="loan-list-container" class="flex-1 overflow-y-auto">
-                {% for loan in loans %}
-                <!-- Container for each loan item -->
-                <div class="loan-item sm:grid sm:grid-cols-12 sm:items-center sm:px-3 sm:py-2.5 border-b text-sm hover:bg-gray-50" data-name="{{ loan.name | lower }}">
-                    
-                    <!-- Mobile Card View -->
-                    <div class="p-3 sm:hidden">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="font-semibold text-gray-800">{{ loan.name }}</p>
-                            <button class="text-gray-400 hover:text-[#3a4d39] p-1 -mt-1"><i class="fa-solid fa-pen-to-square"></i></button>
-                        </div>
-                        <div class="space-y-1 text-gray-600">
-                            <p><strong class="font-medium text-gray-500">Bank:</strong> {{ loan.bank_name }}</p>
-                            <p><strong class="font-medium text-gray-500">Amount:</strong> ₱ {{ "{:,.2f}".format(loan.amount) }}</p>
-                            <p><strong class="font-medium text-gray-500">Issued:</strong> {{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</p>
-                            <p><strong class="font-medium text-gray-500">Paid:</strong> {{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</p>
-                        </div>
+                {% for month_group in grouped_loans %}
+                    <div class="month-group mt-4">
+                        <h4 class="font-bold text-gray-700 px-2 py-1 bg-gray-100 rounded-t-md">{{ month_group.month_name }}</h4>
+                        {% for week, weekly_loans in month_group.weeks %}
+                            <details {% if loop.first and loop.parent.first %}open{% endif %} class="week-group border-b">
+                                <summary class="px-3 py-2 font-semibold text-gray-600 bg-gray-50 cursor-pointer hover:bg-gray-100 list-none flex items-center gap-2">
+                                    <i class="fa-solid fa-chevron-right transition-transform duration-200"></i>
+                                    Week {{ week }}
+                                </summary>
+                                <div class="week-content">
+                                    {% for loan in weekly_loans %}
+                                    <div class="loan-item sm:grid sm:grid-cols-12 sm:items-center sm:px-3 sm:py-2.5 border-t text-sm hover:bg-gray-50" data-name="{{ loan.name | lower }}">
+                                        <!-- Mobile Card View -->
+                                        <div class="p-3 sm:hidden">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <!-- START OF MODIFICATION: Added 'break-words' for wrapping -->
+                                                <p class="font-semibold text-gray-800 break-words">{{ loan.name }}</p>
+                                                <!-- END OF MODIFICATION -->
+                                                <button class="text-gray-400 hover:text-[#3a4d39] p-1 -mt-1 flex-shrink-0"><i class="fa-solid fa-pen-to-square"></i></button>
+                                            </div>
+                                            <div class="space-y-1 text-gray-600">
+                                                <p><strong class="font-medium text-gray-500">Bank:</strong> {{ loan.bank_name }}</p>
+                                                <p><strong class="font-medium text-gray-500">Amount:</strong> ₱ {{ "{:,.2f}".format(loan.amount) }}</p>
+                                                <p><strong class="font-medium text-gray-500">Issued:</strong> {{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</p>
+                                                <p><strong class="font-medium text-gray-500">Paid:</strong> {{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</p>
+                                            </div>
+                                        </div>
+                                        <!-- Desktop Table Row View -->
+                                        <!-- START OF MODIFICATION: Added 'truncate' for clean desktop view -->
+                                        <span class="hidden sm:block col-span-3 font-medium truncate">{{ loan.name }}</span>
+                                        <span class="hidden sm:block col-span-2 text-gray-600 truncate">{{ loan.bank_name }}</span>
+                                        <!-- END OF MODIFICATION -->
+                                        <span class="hidden sm:block col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
+                                        <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
+                                        <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
+                                        <div class="hidden sm:flex col-span-1 justify-end">
+                                            <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                        {% endfor %}
                     </div>
-
-                    <!-- Desktop Table Row View -->
-                    <span class="hidden sm:block col-span-3 font-medium">{{ loan.name }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.bank_name }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
-                    <div class="hidden sm:flex col-span-1 justify-end">
-                        <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
-                    </div>
-                </div>
                 {% else %}
-                <p id="no-loans-message" class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
+                    <p id="no-loans-message" class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
                 {% endfor %}
                 <p id="no-loan-results-message" class="hidden text-center text-gray-500 p-8">No loans found matching your search.</p>
             </div>
@@ -162,6 +180,22 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- START OF MODIFICATION: Add styling for details/summary arrow ---
+        document.querySelectorAll('details.week-group').forEach(detail => {
+            detail.addEventListener('toggle', () => {
+                const icon = detail.querySelector('summary i');
+                if (icon) {
+                    icon.classList.toggle('rotate-90', detail.open);
+                }
+            });
+            // Initialize rotation for initially open details
+            if (detail.open) {
+                const icon = detail.querySelector('summary i');
+                if (icon) icon.classList.add('rotate-90');
+            }
+        });
+        // --- END OF MODIFICATION ---
+
         // Initialize date pickers in the "Create Loan" modal
         flatpickr("#date_issued", {
             dateFormat: "Y-m-d",
@@ -351,27 +385,47 @@
         const loanItems = document.querySelectorAll('.loan-item');
         const noLoanResultsMessage = document.getElementById('no-loan-results-message');
         const noLoansMessage = document.getElementById('no-loans-message');
+        const allGroupElements = document.querySelectorAll('.month-group, .week-group');
+
 
         if (loanSearchInput) {
             loanSearchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase().trim();
-                let visibleCount = 0;
-                
+                let hasVisibleItems = false;
+
+                // First, hide or show all individual loan items
                 loanItems.forEach(item => {
                     const name = item.dataset.name;
-                    if (name.includes(searchTerm)) {
-                        item.style.display = 'grid'; // Use 'grid' for desktop, it will behave as block on mobile
-                        visibleCount++;
+                    const isVisible = name.includes(searchTerm);
+                    item.style.display = isVisible ? 'grid' : 'none'; // Use 'grid' for desktop, it will behave as block on mobile
+                    if (isVisible) hasVisibleItems = true;
+                });
+
+                // Then, hide or show the group headers based on their content
+                document.querySelectorAll('.month-group').forEach(monthGroup => {
+                    let monthHasVisibleItems = false;
+                    monthGroup.querySelectorAll('.week-group').forEach(weekGroup => {
+                        const visibleItemsInWeek = weekGroup.querySelectorAll('.loan-item[style*="display: grid"]');
+                        if (visibleItemsInWeek.length > 0) {
+                            weekGroup.style.display = 'block';
+                            monthHasVisibleItems = true;
+                        } else {
+                            weekGroup.style.display = 'none';
+                        }
+                    });
+                    
+                    if (monthHasVisibleItems) {
+                        monthGroup.style.display = 'block';
                     } else {
-                        item.style.display = 'none';
+                        monthGroup.style.display = 'none';
                     }
                 });
 
                 if (noLoanResultsMessage) {
-                    noLoanResultsMessage.style.display = (visibleCount === 0 && loanItems.length > 0) ? 'block' : 'none';
+                    noLoanResultsMessage.style.display = (!hasVisibleItems && loans.length > 0) ? 'block' : 'none';
                 }
                 if (noLoansMessage) {
-                    noLoansMessage.style.display = (visibleCount > 0 || searchTerm !== '') ? 'none' : 'block';
+                    noLoansMessage.style.display = (hasVisibleItems || searchTerm !== '') ? 'none' : 'block';
                 }
             });
         }

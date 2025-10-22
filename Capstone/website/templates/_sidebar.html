@@ -4,16 +4,15 @@
 
 <!-- 
     CHANGES MADE:
-    1. Added `transition-all duration-300 ease-in-out` to the <aside> tag.
-       - `transition-all`: Animate all animatable properties (like width).
-       - `duration-300`: Make the animation last 300 milliseconds.
-       - `ease-in-out`: A smooth acceleration and deceleration curve for the animation.
+    1. Added `overflow-y-auto` to allow vertical scrolling when content exceeds screen height.
+    2. Added `custom-scrollbar` to apply consistent styling to the new scrollbar.
 -->
 <aside id="sidebar" class="bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 
            transition-all duration-300 ease-in-out
            fixed lg:relative inset-y-0 left-0 z-40
            w-72 -translate-x-full lg:translate-x-0
-           lg:w-20 lg:hover:w-72 group lg:overflow-hidden">
+           lg:w-20 lg:hover:w-72 group lg:overflow-hidden 
+           overflow-y-auto custom-scrollbar">
     
     <!-- Header -->
     <div class="flex items-center justify-between lg:justify-start gap-4 h-16 shrink-0 px-2 mb-8">
