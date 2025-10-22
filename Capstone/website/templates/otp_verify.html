@@ -15,21 +15,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
     <style>
-        /* Custom styles for the single OTP input field */
+        /* --- START OF MODIFICATION: Responsive OTP input field --- */
         .otp-input {
-            width: 16rem;
+            width: 100%; /* Full width on small screens */
+            max-width: 16rem; /* Max width for larger screens */
             height: 4rem;
             text-align: center;
-            font-size: 2rem;
+            font-size: 1.75rem; /* Slightly smaller font on mobile */
             font-weight: 600;
-            letter-spacing: 0.5rem; /* Creates visual space between characters */
+            letter-spacing: 0.5rem;
             color: #3a4d39;
-            background-color: #f3f4f6; /* Light grey background */
+            background-color: #f3f4f6;
             border: 2px solid transparent;
             border-radius: 0.75rem;
             transition: all 0.2s ease-in-out;
-            padding-left: 0.5rem; /* Centers the text better with letter-spacing */
+            padding-left: 0.5rem;
         }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .otp-input {
+                font-size: 2rem;
+            }
+        }
+        /* --- END OF MODIFICATION --- */
         .otp-input::placeholder {
             letter-spacing: normal;
         }
@@ -40,9 +47,6 @@
             background-color: #ffffff;
         }
         
-        /* --- START OF FIX: The problematic CSS override has been removed from here --- */
-
-        /* Animation for the card appearing */
         .card {
             animation: fadeIn 0.4s ease-out;
         }
@@ -54,11 +58,9 @@
 </head>
 <body class="bg-[#333333] font-poppins antialiased">
 
-    <!-- START OF FIX: Flash message include is now outside the main content card -->
     {% include "_flash_messages.html" %}
-    <!-- END OF FIX -->
 
-    <main class="flex items-center justify-center min-h-screen p-6">
+    <main class="flex items-center justify-center min-h-screen p-4 sm:p-6">
         <div class="card w-full max-w-md bg-[#F5F3F0] shadow-2xl rounded-2xl p-8 sm:p-12 text-center">
 
             <div class="flex justify-center mb-6">
@@ -76,8 +78,6 @@
                     Email Verification
                 {% endif %}
             </h1>
-
-            <!-- The flash message was removed from here -->
 
             <p class="text-gray-600 mb-8">
                 {% if is_2fa_login %}
@@ -109,7 +109,6 @@
     </main>
 
     <script>
-        // Script for auto-fading flash messages
         document.addEventListener('DOMContentLoaded', function() {
             const flashContainer = document.getElementById('flash-messages-overlay-container');
             if (flashContainer) {

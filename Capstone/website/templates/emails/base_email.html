@@ -1,0 +1,27 @@
+<!-- website/templates/emails/base_email.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { font-size: 24px; font-weight: bold; color: #3a4d39; text-align: center; margin-bottom: 20px; }
+        .content { font-size: 16px; }
+        .button { display: inline-block; padding: 12px 24px; margin-top: 20px; background-color: #3a4d39; color: #ffffff; text-decoration: none; border-radius: 5px; }
+        .footer { margin-top: 30px; font-size: 12px; text-align: center; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">DecoOffice</div>
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+        <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+            <p>&copy; {{ now.year }} DecoOffice. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

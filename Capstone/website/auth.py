@@ -1,6 +1,6 @@
 # website/auth.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, make_response, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, make_response, current_app, jsonify
 from flask_mail import Message
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
@@ -22,21 +22,33 @@ auth = Blueprint('auth', __name__)
 def get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
-# --- JWT Error Handlers ---
+# --- START OF MODIFICATION: Smarter JWT Error Handlers ---
+
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
+    """Handles missing JWTs."""
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify(msg="Missing Authorization Header"), 401
     flash('Please log in to access this page.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.invalid_token_loader
 def invalid_token_response(callback):
+    """Handles invalid JWTs."""
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify(msg="Your session is invalid. Please log in again."), 401
     flash('Your session has expired or is invalid. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.expired_token_loader
 def expired_token_response(jwt_header, jwt_payload):
+    """Handles expired JWTs."""
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify(msg="Your session has expired. Please log in again."), 401
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
+
+# --- END OF MODIFICATION ---
 
 # --- Helper Functions ---
 def send_otp_email(recipient_email, otp):
@@ -95,10 +107,8 @@ def login():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # --- START OF FIX: Call add_user only once and store the result ---
         user_added_successfully = current_app.add_user(form.username.data, form.email.data, form.password.data)
         if user_added_successfully:
-        # --- END OF FIX ---
             otp = current_app.set_user_otp(form.username.data, otp_type='email')
             if otp:
                 send_otp_email(form.email.data, otp)

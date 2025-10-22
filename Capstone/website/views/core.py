@@ -1,5 +1,3 @@
-# website/views/core.py
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
     send_from_directory, jsonify
@@ -49,6 +47,15 @@ def select_branch(branch_name):
     if branch_name.upper() in ['MONTALBAN', 'LAGUNA']:
         session['selected_branch'] = branch_name.upper()
     return redirect(url_for('main.dashboard'))
+
+# --- START OF MODIFICATION ---
+@main.route('/change_branch')
+@jwt_required()
+def change_branch():
+    """Clears the selected branch from the session to allow re-selection."""
+    session.pop('selected_branch', None)
+    return redirect(url_for('main.branches'))
+# --- END OF MODIFICATION ---
 
 # --- Main Pages ---
 @main.route('/dashboard')

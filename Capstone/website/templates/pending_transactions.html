@@ -38,11 +38,13 @@
                     <!-- Mobile View -->
                     <div class="md:hidden">
                         <div class="flex justify-between items-start">
-                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3">
-                                <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                                <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3 min-w-0">
+                                <i class="fa-solid fa-folder text-gray-400 fa-lg flex-shrink-0"></i>
+                                <!-- START OF MODIFICATION: Added 'break-words' -->
+                                <span class="font-semibold text-gray-800 transaction-name-display break-words">{{ t.name }}</span>
+                                <!-- END OF MODIFICATION -->
                             </a>
-                            <div class="flex gap-4 text-gray-500">
+                            <div class="flex gap-4 text-gray-500 flex-shrink-0">
                                 <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
                                 <div class="delete-btn-wrapper hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
                                     <i class="fa-solid fa-trash-can"></i>
@@ -55,9 +57,11 @@
                     </div>
                     
                     <!-- Desktop View -->
-                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3">
+                    <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3 min-w-0">
                         <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
-                        <span class="font-semibold text-gray-800 transaction-name-display">{{ t.name }}</span>
+                        <!-- START OF MODIFICATION: Added 'truncate' -->
+                        <span class="font-semibold text-gray-800 transaction-name-display truncate">{{ t.name }}</span>
+                        <!-- END OF MODIFICATION -->
                     </a>
                     <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm">{{ t.check_date }}</a>
                     <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
