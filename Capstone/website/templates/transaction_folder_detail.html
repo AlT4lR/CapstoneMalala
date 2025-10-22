@@ -41,24 +41,61 @@
 
           <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
               {% for check in child_checks %}
-              <div class="grid grid-cols-12 gap-4 px-3 py-3 border-b items-center check-row hover:bg-gray-50 transition-colors">
-                <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
-                <span class="col-span-2">{{ check.check_no }}</span>
-                <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
-                <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
-                <div class="col-span-3 flex justify-between items-center">
-                  <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
-                  <div class="flex gap-3 text-gray-400">
-                    <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
-                    <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+              <!-- --- START OF MODIFICATION: Responsive row --- -->
+              <div class="check-row border-b hover:bg-gray-50 transition-colors" data-name="{{ check.name | lower }}">
+                  <!-- Mobile Card View -->
+                  <div class="p-3 md:hidden">
+                      <div class="flex justify-between items-start mb-2 gap-2">
+                          <p class="font-semibold text-gray-800 break-words">{{ check.name }}</p>
+                          <div class="flex gap-4 text-gray-400 flex-shrink-0">
+                              <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                              <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
+                                  <i class="fa-solid fa-trash"></i>
+                              </button>
+                          </div>
+                      </div>
+                      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                          <div>
+                              <p class="text-gray-500">Check No.</p>
+                              <p class="text-gray-700">{{ check.check_no }}</p>
+                          </div>
+                          <div>
+                              <p class="text-gray-500">Check Date</p>
+                              <p class="text-gray-700">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
+                          </div>
+                          <div>
+                              <p class="text-gray-500">EWT</p>
+                              <p class="text-gray-700">₱{{ "{:,.2f}".format(check.ewt) }}</p>
+                          </div>
+                          <div>
+                              <p class="text-gray-500">Countered Check</p>
+                              <p class="text-gray-700">₱{{ "{:,.2f}".format(check.countered_check) }}</p>
+                          </div>
+                      </div>
                   </div>
-                </div>
+
+                  <!-- Desktop Table Row View -->
+                  <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-3 items-center">
+                      <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
+                      <span class="col-span-2">{{ check.check_no }}</span>
+                      <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
+                      <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
+                      <div class="col-span-3 flex justify-between items-center">
+                        <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
+                        <div class="flex gap-3 text-gray-400">
+                          <button title="Edit" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                          <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
+                              <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                  </div>
               </div>
+              <!-- --- END OF MODIFICATION --- -->
               {% else %}
               <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
               {% endfor %}
+              <p id="no-results-message" class="hidden text-center text-gray-500 p-8">No results found.</p>
           </div>
         </div>
         
@@ -76,15 +113,15 @@
           <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
           
           <label class="font-medium text-sm">Total Countered Checks</label>
-          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <input type="text" id="total-countered-checks-display" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
           
-          <label for="check-amount-input" class="font-medium text-sm">Final Check Amount</label>
+          <label for="check-amount-input" class="font-medium text-sm">Check Amount</label>
           <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
         </div>
 
         <div class="flex justify-end">
-            <button id="paid-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition">
-              Paid
+            <button id="pay-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+              Pay
             </button>
         </div>
       </div>
@@ -99,12 +136,32 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize date picker in the "Add Check" modal
+    // --- Search Logic ---
+    const searchInput = document.getElementById('search-input');
+    const checkRows = document.querySelectorAll('.check-row');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const noChecksMessage = document.getElementById('no-checks-message');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            checkRows.forEach(row => {
+                const name = row.dataset.name;
+                if (name.includes(searchTerm)) {
+                    row.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            if(noResultsMessage) noResultsMessage.style.display = (visibleCount === 0 && checkRows.length > 0) ? 'block' : 'none';
+            if(noChecksMessage) noChecksMessage.style.display = (visibleCount > 0 || searchTerm !== '') ? 'none' : 'block';
+        });
+    }
+
     flatpickr("#check_date", {
-        dateFormat: "Y-m-d",
-        defaultDate: "today",
-        altInput: true,
-        altFormat: "F j, Y",
+        dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y",
     });
 
     const createCheckModal = document.getElementById('add-check-modal');
@@ -112,33 +169,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
     
     if (createCheckModal && openCreateBtn && closeCreateBtn) {
-        const openModal = () => {
-            createCheckModal.classList.remove('hidden');
-            setTimeout(() => createCheckModal.classList.add('active'), 10);
-        };
-        const closeModal = () => {
-            createCheckModal.classList.remove('active');
-            createCheckModal.addEventListener('transitionend', () => {
-                createCheckModal.classList.add('hidden');
-            }, { once: true });
-        };
-
+        const openModal = () => { createCheckModal.classList.remove('hidden'); setTimeout(() => createCheckModal.classList.add('active'), 10); };
+        const closeModal = () => { createCheckModal.classList.remove('active'); createCheckModal.addEventListener('transitionend', () => { createCheckModal.classList.add('hidden'); }, { once: true }); };
         openCreateBtn.addEventListener('click', openModal);
         closeCreateBtn.addEventListener('click', closeModal);
         createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
     }
 
-    const paidBtn = document.getElementById('paid-btn');
+    const payBtn = document.getElementById('pay-btn');
     const notesTextarea = document.getElementById('notes-textarea');
     const checkAmountInput = document.getElementById('check-amount-input');
+    const totalCounteredChecks = parseFloat("{{ total_countered_check }}");
 
-    paidBtn.addEventListener('click', async () => {
+    function validateAmount() {
+        const enteredAmount = parseFloat(checkAmountInput.value);
+        const areEqual = Math.abs(enteredAmount - totalCounteredChecks) < 0.001;
+        payBtn.disabled = !areEqual;
+    }
+    
+    if (checkAmountInput) {
+        checkAmountInput.addEventListener('input', validateAmount);
+    }
+
+    payBtn.addEventListener('click', async () => {
         const folderId = "{{ folder._id }}";
         const finalNotes = notesTextarea.value;
         const finalAmount = parseFloat(checkAmountInput.value);
 
-        paidBtn.disabled = true;
-        paidBtn.textContent = 'Processing...';
+        payBtn.disabled = true;
+        payBtn.textContent = 'Processing...';
 
         try {
             const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
@@ -147,10 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
-                body: JSON.stringify({ 
-                    notes: finalNotes,
-                    amount: finalAmount 
-                })
+                body: JSON.stringify({ notes: finalNotes, amount: finalAmount })
             });
 
             if (response.ok) {

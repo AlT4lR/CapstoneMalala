@@ -14,8 +14,12 @@ def billings():
     username = get_jwt_identity()
     selected_branch = session.get('selected_branch')
     form = LoanForm()
+    # --- START OF MODIFICATION: Reverted to passing the simple, sorted list of loans ---
     loans = get_loans(username, selected_branch)
+    # Sort by date issued, most recent first
+    loans.sort(key=lambda l: l['date_issued'] or datetime.min, reverse=True)
     return render_template('billings.html', show_sidebar=True, form=form, loans=loans)
+    # --- END OF MODIFICATION ---
 
 # --- Billings & Loans API Routes ---
 @main.route('/api/billings/summary', methods=['GET'])
