@@ -20,13 +20,14 @@
                     <p class="font-semibold text-gray-800">Change Branch</p>
                     <p class="text-sm text-gray-500 mt-1 sm:mt-0">Switch between your assigned Montalban and Laguna branches.</p>
                 </div>
-                <a href="{{ url_for('main.branches') }}" 
+                <!-- --- START OF MODIFICATION --- -->
+                <a href="{{ url_for('main.change_branch') }}" 
                    class="w-full sm:w-auto mt-3 sm:mt-0 px-6 py-2 bg-[#3a4d39] text-white text-center font-semibold rounded-lg shadow-sm hover:bg-opacity-90 transition-colors">
                     Switch
                 </a>
+                <!-- --- END OF MODIFICATION --- -->
             </div>
 
-            <!-- --- START OF MODIFICATION: Add Install and Notification buttons --- -->
             <div class="border-t flex flex-col sm:flex-row items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
                 <div>
                     <p class="font-semibold text-gray-800">Install App</p>
@@ -47,7 +48,6 @@
                     Enable
                 </button>
             </div>
-            <!-- --- END OF MODIFICATION --- -->
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-5 sm:p-6">

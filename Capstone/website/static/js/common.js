@@ -1,4 +1,4 @@
-// static/js/common.js
+// website/static/js/common.js
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -191,9 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- REVISED NOTIFICATION PANEL LOGIC ---
     const notificationBtns = document.querySelectorAll('.notification-btn');
     const notificationPanel = document.getElementById('notification-panel');
-    // --- START OF FIX ---
     const notificationIndicators = document.querySelectorAll('.notification-indicator');
-    // --- END OF FIX ---
     const notificationList = document.getElementById('notification-list');
     const notificationLoader = document.getElementById('notification-loader');
     
@@ -203,13 +201,22 @@ document.addEventListener('DOMContentLoaded', function() {
     let hasMoreNotifications = true;
     const NOTIFICATIONS_PER_PAGE = 25;
 
+    // --- START OF MODIFICATION ---
     const checkNotificationStatus = async () => {
         try {
-            const response = await fetch('/api/notifications/status');
+            // Tell fetch not to follow redirects.
+            const response = await fetch('/api/notifications/status', { redirect: 'manual' });
+
+            // If the response type is 'opaqueredirect', it means the user is logged out.
+            // The request was redirected to the login page, so we should stop here.
+            if (response.type === 'opaqueredirect') {
+                console.log('User not authenticated, stopping notification check.');
+                return; 
+            }
+
             if (!response.ok) return;
+
             const data = await response.json();
-            // --- START OF FIX ---
-            // Loop through all indicator elements on the page
             notificationIndicators.forEach(indicator => {
                 if (data.unread_count > 0) {
                     indicator.classList.remove('hidden');
@@ -217,11 +224,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     indicator.classList.add('hidden');
                 }
             });
-            // --- END OF FIX ---
         } catch (error) {
             console.error('Error checking notification status:', error);
         }
     };
+    // --- END OF MODIFICATION ---
 
     const createNotificationHTML = (notification) => {
         let iconClass = 'fa-solid fa-info-circle';
@@ -295,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isHidden = notificationPanel.classList.toggle('hidden');
-                // Always reset and fetch when opening the panel for fresh data
                 if (!isHidden) {
                     currentPage = 1;
                     hasMoreNotifications = true;
@@ -304,7 +310,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Close panel when clicking outside
         document.addEventListener('click', (e) => {
             let clickedOnButton = Array.from(notificationBtns).some(btn => btn.contains(e.target));
             if (!notificationPanel.contains(e.target) && !clickedOnButton) {
@@ -312,15 +317,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Infinite scroll listener
         notificationList.addEventListener('scroll', () => {
             const { scrollTop, scrollHeight, clientHeight } = notificationList;
-            if (scrollTop + clientHeight >= scrollHeight - 100) { // 100px threshold
+            if (scrollTop + clientHeight >= scrollHeight - 100) { 
                 fetchAndDisplayNotifications(currentPage);
             }
         });
 
-        // Event delegation for marking as read
         notificationList.addEventListener('click', async function(event) {
             const notificationItem = event.target.closest('.notification-item');
             if (!notificationItem) return;
