@@ -15,7 +15,10 @@ import os
 from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
 from .models import get_user_by_email, update_user_password
-from .utils.email_utils import send_email_via_api, send_notification_email
+# --- START OF MODIFICATION ---
+# Corrected the import path to match the new filename
+from .utils.email_utils import send_email_via_api
+# --- END OF MODIFICATION ---
 
 logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
