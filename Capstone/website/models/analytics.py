@@ -5,14 +5,20 @@ from datetime import datetime, timedelta
 import pytz
 from calendar import month_name, monthrange
 from flask import current_app
+from bson.objectid import ObjectId
 
 logger = logging.getLogger(__name__)
 
 def get_analytics_data(username, branch, year, month):
+    """
+    Generates data for the main analytics chart with a strict 4-week breakdown.
+    Calculations exclude archived transactions.
+    """
     db = current_app.db
     if db is None: return {}
 
     try:
+        # --- Date range setup ---
         year_start = datetime(year, 1, 1, tzinfo=pytz.utc)
         year_end = datetime(year + 1, 1, 1, tzinfo=pytz.utc)
         month_start = datetime(year, month, 1, tzinfo=pytz.utc)
@@ -20,21 +26,33 @@ def get_analytics_data(username, branch, year, month):
         next_year_val = year if month < 12 else year + 1
         month_end = datetime(next_year_val, next_month_val, 1, tzinfo=pytz.utc)
 
+        # --- Base match query to exclude archived items ---
+        base_match = {
+            'username': username, 
+            'branch': branch, 
+            'status': 'Paid', 
+            'parent_id': None,
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }
+
+        # --- Year Total Calculation ---
         year_pipeline = [
-            {'$match': {'username': username, 'branch': branch, 'status': 'Paid', 'parent_id': None, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
+            {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': None, 'total': {'$sum': '$amount'}}}
         ]
         year_result = list(db.transactions.aggregate(year_pipeline))
         total_year_earning = year_result[0]['total'] if year_result else 0.0
 
+        # --- Monthly Totals for Chart ---
         month_pipeline = [
-            {'$match': {'username': username, 'branch': branch, 'status': 'Paid', 'parent_id': None, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
+            {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': {'$month': '$paidAt'}, 'total': {'$sum': '$amount'}}}
         ]
         monthly_totals_docs = list(db.transactions.aggregate(month_pipeline))
         monthly_totals = {doc['_id']: doc['total'] for doc in monthly_totals_docs}
         max_earning = max(monthly_totals.values()) if monthly_totals else 0
 
+        # --- Generate Chart Data ---
         chart_data = []
         for i in range(1, 13):
             total = monthly_totals.get(i, 0.0)
@@ -47,10 +65,18 @@ def get_analytics_data(username, branch, year, month):
                 'is_current_month': i == datetime.now().month and year == datetime.now().year
             })
 
-        # --- START OF MODIFICATION: More robust weekly breakdown logic ---
+        # --- Weekly Breakdown for Selected Month (Capped at 4 Weeks) ---
         weekly_pipeline = [
-            {'$match': {'username': username, 'branch': branch, 'status': 'Paid', 'parent_id': None, 'paidAt': {'$gte': month_start, '$lt': month_end}}},
-            {'$project': { 'amount': 1, 'weekOfMonth': {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]}}},
+            {'$match': {**base_match, 'paidAt': {'$gte': month_start, '$lt': month_end}}},
+            {'$project': { 
+                'amount': 1, 
+                'weekOfMonth': {
+                    '$min': [ 
+                        4, # Cap the week number at 4
+                        {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]}
+                    ]
+                }
+            }},
             {'$group': { '_id': '$weekOfMonth', 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
@@ -58,13 +84,12 @@ def get_analytics_data(username, branch, year, month):
         weekly_totals_dict = {doc['_id']: doc['total'] for doc in weekly_docs}
         
         weekly_breakdown = []
-        # A month can have up to 5 weeks with this logic (e.g., day 31 is in week 5). Loop to 6 for safety.
-        for i in range(1, 7): 
+        # Loop exactly 4 times for a 4-week month structure
+        for i in range(1, 5): 
             weekly_breakdown.append({
                 'week': f"Week {i}",
                 'total': weekly_totals_dict.get(i, 0.0)
             })
-        # --- END OF MODIFICATION ---
         
         current_month_total = monthly_totals.get(month, 0.0)
 
@@ -80,46 +105,59 @@ def get_analytics_data(username, branch, year, month):
         logger.error(f"Error getting analytics data for {username}: {e}", exc_info=True)
         return {}
 
+
 def get_weekly_billing_summary(username, year, week):
+    """
+    Generates a detailed billing summary for a specific week.
+    Calculations now EXCLUDE archived transactions and loans.
+    """
     db = current_app.db
     if db is None: return {}
+
     try:
         start_of_week = datetime.fromisocalendar(year, week, 1).replace(tzinfo=pytz.utc)
         end_of_week = start_of_week + timedelta(days=7)
         
-        parent_pipeline = [
-            {'$match': {
-                'username': username,
-                'status': 'Paid',
-                'parent_id': None, 
-                'paidAt': {'$gte': start_of_week, '$lt': end_of_week}
-            }},
-            {'$group': {
-                '_id': None,
-                'total_check_amount': {'$sum': {'$ifNull': ['$amount', 0]}}
-            }}
-        ]
-        parent_result = list(db.transactions.aggregate(parent_pipeline))
+        # 1. Find all NON-ARCHIVED parent transaction folders paid within the specified week
+        parent_folders = list(db.transactions.find({
+            'username': username,
+            'status': 'Paid',
+            'parent_id': None, 
+            'paidAt': {'$gte': start_of_week, '$lt': end_of_week},
+            '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+        }))
 
-        child_pipeline = [
-            {'$match': {
-                'username': username,
-                'status': 'Paid',
-                'parent_id': {'$ne': None}, 
-                'paidAt': {'$gte': start_of_week, '$lt': end_of_week}
-            }},
-            {'$group': {
-                '_id': None,
-                'total_ewt': {'$sum': {'$ifNull': ['$ewt', 0]}},
-                'total_countered': {'$sum': {'$ifNull': ['$countered_check', 0]}}
-            }}
-        ]
-        child_result = list(db.transactions.aggregate(child_pipeline))
+        # 2. Calculate the total "Check Amount" from these parent folders
+        total_check_amount = sum(folder.get('amount', 0) for folder in parent_folders)
         
+        # 3. Aggregate EWT and Countered Check amounts from the children of those folders
+        parent_ids = [folder['_id'] for folder in parent_folders]
+        total_ewt = 0
+        total_countered = 0
+        
+        if parent_ids:
+            # Child checks are inherently filtered because we only look for children of non-archived parents.
+            child_pipeline = [
+                {'$match': {
+                    'parent_id': {'$in': parent_ids}
+                }},
+                {'$group': {
+                    '_id': None,
+                    'total_ewt': {'$sum': {'$ifNull': ['$ewt', 0]}},
+                    'total_countered': {'$sum': {'$ifNull': ['$countered_check', 0]}}
+                }}
+            ]
+            child_result = list(db.transactions.aggregate(child_pipeline))
+            if child_result:
+                total_ewt = child_result[0].get('total_ewt', 0)
+                total_countered = child_result[0].get('total_countered', 0)
+
+        # 4. Calculate total of other NON-ARCHIVED loans paid in the same week
         loans_pipeline = [
             {'$match': {
                 'username': username,
-                'date_paid': {'$gte': start_of_week, '$lt': end_of_week}
+                'date_paid': {'$gte': start_of_week, '$lt': end_of_week},
+                '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
             }},
             {'$group': {
                 '_id': None,
@@ -127,12 +165,14 @@ def get_weekly_billing_summary(username, year, week):
             }}
         ]
         loans_result = list(db.loans.aggregate(loans_pipeline))
+        total_loans = loans_result[0]['total_loans'] if loans_result else 0
 
+        # 5. Assemble the final summary dictionary
         summary = {
-            'check_amount': parent_result[0]['total_check_amount'] if parent_result else 0,
-            'ewt_collected': child_result[0]['total_ewt'] if child_result else 0,
-            'countered_check': child_result[0]['total_countered'] if child_result else 0,
-            'other_loans': loans_result[0]['total_loans'] if loans_result else 0
+            'check_amount': total_check_amount,
+            'ewt_collected': total_ewt,
+            'countered_check': total_countered,
+            'other_loans': total_loans
         }
         return summary
     except Exception as e:
