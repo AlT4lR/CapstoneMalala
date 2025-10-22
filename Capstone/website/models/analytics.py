@@ -51,9 +51,7 @@ def get_analytics_data(username, branch, year, month):
         monthly_totals_docs = list(db.transactions.aggregate(month_pipeline))
         monthly_totals = {doc['_id']: doc['total'] for doc in monthly_totals_docs}
         
-        # --- START OF FIX: Prevent error on years with no transactions ---
         max_earning = max(monthly_totals.values(), default=0)
-        # --- END OF FIX ---
 
         # --- Generate Chart Data ---
         chart_data = []
@@ -108,11 +106,15 @@ def get_analytics_data(username, branch, year, month):
         return {}
 
 
-def get_weekly_billing_summary(username, year, week):
+# --- START OF MODIFICATION ---
+def get_weekly_billing_summary(username, branch, year, week):
     """
     Generates a detailed billing summary for a specific week.
     Calculations now EXCLUDE archived transactions and loans.
+    
+    MODIFIED: Added 'branch' parameter to the function signature and queries.
     """
+# --- END OF MODIFICATION ---
     db = current_app.db
     if db is None: return {}
 
@@ -122,6 +124,9 @@ def get_weekly_billing_summary(username, year, week):
         
         parent_folders = list(db.transactions.find({
             'username': username,
+            # --- START OF MODIFICATION ---
+            'branch': branch, 
+            # --- END OF MODIFICATION ---
             'status': 'Paid',
             'parent_id': None, 
             'paidAt': {'$gte': start_of_week, '$lt': end_of_week},
@@ -153,6 +158,9 @@ def get_weekly_billing_summary(username, year, week):
         loans_pipeline = [
             {'$match': {
                 'username': username,
+                # --- START OF MODIFICATION ---
+                'branch': branch,
+                # --- END OF MODIFICATION ---
                 'date_paid': {'$gte': start_of_week, '$lt': end_of_week},
                 '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
             }},

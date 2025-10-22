@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecoOffice</title>
+    <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
+    <style>
+        /* Basic styles to center the content and match the app's theme */
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #fafaf5; /* Matches the main app's body background */
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* The title that will be animated */
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #3a4d39; /* Brand green color */
+            
+            /* Apply the animation */
+            animation: fadeInUp 1.5s ease-out forwards;
+        }
+
+        /* The animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="title">DecoOffice</h1>
+
+    <script>
+        // After a delay, redirect the user to the main application.
+        // The delay should be slightly longer than the animation duration.
+        setTimeout(() => {
+            window.location.href = "{{ url_for('main.root_route') }}";
+        }, 2000); // 2000 milliseconds = 2 seconds
+    </script>
+
+</body>
+</html>

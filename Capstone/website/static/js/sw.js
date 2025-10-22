@@ -1,12 +1,11 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v2'; // Increment version to force update
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v2';
+const STATIC_CACHE_NAME = 'decooffice-static-v4';
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v4';
 
-// --- MODIFICATION: Removed the problematic Tailwind CDN script ---
-// We only cache essential files for the core app shell to work.
 const urlsToCache = [
     '/',
     '/offline',
+    '/splash',
     '/static/js/common.js',
     '/static/js/db.js',
     'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',
@@ -16,75 +15,6 @@ const urlsToCache = [
 importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/umd.js');
 
 const dbPromise = idb.openDB('deco-office-db', 1);
-
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-deleted-items') {
-        console.log('[Service Worker] Syncing deleted items...');
-        event.waitUntil(syncOutbox());
-    }
-});
-
-async function syncOutbox() {
-    const db = await dbPromise;
-    const outboxStore = db.transaction('transaction-outbox', 'readwrite').store;
-    let requests = await outboxStore.getAll();
-    if (!requests.length) return;
-
-    for (const req of requests) {
-        try {
-            const response = await fetch(req.url, {
-                method: req.method,
-                headers: req.headers,
-            });
-            if (response.ok) {
-                await outboxStore.delete(req.id);
-                console.log(`[SW] Synced and deleted request with id: ${req.id}`);
-            } else {
-                console.error(`[SW] Sync failed for id: ${req.id}, server responded with: ${response.status}`);
-            }
-        } catch (error) {
-            console.error(`[SW] Sync failed for id: ${req.id}, error:`, error);
-        }
-    }
-}
-
-self.addEventListener('push', event => {
-    let data = { title: 'New Notification', body: 'Something happened!', icon: '/static/imgs/icons/logo.ico' };
-    if (event.data) {
-        data = event.data.json();
-    }
-
-    const options = {
-        body: data.body,
-        icon: data.icon,
-        badge: '/static/imgs/icons/logo.ico',
-        data: {
-            url: data.data.url
-        }
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
-});
-
-self.addEventListener('notificationclick', event => {
-    const notification = event.notification;
-    const urlToOpen = notification.data.url;
-    event.notification.close();
-    event.waitUntil(
-        clients.matchAll({ type: 'window' }).then(windowClients => {
-            for (let client of windowClients) {
-                if (client.url === urlToOpen && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
-            }
-        })
-    );
-});
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -101,18 +31,10 @@ self.addEventListener('activate', event => {
     );
 });
 
-
-// --- START OF MODIFICATION: A more robust fetch strategy ---
 self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
-
-    // Strategy 1: For API calls, try network first, then cache.
-    // This ensures data is fresh but provides a fallback if offline.
-    if (url.pathname.startsWith('/api/')) {
-        event.respondWith(
-            fetch(event.request)
+    event.respondWith(
+        fetch(event.request)
             .then(response => {
-                // If successful, clone the response and cache it
                 const clonedResponse = response.clone();
                 caches.open(DYNAMIC_CACHE_NAME).then(cache => {
                     cache.put(event.request.url, clonedResponse);
@@ -120,36 +42,111 @@ self.addEventListener('fetch', event => {
                 return response;
             })
             .catch(() => {
-                // If network fails, try to get the data from the cache
-                return caches.match(event.request);
+                return caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    if (event.request.mode === 'navigate') {
+                        return caches.match('/offline');
+                    }
+                });
             })
-        );
-    // Strategy 2: For all other requests (pages, CSS, JS, images), use Cache-first.
-    } else {
-        event.respondWith(
-            caches.match(event.request).then(response => {
-                // If found in cache, return it.
-                if (response) {
-                    return response;
-                }
-                // Otherwise, go to the network.
-                return fetch(event.request)
-                    .then(fetchRes => {
-                        // And cache the new resource for next time.
-                        return caches.open(DYNAMIC_CACHE_NAME).then(cache => {
-                            cache.put(event.request.url, fetchRes.clone());
-                            return fetchRes;
-                        });
-                    })
-                    .catch(() => {
-                        // If the network fails for a page navigation, show the offline page.
-                        if (event.request.mode === 'navigate') {
-                            return caches.match('/offline');
-                        }
-                        // For other assets (like images), you could return a placeholder,
-                        // but for now, we'll let them fail gracefully.
-                    });
-            })
-        );
+    );
+});
+
+async function syncOutbox() {
+    const db = await dbPromise;
+    const outboxStore = db.transaction('transaction-outbox', 'readwrite').store;
+    let requests = await outboxStore.getAll();
+    if (!requests.length) return;
+
+    for (const req of requests) {
+        try {
+            const response = await fetch(req.url, {
+                method: req.method,
+                headers: req.headers,
+            });
+            if (response.ok) {
+                await outboxStore.delete(req.id);
+                console.log(`[Service Worker] Synced and deleted request with id: ${req.id}`);
+            } else {
+                console.error(`[Service Worker] Sync failed for id: ${req.id}, server responded with: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`[Service Worker] Sync failed for id: ${req.id}, error:`, error);
+        }
+    }
+}
+
+self.addEventListener('sync', event => {
+    if (event.tag === 'sync-deleted-items') {
+        console.log('[Service Worker] Syncing deleted items...');
+        event.waitUntil(syncOutbox());
     }
 });
+
+// --- START OF PUSH NOTIFICATION LOGIC ---
+
+// This listener handles incoming push messages from the server.
+self.addEventListener('push', event => {
+    // Default data in case the push message is empty.
+    let data = { 
+        title: 'New Notification', 
+        body: 'Something important happened!', 
+        icon: '/static/imgs/icons/logo.ico',
+        data: { url: '/' } // Default URL to open
+    };
+    
+    // If the push event has data, parse it as JSON.
+    if (event.data) {
+        data = event.data.json();
+    }
+
+    // Define the options for the notification that will be shown.
+    const options = {
+        body: data.body,
+        icon: data.icon, // The main icon.
+        badge: '/static/imgs/icons/logo.ico', // A smaller icon for Android status bars.
+        data: {
+            url: data.data.url // Pass the URL to the notification's data payload.
+        }
+    };
+
+    // Tell the browser to keep the Service Worker alive until the notification is shown.
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// --- END OF PUSH NOTIFICATION LOGIC ---
+
+
+// --- START OF NOTIFICATION CLICK LOGIC ---
+
+// This listener handles what happens when a user clicks on a notification.
+self.addEventListener('notificationclick', event => {
+    const notification = event.notification;
+    const urlToOpen = notification.data.url;
+
+    // Close the notification immediately after it's clicked.
+    event.notification.close();
+
+    // This logic checks if a window/tab with the target URL is already open.
+    // If it is, it focuses that window. If not, it opens a new one.
+    event.waitUntil(
+        clients.matchAll({ type: 'window' }).then(windowClients => {
+            // Check if there is an already open tab with the same URL.
+            for (let client of windowClients) {
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus(); // If so, focus it.
+                }
+            }
+            // If no tab is found, open a new one.
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});
+
+// --- END OF NOTIFICATION CLICK LOGIC ---
