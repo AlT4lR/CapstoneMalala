@@ -1,3 +1,5 @@
+# website/views/core.py
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
     send_from_directory, jsonify
@@ -12,7 +14,7 @@ from ..models import (
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
-    get_notifications, mark_single_notification_as_read, # MODIFIED IMPORT
+    get_notifications, mark_single_notification_as_read,
     get_schedules
 )
 
@@ -24,6 +26,13 @@ def service_worker():
 @main.route('/offline')
 def offline():
     return render_template('offline.html')
+
+# --- START OF MODIFICATION ---
+@main.route('/splash')
+def splash():
+    """Renders the splash screen page."""
+    return render_template('splash.html')
+# --- END OF MODIFICATION ---
 
 # --- Root & Branch Routes ---
 @main.route('/')
@@ -48,14 +57,12 @@ def select_branch(branch_name):
         session['selected_branch'] = branch_name.upper()
     return redirect(url_for('main.dashboard'))
 
-# --- START OF MODIFICATION ---
 @main.route('/change_branch')
 @jwt_required()
 def change_branch():
     """Clears the selected branch from the session to allow re-selection."""
     session.pop('selected_branch', None)
     return redirect(url_for('main.branches'))
-# --- END OF MODIFICATION ---
 
 # --- Main Pages ---
 @main.route('/dashboard')
@@ -69,7 +76,6 @@ def dashboard():
     paid_transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     recent_activities = get_recent_activity(username, limit=10)
 
-    # --- START OF MODIFICATION ---
     start_date = datetime.now(pytz.utc)
     end_date = start_date + timedelta(days=7)
     raw_schedules = get_schedules(username, selected_branch, start_date.isoformat(), end_date.isoformat())
@@ -90,7 +96,6 @@ def dashboard():
             'time_range': time_range_str,
             'full_date': start_dt.strftime('%b. %d, %Y'),
         })
-    # --- END OF MODIFICATION ---
 
     return render_template(
         'dashboard.html',

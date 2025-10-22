@@ -5,6 +5,7 @@ const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v3';
 const urlsToCache = [
     '/',
     '/offline',
+    '/splash',
     '/static/js/common.js',
     '/static/js/db.js',
     'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',

@@ -2,7 +2,7 @@
   "name": "DecoOffice",
   "short_name": "DecoOffice",
   "description": "Your complete office management solution.",
-  "start_url": "/",
+  "start_url": "/splash",
   "display": "standalone",
   "background_color": "#fafaf5",
   "theme_color": "#eef2e9",
