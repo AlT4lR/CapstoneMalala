@@ -1,6 +1,6 @@
 # website/views/transactions.py
 
-from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort, current_app
+from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -8,10 +8,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.utils import ImageReader
 import io
-import os
-import logging
 
 from . import main # Import the blueprint
 from ..forms import TransactionForm, EditTransactionForm
@@ -20,8 +17,6 @@ from ..models import (
     get_transaction_by_id, get_child_transactions_by_parent_id,
     mark_folder_as_paid, archive_transaction, update_transaction
 )
-
-logger = logging.getLogger(__name__)
 
 @main.route('/transactions')
 @jwt_required()
@@ -82,13 +77,11 @@ def paid_transaction_folder_details(transaction_id):
         return redirect(url_for('main.transactions_paid'))
     
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
-    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     
     return render_template(
         'paid_transaction_folder_detail.html',
         folder=folder,
         child_checks=child_checks,
-        total_countered_check=total_countered_check,
         show_sidebar=True
     )
 
@@ -173,110 +166,41 @@ def pay_transaction_folder(folder_id):
 @jwt_required()
 def download_transaction_pdf(transaction_id):
     username = get_jwt_identity()
-    folder = get_transaction_by_id(username, transaction_id, full_document=True)
-    if not folder or folder.get('status') != 'Paid':
-        abort(404)
-
-    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
-    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
-
+    transaction = get_transaction_by_id(username, transaction_id, full_document=True)
+    if not transaction: abort(404)
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-    
-    # --- Drawing the PDF layout ---
-    p.setFont("Helvetica-Bold", 14)
-    p.drawCentredString(width / 2.0, height - 0.5 * inch, "CLEARED ISSUED CHECKS")
-
-    p.setFont("Helvetica", 11)
-    p.drawString(0.5 * inch, height - 1.0 * inch, "DECOLORES RETAIL CORPORATION")
-    p.drawString(0.5 * inch, height - 1.2 * inch, f"#{folder.get('_id')}")
-    p.drawString(0.5 * inch, height - 1.4 * inch, f"Branch: {folder.get('branch', 'N/A')}")
-    paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
-    p.drawString(0.5 * inch, height - 1.6 * inch, paid_date)
-
-    # --- START OF MODIFICATION: Logo drawing logic is removed from PDF generation ---
-    # The code that tried to load an image file has been deleted.
-    # --- END OF MODIFICATION ---
-
-    # Table headers
-    y_pos = height - 2.2 * inch
-    headers = ["Name Issued Check", "Check No.", "Check Date", "EWT", "Countered Check"]
-    col_widths = [2.5 * inch, 1.2 * inch, 1.2 * inch, 1.2 * inch, 1.4 * inch]
-    x_offset = 0.5 * inch
-
-    p.setFillColor(colors.HexColor("#3a4d39"))
-    p.rect(x_offset, y_pos - 0.05 * inch, sum(col_widths), 0.3 * inch, fill=1)
-    p.setFillColor(colors.white)
-    p.setFont("Helvetica-Bold", 10)
-    
-    current_x = x_offset
-    for i, header in enumerate(headers):
-        p.drawString(current_x + 0.1 * inch, y_pos, header)
-        current_x += col_widths[i]
-    
-    # Table rows
-    p.setFont("Helvetica", 9)
-    p.setFillColor(colors.black)
-    p.setStrokeColor(colors.gray)
-    y_pos -= 0.3 * inch
-    row_height = 0.25 * inch
-
-    for check in child_checks:
-        current_x = x_offset
-        p.line(x_offset, y_pos, x_offset + sum(col_widths), y_pos)
-        
-        # Name
-        p.drawString(current_x + 0.1 * inch, y_pos + 0.08 * inch, str(check.get('name', '')))
-        current_x += col_widths[0]
-        # Check No.
-        p.drawString(current_x + 0.1 * inch, y_pos + 0.08 * inch, str(check.get('check_no', '')))
-        current_x += col_widths[1]
-        # Check Date
-        date_str = check.get('check_date').strftime('%m/%d/%Y') if check.get('check_date') else ''
-        p.drawString(current_x + 0.1 * inch, y_pos + 0.08 * inch, date_str)
-        current_x += col_widths[2]
-        # EWT
-        p.drawRightString(current_x + col_widths[3] - 0.1 * inch, y_pos + 0.08 * inch, f"{check.get('ewt', 0):,.2f}")
-        current_x += col_widths[3]
-        # Countered Check
-        p.drawRightString(current_x + col_widths[4] - 0.1 * inch, y_pos + 0.08 * inch, f"{check.get('countered_check', 0):,.2f}")
-
-        y_pos -= row_height
-
-    # Final line of the table
-    p.line(x_offset, y_pos + row_height, x_offset + sum(col_widths), y_pos + row_height)
-
-    # Summary
+    p.setFont("Helvetica-Bold", 16); p.drawString(inch, height - inch, "Transaction Details")
+    p.setFillColor(colors.HexColor("#d1fae5")); p.setStrokeColor(colors.HexColor("#6ee7b7"))
+    p.roundRect(inch, height - 1.75*inch, width - 2*inch, 0.5*inch, 10, stroke=1, fill=1)
+    p.setFillColor(colors.HexColor("#065f46")); p.setFont("Helvetica-Bold", 12)
+    p.drawString(inch * 1.2, height - 1.5*inch, "Paid")
+    amount_str = f"₱{transaction.get('amount', 0.0):,.2f}"
+    p.setFont("Helvetica-Bold", 14); p.drawRightString(width - inch * 1.2, height - 1.5*inch, amount_str)
+    p.setFillColor(colors.black); p.setFont("Helvetica-Bold", 12)
+    p.drawString(inch, height - 2.5*inch, "Details")
     p.setFont("Helvetica", 10)
-    summary_x_start = x_offset + col_widths[0] + col_widths[1] + col_widths[2]
-    p.drawString(summary_x_start, y_pos - 0.3 * inch, "Countered Checks")
-    p.drawRightString(x_offset + sum(col_widths), y_pos - 0.3 * inch, f"₱{total_countered_check:,.2f}")
-    
-    p.setFont("Helvetica-Bold", 10)
-    p.drawString(summary_x_start, y_pos - 0.6 * inch, "Check Amount")
-    p.drawRightString(x_offset + sum(col_widths), y_pos - 0.6 * inch, f"₱{folder.get('amount', 0.0):,.2f}")
-    p.line(summary_x_start, y_pos - 0.35 * inch, x_offset + sum(col_widths), y_pos - 0.35 * inch)
-
-
-    # Notes
-    p.setFont("Helvetica-Bold", 11)
-    notes_y_start = y_pos - 1.2 * inch
-    p.drawString(x_offset, notes_y_start, "Notes")
-    p.rect(x_offset, 0.5 * inch, width - 1 * inch, notes_y_start - 0.6 * inch)
-    
-    notes_text = folder.get('notes', 'No notes provided.')
+    details = [
+        ("Recipient", transaction.get('name', 'N/A')),
+        ("Check Date", transaction.get('check_date').strftime('%m/%d/%Y') if transaction.get('check_date') else 'N/A'),
+        ("EWT", f"₱{transaction.get('ewt', 0.0):,.2f}"),
+        ("Countered Check", f"₱{transaction.get('countered_check', 0.0):,.2f}")
+    ]
+    y_pos = height - 2.8*inch
+    for label, value in details:
+        p.setFillColor(colors.gray); p.drawString(inch, y_pos, label)
+        p.setFillColor(colors.black); p.drawRightString(width - inch, y_pos, value)
+        y_pos -= 0.3*inch
+    p.setFont("Helvetica-Bold", 12); p.drawString(inch, y_pos - 0.5*inch, "Notes")
+    notes = transaction.get('notes', 'No notes provided.').replace('\n', '<br/>')
     p_style = getSampleStyleSheet()['Normal']
-    p_style.fontSize = 10
-    notes_p = Paragraph(notes_text.replace('\n', '<br/>'), p_style)
-    w, h = notes_p.wrapOn(p, width - 1.2 * inch, notes_y_start - 0.7 * inch)
-    notes_p.drawOn(p, x_offset + 0.1 * inch, notes_y_start - 0.1 * inch - h)
-
-    p.showPage()
-    p.save()
+    notes_p = Paragraph(notes, p_style)
+    w, h = notes_p.wrapOn(p, width - 2*inch, height)
+    notes_p.drawOn(p, inch, y_pos - 0.6*inch - h)
+    p.showPage(); p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"cleared_checks_{transaction_id}.pdf", mimetype='application/pdf')
-
+    return send_file(buffer, as_attachment=True, download_name=f"txn_{transaction_id}.pdf", mimetype='application/pdf')
 
 @main.route('/api/transactions/update/<transaction_id>', methods=['POST'])
 @jwt_required()
