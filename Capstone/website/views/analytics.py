@@ -1,5 +1,3 @@
-# website/views/analytics.py
-
 from flask import render_template, request, jsonify, redirect, url_for, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
