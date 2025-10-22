@@ -23,7 +23,13 @@ class Config:
     
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    
+    # --- START OF MODIFICATION ---
+    # The string 'True'/'true' from the .env file is converted to a boolean
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
+    # --- END OF MODIFICATION ---
+    
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = (os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice'), 
@@ -31,7 +37,7 @@ class Config:
 
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = False
-    JWT_COOKIE_CSRF_PROTECT = False  # ✅ Disable duplicate CSRF protection
+    JWT_COOKIE_CSRF_PROTECT = False
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
 class DevelopmentConfig(Config):
