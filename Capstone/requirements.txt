@@ -14,5 +14,6 @@ pytz
 python-dotenv
 qrcode
 reportlab
+sib-api-v3-sdk
 waitress
 pywebpush

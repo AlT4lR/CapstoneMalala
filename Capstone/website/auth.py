@@ -1,7 +1,6 @@
 # website/auth.py
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, make_response, current_app, jsonify
-from flask_mail import Message
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, set_access_cookies, unset_jwt_cookies
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from datetime import datetime
@@ -11,10 +10,12 @@ import qrcode.image.svg
 import io
 import base64
 import logging
+import os
 
 from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
 from .models import get_user_by_email, update_user_password
+from .utils.email_utils import send_email_via_api, send_notification_email
 
 logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
@@ -22,21 +23,16 @@ auth = Blueprint('auth', __name__)
 def get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
-# --- START OF MODIFICATION: Smarter JWT Error Handlers ---
-
+# --- JWT Error Handlers (No Changes) ---
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
-    """Handles missing JWTs."""
-    # If the request is a background API call, return a JSON error.
     if request.path.startswith('/api/'):
         return jsonify(msg="Missing Authorization Header"), 401
-    # Otherwise, it's a normal page load, so redirect to login.
     flash('Please log in to access this page.', 'error')
     return redirect(url_for('auth.login'))
 
 @jwt.invalid_token_loader
 def invalid_token_response(callback):
-    """Handles invalid JWTs."""
     if request.path.startswith('/api/'):
         return jsonify(msg="Your session is invalid. Please log in again."), 401
     flash('Your session has expired or is invalid. Please log in again.', 'error')
@@ -44,35 +40,39 @@ def invalid_token_response(callback):
 
 @jwt.expired_token_loader
 def expired_token_response(jwt_header, jwt_payload):
-    """Handles expired JWTs."""
     if request.path.startswith('/api/'):
         return jsonify(msg="Your session has expired. Please log in again."), 401
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
-# --- END OF MODIFICATION ---
-
-# --- Helper Functions ---
+# --- Helper Functions (MODIFIED to use API) ---
 def send_otp_email(recipient_email, otp):
+    """Sends OTP email using the Brevo API."""
     try:
-        msg = Message("Your DecoOffice Verification Code", recipients=[recipient_email])
-        msg.body = f"Your one-time password (OTP) is: {otp}"
-        current_app.mail.send(msg)
-        flash('A new OTP has been sent to your email address.', 'success')
+        subject = "Your DecoOffice Verification Code"
+        html_content = f"Your one-time password (OTP) is: <h2><strong>{otp}</strong></h2>"
+        if send_email_via_api(recipient_email, subject, html_content):
+            flash('A new OTP has been sent to your email address.', 'success')
+        else:
+            flash('Failed to send OTP email.', 'error')
     except Exception as e:
-        logger.error(f"Failed to send email to {recipient_email}: {e}")
+        logger.error(f"Failed to trigger OTP email for {recipient_email}: {e}")
         flash('Failed to send OTP email.', 'error')
 
 def send_password_reset_email(recipient_email, token):
-    reset_url = url_for('auth.reset_password', token=token, _external=True)
+    """Sends password reset email using the Brevo API."""
+    render_url = os.environ.get('RENDER_EXTERNAL_URL', None)
+    base_url = render_url or url_for('main.root_route', _external=True)
+    reset_url = f"{base_url.rstrip('/')}{url_for('auth.reset_password', token=token)}"
+    
     try:
-        msg = Message("Reset Your DecoOffice Password", recipients=[recipient_email])
-        msg.body = f"Please click the link to reset your password: {reset_url}"
-        current_app.mail.send(msg)
+        subject = "Reset Your DecoOffice Password"
+        html_content = f"<p>Please click the link to reset your password: <a href='{reset_url}'>{reset_url}</a></p>"
+        send_email_via_api(recipient_email, subject, html_content)
     except Exception as e:
         logger.error(f"Failed to send password reset email to {recipient_email}: {e}")
 
-# --- Authentication Routes ---
+# --- Authentication Routes (No functional changes) ---
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def login():

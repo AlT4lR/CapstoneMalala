@@ -18,22 +18,23 @@ class Config:
     VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY')
     VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL')
     
-    MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:27017/")
+    MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:2717/")
     MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', "deco_db")
     
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    
     # --- START OF MODIFICATION ---
-    # The string 'True'/'true' from the .env file is converted to a boolean
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
-    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
-    # --- END OF MODIFICATION ---
+    # Brevo API Key for sending emails via HTTP
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
     
+    # Legacy SMTP settings (kept for reference, but not used for sending)
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'False').lower() in ('true', '1', 'yes')
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = (os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice'), 
-                           os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com'))
+    MAIL_DEFAULT_SENDER_NAME = os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice')
+    MAIL_DEFAULT_SENDER_EMAIL = os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com')
+    # --- END OF MODIFICATION ---
 
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = False
