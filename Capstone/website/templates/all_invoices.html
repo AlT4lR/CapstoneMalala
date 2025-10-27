@@ -40,13 +40,13 @@
                 <div class="p-3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                     <div class="col-span-2 md:col-span-1 font-medium text-gray-800 flex items-center gap-2">
                         <i class="fa-solid fa-file-alt text-gray-400 hidden md:block"></i>
-                        <span>{{ invoice.file_name }}</span>
+                        <span class="selectable-text">{{ invoice.file_name }}</span>
                     </div>
                     <div class="col-span-1 text-gray-600">
-                        <span class="md:hidden font-semibold text-gray-500">Date: </span>{{ invoice.date }}
+                        <span class="md:hidden font-semibold text-gray-500">Date: </span><span class="selectable-text">{{ invoice.date }}</span>
                     </div>
                     <div class="col-span-1 text-gray-600">
-                        <span class="md:hidden font-semibold text-gray-500">Category: </span>{{ invoice.category }}
+                        <span class="md:hidden font-semibold text-gray-500">Category: </span><span class="selectable-text">{{ invoice.category }}</span>
                     </div>
                 </div>
             </div>
@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- START OF MODIFICATION: Updated modal logic ---
     const modal = document.getElementById('invoice-details-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const modalTitle = document.getElementById('modal-invoice-title');
@@ -111,14 +110,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 modalTitle.textContent = data.folder_name || 'Invoice Details';
                 
-                // Check if there are files and set the image source
                 if (data.files && data.files.length > 0) {
-                     // Use the new, correct route to load the image
                      modalImage.src = `/invoices/uploads/${data.files[0].filename}`;
                      modalImage.classList.remove('hidden');
                      imagePlaceholder.classList.add('hidden');
                 } else {
-                     // If no image, hide the img tag and show a placeholder
                      modalImage.src = '';
                      modalImage.classList.add('hidden');
                      imagePlaceholder.classList.remove('hidden');
@@ -139,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     closeModalBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
-        // Close modal only if the click is on the backdrop, not the content
         if (e.target.id === 'invoice-details-modal') {
              closeModal();
         }
@@ -150,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const invoiceName = this.dataset.name;
         if (!invoiceId) return;
 
-        // Assuming you have a custom confirmation dialog function
         window.showCustomConfirm(`Are you sure you want to archive "${invoiceName}"?`, async () => {
             try {
                 const response = await fetch(`/api/invoices/${invoiceId}`, {
@@ -169,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    // --- END OF MODIFICATION ---
 });
 </script>
 {% endblock %}
