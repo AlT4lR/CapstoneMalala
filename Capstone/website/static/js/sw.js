@@ -1,6 +1,6 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v4';
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v4';
+const STATIC_CACHE_NAME = 'decooffice-static-v5'; // Increment version
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v5';
 
 const urlsToCache = [
     '/',
@@ -13,8 +13,6 @@ const urlsToCache = [
 ];
 
 importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/umd.js');
-
-const dbPromise = idb.openDB('deco-office-db', 1);
 
 self.addEventListener('install', event => {
     event.waitUntil(
@@ -31,17 +29,30 @@ self.addEventListener('activate', event => {
     );
 });
 
+// --- START OF MODIFICATION: The Definitive Fetch Handler ---
 self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                const clonedResponse = response.clone();
-                caches.open(DYNAMIC_CACHE_NAME).then(cache => {
-                    cache.put(event.request.url, clonedResponse);
-                });
+                // --- THIS IS THE CRITICAL FIX ---
+                // Before caching, we check if the response is valid.
+                // We do NOT cache:
+                // - Bad responses (not status 200 OK)
+                // - Redirects (response.type is not 'basic')
+                // - Responses from other origins (also not 'basic')
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const clonedResponse = response.clone();
+                    caches.open(DYNAMIC_CACHE_NAME).then(cache => {
+                        cache.put(event.request.url, clonedResponse);
+                    });
+                }
+                // --- END OF FIX ---
+                
+                // We always return the original response to the browser, regardless of whether we cached it.
                 return response;
             })
             .catch(() => {
+                // If the network fails entirely (offline), try to serve from the cache.
                 return caches.match(event.request).then(cachedResponse => {
                     if (cachedResponse) {
                         return cachedResponse;
@@ -53,6 +64,11 @@ self.addEventListener('fetch', event => {
             })
     );
 });
+// --- END OF MODIFICATION ---
+
+
+// --- Other Service Worker logic (Push, Sync) ---
+const dbPromise = idb.openDB('deco-office-db', 1);
 
 async function syncOutbox() {
     const db = await dbPromise;
@@ -68,85 +84,51 @@ async function syncOutbox() {
             });
             if (response.ok) {
                 await outboxStore.delete(req.id);
-                console.log(`[Service Worker] Synced and deleted request with id: ${req.id}`);
-            } else {
-                console.error(`[Service Worker] Sync failed for id: ${req.id}, server responded with: ${response.status}`);
             }
         } catch (error) {
-            console.error(`[Service Worker] Sync failed for id: ${req.id}, error:`, error);
+            console.error('Sync failed for request:', req.id, error);
         }
     }
 }
 
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-deleted-items') {
-        console.log('[Service Worker] Syncing deleted items...');
         event.waitUntil(syncOutbox());
     }
 });
 
-// --- START OF PUSH NOTIFICATION LOGIC ---
-
-// This listener handles incoming push messages from the server.
 self.addEventListener('push', event => {
-    // Default data in case the push message is empty.
-    let data = { 
-        title: 'New Notification', 
-        body: 'Something important happened!', 
-        icon: '/static/imgs/icons/logo.ico',
-        data: { url: '/' } // Default URL to open
-    };
-    
-    // If the push event has data, parse it as JSON.
+    let data = { title: 'New Notification', body: 'Something happened!', icon: '/static/imgs/icons/logo.ico', data: { url: '/' } };
     if (event.data) {
         data = event.data.json();
     }
-
-    // Define the options for the notification that will be shown.
     const options = {
         body: data.body,
-        icon: data.icon, // The main icon.
-        badge: '/static/imgs/icons/logo.ico', // A smaller icon for Android status bars.
+        icon: data.icon,
+        badge: '/static/imgs/icons/logo.ico',
         data: {
-            url: data.data.url // Pass the URL to the notification's data payload.
+            url: data.data.url
         }
     };
-
-    // Tell the browser to keep the Service Worker alive until the notification is shown.
     event.waitUntil(
         self.registration.showNotification(data.title, options)
     );
 });
 
-// --- END OF PUSH NOTIFICATION LOGIC ---
-
-
-// --- START OF NOTIFICATION CLICK LOGIC ---
-
-// This listener handles what happens when a user clicks on a notification.
 self.addEventListener('notificationclick', event => {
     const notification = event.notification;
     const urlToOpen = notification.data.url;
-
-    // Close the notification immediately after it's clicked.
     event.notification.close();
-
-    // This logic checks if a window/tab with the target URL is already open.
-    // If it is, it focuses that window. If not, it opens a new one.
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then(windowClients => {
-            // Check if there is an already open tab with the same URL.
             for (let client of windowClients) {
                 if (client.url === urlToOpen && 'focus' in client) {
-                    return client.focus(); // If so, focus it.
+                    return client.focus();
                 }
             }
-            // If no tab is found, open a new one.
             if (clients.openWindow) {
                 return clients.openWindow(urlToOpen);
             }
         })
     );
 });
-
-// --- END OF NOTIFICATION CLICK LOGIC ---
