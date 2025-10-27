@@ -3,9 +3,7 @@
 {% block title %}DecoOffice - Dashboard{% endblock %}
 
 {% block content %}
-<!-- --- START OF MODIFICATION: Reduced main padding for a tighter layout --- -->
 <div class="flex-1 p-4 text-[#3a4d39] flex flex-col h-full">
-<!-- --- END OF MODIFICATION --- -->
 
     <header class="flex justify-between items-center mb-4 border-b border-[#d4d8c4] pb-2 flex-shrink-0">
         <h1 class="text-2xl font-semibold">Home</h1>
@@ -17,16 +15,14 @@
         </div>
     </header>
 
-    <!-- --- START OF MODIFICATION: Reduced padding and font size --- -->
     <section class="bg-[#eceee3] rounded-lg p-4 mb-4 flex-shrink-0">
         <h2 class="text-xl sm:text-2xl font-extrabold text-[#3a4d39] leading-tight">
-            Welcome, {{ username | capitalize }}!
+            Welcome, {{ current_user_data.name.split(' ')[0] | capitalize if current_user_data and current_user_data.name else 'User' }}!
         </h2>
         <p class="text-sm text-gray-600 mt-1">
             Here’s the summary of the {{ selected_branch | upper }} branch.
         </p>
     </section>
-    <!-- --- END OF MODIFICATION --- -->
 
     <section class="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-0">
         <div class="order-2 lg:order-1 lg:col-span-2 xl:col-span-3 flex flex-col gap-4">
@@ -58,26 +54,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
                     <h3 class="font-semibold text-base mb-3">Quick Actions</h3>
-                    <!-- --- START OF MODIFICATION: Reduced link padding --- -->
                     <div class="flex flex-col gap-1.5">
-                        <a href="{{ url_for('main.transactions') }}" 
-                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
-                            <i class="fa-solid fa-truck-fast"></i> Transactions
-                        </a>
-                        <a href="{{ url_for('main.analytics') }}" 
-                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
-                            <i class="fa-solid fa-chart-line"></i> Analytics
-                        </a>
-                        <a href="{{ url_for('main.invoice') }}" 
-                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
-                            <i class="fa-solid fa-download"></i> Download Invoice
-                        </a>
-                        <a href="{{ url_for('main.schedules') }}" 
-                            class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white">
-                            <i class="fa-solid fa-calendar-plus"></i> Add Scheduled Task
-                        </a>
+                        <a href="{{ url_for('main.transactions') }}" class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white"><i class="fa-solid fa-truck-fast"></i> Transactions</a>
+                        <a href="{{ url_for('main.analytics') }}" class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+                        <a href="{{ url_for('main.invoice') }}" class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white"><i class="fa-solid fa-download"></i> Download Invoice</a>
+                        <a href="{{ url_for('main.schedules') }}" class="flex items-center gap-2 font-semibold p-2 rounded-md text-sm transition hover:bg-[#3a4d39] hover:text-white"><i class="fa-solid fa-calendar-plus"></i> Add Scheduled Task</a>
                     </div>
-                    <!-- --- END OF MODIFICATION --- -->
                 </div>
 
                 <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4">
@@ -91,34 +73,32 @@
                             <span>Date Modified</span>
                         </div>
                         <div id="activity-list-container" class="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-2">
+                            
+                            <!-- START OF MODIFICATION: Dynamic Activity List -->
                             {% for activity in recent_activities %}
                                 {% set activity_type = activity.activity_type %}
-                                {% set icon_class = 'fa-solid fa-info-circle' %}
-                                {% set icon_color = 'text-gray-500' %}
+                                {% set icon_class = 'fa-solid fa-info-circle text-gray-500' %} {# Default icon #}
 
                                 {% if activity_type == 'User Log In' %}
-                                    {% set icon_class = 'fa-solid fa-right-to-bracket' %}
-                                    {% set icon_color = 'text-green-600' %}
+                                    {% set icon_class = 'fa-solid fa-right-to-bracket text-green-600' %}
                                 {% elif 'Created' in activity_type or 'Added' in activity_type %}
-                                    {% set icon_class = 'fa-solid fa-plus-circle' %}
-                                    {% set icon_color = 'text-blue-600' %}
-                                {% elif 'Archived' in activity_type %}
-                                    {% set icon_class = 'fa-solid fa-box-archive' %}
-                                    {% set icon_color = 'text-red-600' %}
+                                    {% set icon_class = 'fa-solid fa-plus-circle text-blue-600' %}
+                                {% elif 'Archived' in activity_type or 'deleted' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-box-archive text-red-600' %}
                                 {% elif 'Paid' in activity_type %}
-                                    {% set icon_class = 'fa-solid fa-dollar-sign' %}
-                                    {% set icon_color = 'text-purple-600' %}
+                                    {% set icon_class = 'fa-solid fa-dollar-sign text-purple-600' %}
                                 {% elif 'Restored' in activity_type %}
-                                    {% set icon_class = 'fa-solid fa-trash-arrow-up' %}
-                                    {% set icon_color = 'text-purple-600' %}
+                                    {% set icon_class = 'fa-solid fa-trash-arrow-up text-purple-600' %}
+                                {% elif 'Updated' in activity_type or 'Changed' in activity_type %}
+                                    {% set icon_class = 'fa-solid fa-pen-to-square text-yellow-600' %}
                                 {% endif %}
                             
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
                                 <div class="col-span-2 flex items-center gap-2">
-                                    <i class="{{ icon_class }} {{ icon_color }}"></i>
+                                    <i class="{{ icon_class }}"></i>
                                     <div>
                                         <p class="font-medium">{{ activity.username }}</p>
-                                        <p class="text-[10px] text-gray-500">{{ activity.activity_type }}</p>
+                                        <p class="text-[10px] text-gray-500">{{ activity_type }}</p>
                                     </div>
                                 </div>
                                 <span class="text-gray-600">{{ activity.relative_time }}</span>
@@ -128,13 +108,14 @@
                                 No recent activity found.
                             </div>
                             {% endfor %}
+                            <!-- END OF MODIFICATION -->
+
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- --- START OF MODIFICATION: Reduced gap, padding, and font sizes --- -->
         <div class="order-1 lg:order-2 grid grid-cols-2 lg:flex lg:flex-col gap-3">
             <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-3 text-center">
                 <div id="clock-date" class="font-semibold text-sm text-gray-500 border-b pb-2 mb-2">Loading...</div>
@@ -149,7 +130,6 @@
                 <p class="text-2xl sm:text-3xl font-bold text-[#3a4d39] mt-1">{{ paid_count }}</p>
             </a>
         </div>
-        <!-- --- END OF MODIFICATION --- -->
     </section>
 </div>
 {% endblock %}
@@ -168,9 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 const response = await fetch("{{ url_for('main.get_recent_activity_api') }}");
-                if (!response.ok) {
-                    throw new Error('Failed to fetch new activity.');
-                }
+                if (!response.ok) throw new Error('Failed to fetch activity.');
                 const activities = await response.json();
 
                 activityListContainer.innerHTML = ''; 
@@ -179,20 +157,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     activityListContainer.innerHTML = '<div class="text-center text-gray-500 pt-4">No recent activity found.</div>';
                 } else {
                     activities.forEach(activity => {
-                        let iconClass = 'fa-solid fa-info-circle text-gray-500';
                         const activityType = activity.activity_type;
+                        let iconClass = 'fa-solid fa-info-circle text-gray-500'; // Default
 
-                        if (activityType === 'User Log In') {
-                            iconClass = 'fa-solid fa-right-to-bracket text-green-600';
-                        } else if (activityType.includes('Created') || activityType.includes('Added')) {
-                            iconClass = 'fa-solid fa-plus-circle text-blue-600';
-                        } else if (activityType.includes('Archived')) {
-                            iconClass = 'fa-solid fa-box-archive text-red-600';
-                        } else if (activityType.includes('Paid')) {
-                            iconClass = 'fa-solid fa-dollar-sign text-purple-600';
-                        } else if (activityType.includes('Restored')) {
-                             iconClass = 'fa-solid fa-trash-arrow-up text-purple-600';
-                        }
+                        if (activityType === 'User Log In') iconClass = 'fa-solid fa-right-to-bracket text-green-600';
+                        else if (activityType.includes('Created') || activityType.includes('Added')) iconClass = 'fa-solid fa-plus-circle text-blue-600';
+                        else if (activityType.includes('Archived') || activityType.includes('deleted')) iconClass = 'fa-solid fa-box-archive text-red-600';
+                        else if (activityType.includes('Paid')) iconClass = 'fa-solid fa-dollar-sign text-purple-600';
+                        else if (activityType.includes('Restored')) iconClass = 'fa-solid fa-trash-arrow-up text-purple-600';
+                        else if (activityType.includes('Updated') || activityType.includes('Changed')) iconClass = 'fa-solid fa-pen-to-square text-yellow-600';
 
                         const activityHtml = `
                             <div class="grid grid-cols-3 items-center border-t pt-1.5 hover:bg-[#f6f7f1] rounded transition">
@@ -200,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="${iconClass}"></i>
                                     <div>
                                         <p class="font-medium">${activity.username}</p>
-                                        <p class="text-[10px] text-gray-500">${activity.activity_type}</p>
+                                        <p class="text-[10px] text-gray-500">${activityType}</p>
                                     </div>
                                 </div>
                                 <span class="text-gray-600">${activity.relative_time}</span>
@@ -220,23 +193,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Clock logic (unchanged)
     const timeElement = document.getElementById('clock-time');
     const dateElement = document.getElementById('clock-date');
-
     if (timeElement && dateElement) {
         function updateClock() {
             const now = new Date();
-
             let hours = now.getHours();
             const minutes = now.getMinutes().toString().padStart(2, '0');
             const ampm = hours >= 12 ? 'PM' : 'AM';
             hours = hours % 12;
             hours = hours ? hours : 12;
             const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes} <span class="text-lg">${ampm}</span>`;
-
             const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
             const formattedDate = now.toLocaleDateString('en-US', dateOptions);
-
             timeElement.innerHTML = formattedTime;
             dateElement.textContent = formattedDate;
         }
