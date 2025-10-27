@@ -1,22 +1,30 @@
-# website/views/core.py
-
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    send_from_directory, jsonify
+    send_from_directory, jsonify, flash, current_app
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from werkzeug.utils import secure_filename
 import os
+import uuid
 from datetime import datetime, timedelta
 import pytz
 
-from . import main # Import the blueprint
+from . import main
 from ..models import (
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
-    get_notifications, mark_single_notification_as_read,
-    get_schedules
+    get_notifications, mark_single_notification_as_read, 
+    get_schedules, get_user_by_username, update_personal_info, 
+    check_password, update_user_password
 )
+from ..forms import UpdatePersonalInfoForm, ChangePasswordForm
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- Static Service Worker & Offline Page ---
 @main.route('/sw.js')
@@ -27,18 +35,16 @@ def service_worker():
 def offline():
     return render_template('offline.html')
 
-# --- START OF MODIFICATION ---
 @main.route('/splash')
 def splash():
     """Renders the splash screen page."""
     return render_template('splash.html')
-# --- END OF MODIFICATION ---
 
 # --- Root & Branch Routes ---
 @main.route('/')
 def root_route():
     try:
-        verify_jwt_in_request(optional=True)
+        verify_jwt_in_request(optional=True) # Ensure this is called to check JWT if present
         if get_jwt_identity():
             return redirect(url_for('main.dashboard')) if session.get('selected_branch') else redirect(url_for('main.branches'))
         return redirect(url_for('auth.login'))
@@ -113,6 +119,94 @@ def dashboard():
 def settings():
     return render_template('settings.html', show_sidebar=True)
 
+# --- Account Management Routes ---
+@main.route('/manage-account', methods=['GET'])
+@jwt_required()
+def manage_account():
+    username = get_jwt_identity()
+    user = get_user_by_username(username)
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('main.settings'))
+
+    personal_info_form = UpdatePersonalInfoForm(obj=user)
+    change_password_form = ChangePasswordForm()
+
+    return render_template(
+        'manage_account.html',
+        show_sidebar=True,
+        user=user,
+        personal_info_form=personal_info_form,
+        change_password_form=change_password_form
+    )
+
+@main.route('/update-personal-info', methods=['POST'])
+@jwt_required()
+def update_personal_info_route():
+    username = get_jwt_identity()
+    form = UpdatePersonalInfoForm()
+    update_data = {}
+    activity_logged = False
+
+    if form.validate_on_submit():
+        update_data['name'] = form.name.data
+        # Log name change if it's different from the current name
+        user = get_user_by_username(username)
+        if user and user.get('name') != form.name.data:
+            log_user_activity(username, 'Updated personal name')
+            activity_logged = True
+
+    if 'profile_photo' in request.files:
+        file = request.files['profile_photo']
+        if file and file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(f"{username}_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
+            filepath = os.path.join(current_app.config['PROFILE_PIC_FOLDER'], filename)
+            file.save(filepath)
+            update_data['profile_picture_url'] = filename
+            
+            log_user_activity(username, 'Updated profile photo')
+            activity_logged = True
+
+    if update_personal_info(username, update_data):
+        if activity_logged:
+            flash('Your information has been updated successfully!', 'success')
+        else:
+            # If nothing was changed but the user hit save, a simple confirmation is better
+            flash('No changes were made to your information.', 'info')
+    else:
+        # Fallback error flash if model update failed or form validation failed
+        if form.errors:
+            first_error_field = next(iter(form.errors))
+            flash(form.errors[first_error_field][0], 'error')
+        else:
+            flash('An error occurred while updating your information.', 'error')
+        
+    return redirect(url_for('main.manage_account'))
+
+@main.route('/change-password', methods=['POST'])
+@jwt_required()
+def change_password_route():
+    username = get_jwt_identity()
+    user = get_user_by_username(username)
+    form = ChangePasswordForm()
+
+    if form.validate_on_submit():
+        if not check_password(user['passwordHash'], form.old_password.data):
+            flash('Your old password was incorrect. Please try again.', 'error')
+            return redirect(url_for('main.manage_account'))
+
+        if update_user_password(username, form.new_password.data):
+            log_user_activity(username, 'Changed password')
+            flash('Your password has been changed successfully!', 'success')
+        else:
+            flash('An error occurred while changing your password.', 'error')
+    else:
+        if form.errors:
+            first_error_field = next(iter(form.errors))
+            flash(form.errors[first_error_field][0], 'error')
+        
+    return redirect(url_for('main.manage_account'))
+
 @main.route('/archive')
 @jwt_required()
 def archive():
@@ -120,6 +214,12 @@ def archive():
     archived_items = get_archived_items(username)
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
+
+@main.route('/uploads/profile_pics/<path:filename>')
+@jwt_required()
+def serve_profile_picture(filename):
+    """Provides a secure endpoint to access uploaded profile pictures."""
+    return send_from_directory(current_app.config['PROFILE_PIC_FOLDER'], filename)
 
 # --- Core API Routes ---
 @main.route('/api/activity/recent', methods=['GET'])
