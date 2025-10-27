@@ -68,10 +68,20 @@ def get_transactions_by_status(username, branch, status):
                 if status == 'Paid'
                 else doc.get('username', 'N/A').capitalize()
             )
+            
+            # --- START OF MODIFICATION ---
+            # This logic is now safer. It checks if check_date is a valid datetime
+            # object before trying to format it, preventing crashes from bad data.
+            check_date_val = doc.get('check_date')
+            check_date_str = 'N/A'  # Default value
+            if isinstance(check_date_val, datetime):
+                check_date_str = check_date_val.strftime('%m/%d/%Y')
+            # --- END OF MODIFICATION ---
+
             transaction_info = {
                 '_id': str(doc['_id']),
                 'name': doc.get('name'),
-                'check_date': doc.get('check_date').strftime('%m/%d/%Y') if doc.get('check_date') else 'N/A',
+                'check_date': check_date_str,
                 'editor': editor
             }
             transactions.append(transaction_info)
