@@ -2,7 +2,7 @@
 import os
 from flask import Flask, render_template
 from flask_mail import Mail
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, get_jwt_identity
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
@@ -13,69 +13,58 @@ from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
 
 from .config import config_by_name
-from .models import *
+from .models.user import *
+from .models.transaction import *
+from .models.invoice import *
+from .models.loan import *
+from .models.schedule import *
+from .models.activity import *
+from .models.notification import *
+from .models.analytics import *
+from .models.archive import *
 
-# -------------------------------
-# Logging Configuration
-# -------------------------------
 log_config = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-        }
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'formatter': 'standard',
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stdout'
-        }
-    },
+    'formatters': {'standard': {'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'}},
+    'handlers': {'console': {'level': 'INFO', 'formatter': 'standard', 'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout'}},
     'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True
-        },
-        'pymongo': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False
-        }
+        '': {'handlers': ['console'], 'level': 'INFO', 'propagate': True},
+        'pymongo': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False}
     }
 }
 dictConfig(log_config)
 logger = logging.getLogger(__name__)
 
-# -------------------------------
-# Initialize Extensions
-# -------------------------------
 mail = Mail()
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 csrf = CSRFProtect()
 
-
-# -------------------------------
-# App Factory
-# -------------------------------
 def create_app(config_name='dev'):
-    """Application factory function."""
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
-    # Ensure upload folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
+    if not os.path.exists(app.config['PROFILE_PIC_FOLDER']):
+        os.makedirs(app.config['PROFILE_PIC_FOLDER'])
 
-    # Initialize extensions
     mail.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
     csrf.init_app(app)
+
+    @app.context_processor
+    def inject_user():
+        try:
+            username = get_jwt_identity()
+            if username:
+                user_data = get_user_by_username(username)
+                return dict(current_user_data=user_data)
+        except Exception:
+            pass
+        return dict(current_user_data=None)
 
     # -------------------------------
     # Attach model functions to app
@@ -91,6 +80,7 @@ def create_app(config_name='dev'):
     app.update_user_password = update_user_password
     app.save_push_subscription = save_push_subscription
     app.get_user_push_subscriptions = get_user_push_subscriptions
+    app.update_personal_info = update_personal_info
 
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
@@ -103,20 +93,21 @@ def create_app(config_name='dev'):
     app.get_analytics_data = get_analytics_data
     app.get_weekly_billing_summary = get_weekly_billing_summary
 
+    # --- START OF MODIFICATION ---
+    # Attaching the missing activity log functions
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
+    # --- END OF MODIFICATION ---
 
     app.add_invoice = add_invoice
     app.get_invoices = get_invoices
     app.get_invoice_by_id = get_invoice_by_id
     app.archive_invoice = archive_invoice
 
-    # --- START OF FIX ---
     app.add_notification = add_notification
-    app.get_notifications = get_notifications # Changed from get_unread_notifications
+    app.get_notifications = get_notifications
     app.get_unread_notification_count = get_unread_notification_count
-    app.mark_single_notification_as_read = mark_single_notification_as_read # Changed from mark_notifications_as_read
-    # --- END OF FIX ---
+    app.mark_single_notification_as_read = mark_single_notification_as_read
 
     app.add_loan = add_loan
     app.get_loans = get_loans
@@ -132,9 +123,6 @@ def create_app(config_name='dev'):
 
     app.mail = mail
 
-    # -------------------------------
-    # MongoDB Connection
-    # -------------------------------
     try:
         mongo_client = MongoClient(app.config['MONGO_URI'])
         app.db = mongo_client.get_database(app.config['MONGO_DB_NAME'])
@@ -144,19 +132,12 @@ def create_app(config_name='dev'):
         logger.error(f"MongoDB connection failed: {e}", exc_info=True)
         app.db = None
 
-    # -------------------------------
-    # Register Blueprints
-    # -------------------------------
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
     from .views import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    # -------------------------------
-    # Error Handlers
-    # -------------------------------
-    # ✅ START OF FIX: Updated error handlers to point to the new templates
     @app.errorhandler(404)
     def page_not_found(e):
         return render_template('errors/404.html'), 404
@@ -164,12 +145,5 @@ def create_app(config_name='dev'):
     @app.errorhandler(500)
     def internal_server_error(e):
         return render_template('errors/500.html'), 500
-    
-    # You can add more handlers for other errors here, pointing to the same templates
-    # For example, for a 403 Forbidden error:
-    # @app.errorhandler(403)
-    # def forbidden_error(e):
-    #     return render_template('errors/403.html'), 403 # (You would create a 403.html)
-    # ✅ END OF FIX
 
     return app

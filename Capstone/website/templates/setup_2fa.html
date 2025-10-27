@@ -2,48 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup 2FA - DecoOffice</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
+
     <style>
-        .otp-input {
-            width: 100%; max-width: 12rem; height: 3.5rem; text-align: center; font-size: 1.8rem;
-            border: 1px solid #d1d5db; border-radius: 0.5rem; color: #3a4d39;
-        }
-        .otp-input:focus { outline: none; border-color: #6f8a6e; box-shadow: 0 0 0 2px rgba(111, 138, 110, 0.3); }
+        body { background-color: #fafaf5; font-family: 'Poppins', sans-serif; color: #3a4d39; }
+        .auth-container { max-width: 400px; margin: auto; padding: 2rem; }
+        .btn-primary { background-color: #3a4d39; color: white; padding: 0.875rem; border-radius: 9999px; font-weight: 600; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #4b5e4a; }
+        .btn-secondary { background-color: transparent; color: #3a4d39; border: 1px solid #3a4d39; padding: 0.875rem; border-radius: 9999px; font-weight: 600; transition: all 0.2s; }
+        .btn-secondary:hover { background-color: #eef2e9; }
+        .otp-input-box { width: 100%; max-width: 14rem; height: 3.5rem; text-align: center; font-size: 1.5rem; letter-spacing: 0.25rem; border: 1px solid #d4d8c4; border-radius: 0.5rem; background-color: white; }
+        .otp-input-box:focus { outline: none; border-color: #3a4d39; }
     </style>
 </head>
-<body class="bg-[#6f8a6e] font-poppins antialiased">
-<main class="flex items-center justify-center py-10 min-h-screen px-4 sm:px-0">
-    <div class="w-full max-w-lg mx-auto bg-[#fafaf5] rounded-xl shadow-2xl p-6 sm:p-8 text-center">
-        
-        <h1 class="text-[#3a4d39] mb-4 text-xl sm:text-2xl font-bold">Setup Two-Factor Authentication</h1>
-        <p class="text-gray-600 mb-6 text-sm sm:text-base">Scan the QR code with your authenticator app (e.g., Google Authenticator).</p>
+<body>
+    <div class="flex items-center justify-center min-h-screen py-8">
+        <div class="auth-container w-full">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-2">Setup Two-Factor Authentication</h1>
+                <p class="text-gray-500 text-sm">Scan the QR code with your authenticator app, then enter the 6-digit code to verify.</p>
+            </div>
 
-        <div class="flex justify-center mb-6 p-4 border rounded-lg bg-white">
-            <img src="data:image/svg+xml;base64,{{ qr_code_svg }}" alt="QR Code for 2FA Setup" class="w-48 h-48">
+            <div class="flex justify-center mb-6 p-4 border rounded-lg bg-white">
+                <img src="data:image/svg+xml;base64,{{ qr_code_svg }}" alt="QR Code for 2FA Setup" class="w-48 h-48">
+            </div>
+
+            <p class="text-gray-600 mb-6 text-center text-sm">
+                Or manually enter this key:<br>
+                <code class="font-bold text-base text-[#3a4d39] select-all break-words">{{ otp_secret }}</code>
+            </p>
+
+            <form action="{{ url_for('auth.setup_2fa') }}" method="POST" class="space-y-4">
+                {{ form.hidden_tag() }} 
+                <div class="flex justify-center">
+                    <input type="text" name="otp" placeholder="_ _ _ _ _ _" maxlength="6" class="otp-input-box" inputmode="numeric" pattern="\d{6}" required>
+                </div>
+                <button type="submit" class="w-full btn-primary !mt-6">Verify & Enable 2FA</button>
+                <a href="{{ url_for('auth.logout') }}" class="block w-full text-center btn-secondary">Cancel</a>
+            </form>
         </div>
-
-        <p class="text-gray-600 mb-4 text-sm sm:text-base">Or manually enter this key:<br>
-            <span class="font-bold text-[#3a4d39] select-all break-words">{{ otp_secret }}</span>
-        </p>
-
-        <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
-            {{ form.hidden_tag() }} 
-            <div class="flex justify-center mb-6">
-                <input type="text" name="otp" placeholder="Enter OTP" maxlength="6" class="otp-input"
-                       inputmode="numeric" pattern="\d{6}" title="Please enter exactly 6 digits" required>
-            </div>
-            <!-- --- START OF MODIFICATION: Buttons stack vertically on mobile --- -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <a href="{{ url_for('auth.logout') }}" class="block w-full bg-transparent text-[#3a4d39] border-2 border-[#3a4d39] p-3.5 rounded-full font-bold order-2 sm:order-1">Cancel & Logout</a>
-                <button type="submit" class="w-full bg-[#3a4d39] text-white p-4 rounded-full font-bold shadow hover:bg-opacity-90 order-1 sm:order-2">Verify & Enable 2FA</button>
-            </div>
-            <!-- --- END OF MODIFICATION --- -->
-        </form>
     </div>
-</main>
 </body>
 </html>

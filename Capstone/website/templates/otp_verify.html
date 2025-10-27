@@ -1,87 +1,78 @@
-<!-- website/templates/otp_verify.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
         {% if is_2fa_login %}
             Two-Factor Authentication - DecoOffice
         {% else %}
-            Email Verification - DecoOffice
+            Verify Your OTP - DecoOffice
         {% endif %}
     </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
+
     <style>
-        /* --- START OF MODIFICATION: Responsive OTP input field --- */
-        .otp-input {
-            width: 100%; /* Full width on small screens */
-            max-width: 16rem; /* Max width for larger screens */
+        body { background-color: #fafaf5; font-family: 'Poppins', sans-serif; color: #3a4d39; }
+        .auth-card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+        }
+        .otp-input-box {
+            width: 100%;
+            max-width: 16rem;
             height: 4rem;
             text-align: center;
-            font-size: 1.75rem; /* Slightly smaller font on mobile */
+            font-size: 1.75rem;
             font-weight: 600;
             letter-spacing: 0.5rem;
             color: #3a4d39;
             background-color: #f3f4f6;
-            border: 2px solid transparent;
+            border: 2px solid #e5e7eb;
             border-radius: 0.75rem;
             transition: all 0.2s ease-in-out;
-            padding-left: 0.5rem;
+            padding-left: 0.5rem; /* Center placeholder text */
         }
-        @media (min-width: 640px) { /* sm breakpoint */
-            .otp-input {
-                font-size: 2rem;
-            }
-        }
-        /* --- END OF MODIFICATION --- */
-        .otp-input::placeholder {
-            letter-spacing: normal;
-        }
-        .otp-input:focus {
+        .otp-input-box:focus {
             outline: none;
             border-color: #6f8a6e;
             box-shadow: 0 0 0 3px rgba(111, 138, 110, 0.3);
-            background-color: #ffffff;
+            background-color: white;
         }
-        
-        .card {
-            animation: fadeIn 0.4s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .btn-primary { background-color: #3a4d39; color: white; padding: 0.875rem; border-radius: 9999px; font-weight: 600; }
+        .btn-secondary { background-color: transparent; color: #3a4d39; border: 1px solid #d4d8c4; padding: 0.875rem; border-radius: 9999px; font-weight: 600; }
     </style>
 </head>
-<body class="bg-[#333333] font-poppins antialiased">
+<body class="bg-[#333333]">
 
     {% include "_flash_messages.html" %}
 
-    <main class="flex items-center justify-center min-h-screen p-4 sm:p-6">
-        <div class="card w-full max-w-md bg-[#F5F3F0] shadow-2xl rounded-2xl p-8 sm:p-12 text-center">
+    <main class="flex items-center justify-center min-h-screen p-4">
+        <div class="auth-card text-center">
 
-            <div class="flex justify-center mb-6">
-                {% if is_2fa_login %}
-                    <i class="fa-solid fa-shield-halved text-5xl text-[#4A5C49]"></i>
-                {% else %}
-                     <i class="fa-solid fa-envelope-circle-check text-5xl text-[#4A5C49]"></i>
-                {% endif %}
+            <div class="flex justify-center mb-4">
+                <i class="fa-solid fa-shield-halved text-4xl text-[#3a4d39]"></i>
             </div>
 
-            <h1 class="text-[#333333] text-2xl sm:text-3xl font-bold mb-3">
+            <h1 class="text-2xl font-bold mb-2">
                 {% if is_2fa_login %}
                     Two-Factor Authentication
                 {% else %}
-                    Email Verification
+                    Verify Your OTP
                 {% endif %}
             </h1>
 
-            <p class="text-gray-600 mb-8">
+            <p class="text-gray-500 text-sm mb-6">
                 {% if is_2fa_login %}
-                    Enter the 6-digit code from your authenticator app for <span class="font-semibold text-[#333333]">{{ username_in_context }}</span>.
+                    Enter the 6-digit code from your authenticator app for <span class="font-semibold">{{ username_in_context }}</span>.
                 {% else %}
                     A 6-digit code has been sent to your email. It will expire in 10 minutes.
                 {% endif %}
@@ -90,17 +81,16 @@
             <form id="otp-form" action="{{ url_for('auth.verify_otp') }}" method="POST" novalidate>
                 {{ form.hidden_tag() }}
 
-                <div class="flex justify-center mb-8">
-                    <!-- A single, user-friendly input for both 2FA and email OTP -->
-                    <input type="text" name="otp" class="otp-input" placeholder="------" 
+                <div class="flex justify-center mb-6">
+                    <input type="text" name="otp" class="otp-input-box" placeholder="------" 
                            maxlength="6" inputmode="numeric" pattern="\d{6}" required autofocus autocomplete="one-time-code">
                 </div>
 
                 <div class="space-y-4">
-                    <button type="submit" class="w-full bg-[#4A5C49] text-white py-3.5 rounded-full font-bold text-lg shadow-lg hover:bg-opacity-90 transition-colors">
+                    <button type="submit" class="w-full btn-primary">
                         Verify
                     </button>
-                    <a href="{{ url_for('auth.logout') }}" class="block w-full border-2 border-[#d1d5db] text-[#4A5C49] py-3 rounded-full font-bold hover:border-[#4A5C49] hover:bg-gray-200 transition-all">
+                    <a href="{{ url_for('auth.logout') }}" class="block w-full text-center btn-secondary">
                         Cancel & Logout
                     </a>
                 </div>
@@ -108,16 +98,5 @@
         </div>
     </main>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const flashContainer = document.getElementById('flash-messages-overlay-container');
-            if (flashContainer) {
-                setTimeout(() => {
-                    flashContainer.style.opacity = '0';
-                    flashContainer.addEventListener('transitionend', () => flashContainer.remove());
-                }, 5000);
-            }
-        });
-    </script>
 </body>
 </html>
