@@ -31,19 +31,19 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Check Amount</div>
-                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2" id="total-check-amount">₱0.00</div>
+                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2 selectable-text" id="total-check-amount">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total EWT Collected</div>
-                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2" id="total-ewt">₱0.00</div>
+                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2 selectable-text" id="total-ewt">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Countered Check</div>
-                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2" id="total-countered-check">₱0.00</div>
+                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2 selectable-text" id="total-countered-check">₱0.00</div>
                 </div>
                 <div class="flex flex-col gap-2">
                     <div class="bg-white border border-gray-300 rounded-lg p-2 text-center text-sm font-semibold underline">Total amt of other loans</div>
-                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2" id="total-loans">₱0.00</div>
+                    <div class="bg-[#3a4d39] text-white rounded-lg flex-1 flex items-center justify-center text-2xl font-bold break-all p-2 selectable-text" id="total-loans">₱0.00</div>
                 </div>
             </div>
         </div>
@@ -85,23 +85,23 @@
                     <!-- Mobile Card View -->
                     <div class="p-3 sm:hidden">
                         <div class="flex justify-between items-start mb-2">
-                            <p class="font-semibold text-gray-800 break-words">{{ loan.name }}</p>
+                            <p class="font-semibold text-gray-800 break-words selectable-text">{{ loan.name }}</p>
                             <button class="text-gray-400 hover:text-[#3a4d39] p-1 -mt-1 flex-shrink-0"><i class="fa-solid fa-pen-to-square"></i></button>
                         </div>
                         <div class="space-y-1 text-gray-600">
-                            <p><strong class="font-medium text-gray-500">Bank:</strong> {{ loan.bank_name }}</p>
-                            <p><strong class="font-medium text-gray-500">Amount:</strong> ₱ {{ "{:,.2f}".format(loan.amount) }}</p>
-                            <p><strong class="font-medium text-gray-500">Issued:</strong> {{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</p>
-                            <p><strong class="font-medium text-gray-500">Paid:</strong> {{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</p>
+                            <p><strong class="font-medium text-gray-500">Bank:</strong> <span class="selectable-text">{{ loan.bank_name }}</span></p>
+                            <p><strong class="font-medium text-gray-500">Amount:</strong> <span class="selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span></p>
+                            <p><strong class="font-medium text-gray-500">Issued:</strong> <span class="selectable-text">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span></p>
+                            <p><strong class="font-medium text-gray-500">Paid:</strong> <span class="selectable-text">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span></p>
                         </div>
                     </div>
 
                     <!-- Desktop Table Row View -->
-                    <span class="hidden sm:block col-span-3 font-medium truncate">{{ loan.name }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600 truncate">{{ loan.bank_name }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
+                    <span class="hidden sm:block col-span-3 font-medium truncate selectable-text">{{ loan.name }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600 truncate selectable-text">{{ loan.bank_name }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
+                    <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
                     <div class="hidden sm:flex col-span-1 justify-end">
                         <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
                     </div>
@@ -166,11 +166,9 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize date pickers in the "Create Loan" modal
         flatpickr("#date_issued", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
         flatpickr("#date_paid", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
 
-        // --- Billings Summary & Loan Filtering Logic ---
         const monthYearDisplay = document.getElementById('billing-month-year');
         const prevMonthBtn = document.getElementById('prev-month-btn');
         const nextMonthBtn = document.getElementById('next-month-btn');
@@ -184,11 +182,9 @@
         const noLoansMessage = document.getElementById('no-loans-message');
         const loanSearchInput = document.getElementById('loan-search-input');
 
-        // --- START OF MODIFICATION: Use UTC for all client-side date logic ---
         const now = new Date();
         let currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
         let currentWeek;
-        // --- END OF MODIFICATION ---
 
         const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
@@ -211,7 +207,7 @@
                 const searchMatches = (itemName.includes(searchTerm));
 
                 if (weekMatches && searchMatches) {
-                    item.style.display = 'grid'; // Use grid for desktop layout, behaves as block on mobile
+                    item.style.display = 'grid';
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
@@ -310,7 +306,6 @@
         
         renderControls();
 
-        // --- Loan Modal Logic ---
         const modal = document.getElementById('add-loan-modal');
         const openBtn = document.getElementById('create-loan-btn');
         const closeBtn = document.getElementById('close-loan-modal-btn');

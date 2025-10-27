@@ -15,10 +15,7 @@ import os
 from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
 from .models import get_user_by_email, update_user_password
-# --- START OF MODIFICATION ---
-# Corrected the import path to match the new filename
 from .utils.email_utils import send_email_via_api
-# --- END OF MODIFICATION ---
 
 logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
@@ -26,7 +23,7 @@ auth = Blueprint('auth', __name__)
 def get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
-# --- JWT Error Handlers (No Changes) ---
+# --- JWT Error Handlers ---
 @jwt.unauthorized_loader
 def unauthorized_response(callback):
     if request.path.startswith('/api/'):
@@ -48,9 +45,8 @@ def expired_token_response(jwt_header, jwt_payload):
     flash('Your session has expired. Please log in again.', 'error')
     return redirect(url_for('auth.login'))
 
-# --- Helper Functions (MODIFIED to use API) ---
+# --- Helper Functions ---
 def send_otp_email(recipient_email, otp):
-    """Sends OTP email using the Brevo API."""
     try:
         subject = "Your DecoOffice Verification Code"
         html_content = f"Your one-time password (OTP) is: <h2><strong>{otp}</strong></h2>"
@@ -63,7 +59,6 @@ def send_otp_email(recipient_email, otp):
         flash('Failed to send OTP email.', 'error')
 
 def send_password_reset_email(recipient_email, token):
-    """Sends password reset email using the Brevo API."""
     render_url = os.environ.get('RENDER_EXTERNAL_URL', None)
     base_url = render_url or url_for('main.root_route', _external=True)
     reset_url = f"{base_url.rstrip('/')}{url_for('auth.reset_password', token=token)}"
@@ -75,12 +70,16 @@ def send_password_reset_email(recipient_email, token):
     except Exception as e:
         logger.error(f"Failed to send password reset email to {recipient_email}: {e}")
 
-# --- Authentication Routes (No functional changes) ---
+# --- Authentication Routes ---
 @auth.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
     form = LoginForm()
-    if form.validate_on_submit():
+
+    # --- START OF MODIFICATION ---
+    # The rate limit has been changed from "5 per minute" to "50 per hour".
+    @limiter.limit("50 per hour")
+    # --- END OF MODIFICATION ---
+    def handle_login_attempt():
         user = current_app.get_user_by_username(form.username.data)
         if user and user.get('lockoutUntil') and user['lockoutUntil'] > datetime.utcnow():
             flash(f'Account locked. Try again later.', 'error')
@@ -106,7 +105,13 @@ def login():
         else:
             if user: current_app.record_failed_login_attempt(user['username'])
             flash('Invalid username or password.', 'error')
+            return render_template('login.html', form=form, show_sidebar=False)
+
+    if form.validate_on_submit():
+        return handle_login_attempt()
+
     return render_template('login.html', form=form, show_sidebar=False)
+
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
