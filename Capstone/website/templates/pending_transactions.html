@@ -133,8 +133,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const editForm = document.getElementById('edit-transaction-form');
 
-    const openEditModal = () => editModal.classList.remove('hidden');
-    const closeEditModal = () => editModal.classList.add('hidden');
+    const openEditModal = () => {
+        editModal.classList.remove('hidden');
+        setTimeout(() => editModal.classList.add('active'), 10);
+    };
+    const closeEditModal = () => {
+        editModal.classList.remove('active');
+        editModal.addEventListener('transitionend', () => editModal.classList.add('hidden'), { once: true });
+    };
 
     if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
     if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
@@ -202,149 +208,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
-        });
-    });
-});
-</script>
-{% endblock %}```
-
----
-
-### 3. `website/templates/paid_transactions.html` (Complete File)
-
-**Action:** Replace the entire contents of this file.
-
-```html
-{% extends "base.html" %}
-{% block title %}DecoOffice - Paid Transactions{% endblock %}
-{% block content %}
-<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f6f7f1] text-[#3a4d39]">
-    
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
-        <div>
-            <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
-            <a href="{{ url_for('main.transactions') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>Go Back...</span>
-            </a>
-        </div>
-        <div class="flex items-center gap-4 w-full sm:w-auto">
-            <div class="relative flex-grow sm:flex-grow-0">
-                <input type="text" id="search-input" placeholder="Search..." class="w-full sm:w-64 pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-            </div>
-            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
-                <i class="fa-solid fa-box-archive fa-lg"></i>
-            </a>
-            {% include "_notification_button.html" %}
-        </div>
-    </header>
-
-    <div class="flex-1 flex flex-col overflow-hidden">
-        
-        <h3 class="text-xl font-bold text-[#3a4d39] mb-4">October 2025</h3>
-
-        <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
-            <span class="col-span-4">Name</span>
-            <span class="col-span-2">Date</span>
-            <span class="col-span-2">Editor</span>
-            <span class="col-span-2 text-right">Actions</span>
-        </div>
-
-        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-            <div id="transaction-list-container" class="space-y-3 md:space-y-2">
-                {% for t in transactions %}
-                <div class="bg-white rounded-lg border border-[#e1e4d5] shadow-sm hover:border-[#6f8a6e] transition-colors transaction-item" 
-                     data-name="{{ t.name }}" 
-                     data-id="{{ t._id }}">
-                    <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center md:px-4 md:py-3 text-sm">
-                        
-                        <!-- Mobile View -->
-                        <div class="md:hidden p-4">
-                             <div class="flex justify-between items-start gap-4">
-                                <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3 min-w-0">
-                                    <i class="fa-solid fa-folder-open text-gray-400 fa-lg flex-shrink-0"></i>
-                                    <span class="font-semibold text-gray-800 transaction-name-display break-words selectable-text">{{ t.name }}</span>
-                                </a>
-                                <div class="flex gap-4 text-gray-500 text-base flex-shrink-0">
-                                    <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                                    <button title="Download" class="download-btn hover:text-blue-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-download"></i></button>
-                                </div>
-                            </div>
-                            <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="block mt-3 space-y-1">
-                                <p><strong class="text-gray-500">Date:</strong> <span class="selectable-text">{{ t.check_date }}</span></p>
-                                <p><strong class="text-gray-500">Editor:</strong> <span class="selectable-text">{{ t.editor }}</span></p>
-                            </a>
-                        </div>
-
-                        <!-- Desktop View -->
-                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-4 items-center gap-3 min-w-0">
-                            <i class="fa-solid fa-folder-open text-gray-400 fa-lg"></i>
-                            <span class="font-semibold text-gray-800 transaction-name-display truncate selectable-text">{{ t.name }}</span>
-                        </a>
-                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 selectable-text">{{ t.check_date }}</a>
-                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 selectable-text">{{ t.editor }}</a> 
-                        <div class="hidden md:flex col-span-2 justify-end gap-5 text-gray-500">
-                            <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
-                            <button title="Download" class="download-btn hover:text-blue-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-download"></i></button>
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="flex items-center justify-center h-40">
-                    <p class="text-gray-500">No paid transactions found.</p>
-                </div>
-                {% endfor %}
-                <p id="no-results-message" class="text-center text-gray-500 pt-10 hidden">No results found.</p>
-            </div>
-        </div>
-    </div>
-</main>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('search-input');
-    const transactionRows = document.querySelectorAll('.transaction-item');
-    const noResultsMessage = document.getElementById('no-results-message');
-
-    if (searchInput && transactionRows.length > 0) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim();
-            const searchTermLower = searchTerm.toLowerCase();
-            let visibleCount = 0;
-
-            transactionRows.forEach(row => {
-                const nameDisplayElement = row.querySelector('.transaction-name-display');
-                if (!nameDisplayElement) return;
-
-                const originalName = row.dataset.name;
-                const originalNameLower = originalName.toLowerCase();
-
-                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
-                    row.style.display = 'block';
-                    visibleCount++;
-
-                    if (searchTermLower === '') {
-                        nameDisplayElement.innerHTML = originalName;
+            // Assuming you have a custom confirm dialog setup in common.js
+            window.showCustomConfirm(`Are you sure you want to archive "${this.dataset.name}"?`, async () => {
+                const transactionId = this.dataset.id;
+                try {
+                    const response = await fetch(`/api/transactions/${transactionId}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-Token': window.getCSRFToken() }
+                    });
+                    if (response.ok) {
+                        window.location.reload();
                     } else {
-                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
+                        alert('Failed to archive transaction.');
                     }
-                } else {
-                    row.style.display = 'none';
+                } catch (error) {
+                    console.error('Archive error:', error);
+                    alert('An error occurred.');
                 }
             });
-
-            noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
-        });
-    }
-
-    document.querySelectorAll('.download-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const transactionId = this.dataset.id;
-            window.location.href = `/api/transactions/${transactionId}/download_pdf`;
         });
     });
 });
