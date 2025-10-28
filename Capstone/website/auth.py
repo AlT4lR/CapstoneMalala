@@ -12,9 +12,14 @@ import base64
 import logging
 import os
 
+# --- START OF MODIFICATION ---
+# Add the 'quote' function for URL encoding
+from urllib.parse import quote
+# --- END OF MODIFICATION ---
+
 from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
-from .models import get_user_by_email, update_user_password
+from .models import get_user_by_email, update_user_password, get_user_by_username
 from .utils.email_utils import send_email_via_api
 
 logger = logging.getLogger(__name__)
@@ -75,7 +80,7 @@ def send_password_reset_email(recipient_email, token):
 def login():
     form = LoginForm()
 
-    # --- START OF MODIFICATION ---
+    # --- START OF MODIFICATION (Rate Limit Change) ---
     # The rate limit has been changed from "5 per minute" to "50 per hour".
     @limiter.limit("50 per hour")
     # --- END OF MODIFICATION ---
@@ -179,7 +184,16 @@ def setup_2fa():
             flash('Invalid 2FA code.', 'error')
 
     totp = pyotp.TOTP(user['otpSecret'])
-    uri = totp.provisioning_uri(name=user['email'], issuer_name="DecoOffice")
+
+    # --- START OF MODIFICATION (URL Encoding) ---
+    # We now manually URL-encode the email and issuer name.
+    # This prevents any special characters from breaking the URI format,
+    # ensuring authenticator apps always recognize it correctly.
+    user_email_safe = quote(user['email'])
+    issuer_name_safe = quote("DecoOffice")
+    uri = totp.provisioning_uri(name=user_email_safe, issuer_name=issuer_name_safe)
+    # --- END OF MODIFICATION ---
+    
     img_buf = io.BytesIO()
     qrcode.make(uri, image_factory=qrcode.image.svg.SvgImage).save(img_buf)
     qr_code_svg = base64.b64encode(img_buf.getvalue()).decode('utf-8')
