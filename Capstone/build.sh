@@ -2,8 +2,9 @@
 # exit on error
 set -o errexit
 
+pip install -r requirements.txt```
 
-apt-get install -y tesseract-ocr tesseract-ocr-eng
+#### D. Create a `.gitignore` File
+You should not commit secrets or temporary files to your Git repository. Create a `.gitignore` file in your root directory (`Capstone/`).
 
-# After the system package is installed, we install the Python packages.
-pip install -r requirements.txt
+**File: `.gitignore`**

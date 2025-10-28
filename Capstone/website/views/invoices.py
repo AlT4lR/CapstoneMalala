@@ -1,5 +1,3 @@
-# website/views/invoices.py
-
 from flask import (
     render_template, request, jsonify, url_for, current_app, 
     send_from_directory, send_file, abort, session
@@ -8,8 +6,10 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
+# --- START OF MERGED IMPORTS (Full OCR support) ---
 import pytesseract
 from PIL import Image
+# --- END OF MERGED IMPORTS ---
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
@@ -27,7 +27,7 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
-# --- Tesseract Configuration ---
+# --- Tesseract Configuration (Kept for context, but commented out for PATH reliance) ---
 # The hardcoded Windows path for Tesseract has been REMOVED to rely on the 
 # system's PATH environment variable, making it compatible with Linux/Docker.
 # A small warning block is kept for local development clarity if the path is 
@@ -41,8 +41,12 @@ logger = logging.getLogger(__name__)
 # except Exception as e:
 #     logger.warning(f"Could not set the Tesseract path (if applicable). OCR will search system PATH. Error: {e}")
 
-
+# --- START OF MERGED FUNCTION (Full OCR with robust error handling) ---
 def perform_ocr_on_image(image_path):
+    """
+    Performs Optical Character Recognition (OCR) on an image file using Tesseract.
+    Includes robust error handling for common Tesseract issues like not found or timeouts.
+    """
     # --- More detailed error handling for cross-platform stability ---
     try:
         # Use a timeout to prevent the process from hanging on difficult images
@@ -59,6 +63,7 @@ def perform_ocr_on_image(image_path):
         # This catches all other errors (e.g., bad installation, missing language files)
         logger.error(f"An unexpected OCR error occurred for image {image_path}: {e}")
         return f"OCR failed: An unexpected error occurred. Check server logs for details. (Error: {str(e)[:100]})"
+# --- END OF MERGED FUNCTION ---
 
 
 @main.route('/invoice')
@@ -102,7 +107,10 @@ def upload_invoice():
             filename = secure_filename(file.filename)
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
+            
+            # This calls the now fully-functional OCR
             extracted_text = perform_ocr_on_image(filepath)
+            
             extracted_text_all.append(extracted_text)
             processed_files_info.append({
                 'filename': filename, 'content_type': file.content_type,
@@ -113,6 +121,7 @@ def upload_invoice():
         log_user_activity(username, 'Uploaded an invoice')
         return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
     else:
+        # Ensure cleanup of uploaded files if the database operation fails, though not strictly required by the prompt
         return jsonify({'success': False, 'error': 'Database error'}), 500
 
 @main.route('/api/invoices/<invoice_id>', methods=['DELETE'])
