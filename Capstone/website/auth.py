@@ -51,9 +51,6 @@ def send_otp_email(recipient_email, otp):
     try:
         subject = "Your DecoOffice Verification Code"
         html_content = f"Your one-time password (OTP) is: <h2><strong>{otp}</strong></h2>"
-        # --- START OF DEBUG MODIFICATION ---
-        print("5. Inside send_otp_email helper, about to call API.")
-        # --- END OF DEBUG MODIFICATION ---
         if send_email_via_api(recipient_email, subject, html_content):
             flash('A new OTP has been sent to your email address.', 'success')
         else:
@@ -118,10 +115,6 @@ def login():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # --- START OF DEBUG MODIFICATION ---
-        print("1. User registration form validated.")
-        print(f"2. Attempting to add user: {form.username.data}")
-        # --- END OF DEBUG MODIFICATION ---
         user_added_successfully = current_app.add_user(
             form.username.data, 
             form.email.data, 
@@ -130,14 +123,8 @@ def register():
         )
         
         if user_added_successfully:
-            # --- START OF DEBUG MODIFICATION ---
-            print("3. User added successfully, now setting OTP.")
-            # --- END OF DEBUG MODIFICATION ---
             otp = current_app.set_user_otp(form.username.data, otp_type='email')
             if otp:
-                # --- START OF DEBUG MODIFICATION ---
-                print(f"4. OTP generated: {otp}. Now sending email.")
-                # --- END OF DEBUG MODIFICATION ---
                 send_otp_email(form.email.data, otp)
                 session['username_for_otp'] = form.username.data
                 return redirect(url_for('auth.verify_otp'))
@@ -191,7 +178,6 @@ def resend_otp():
         flash('An error occurred. User not found.', 'error')
         return redirect(url_for('auth.login'))
 
-    # Generate a new OTP and send it via email
     new_otp = current_app.set_user_otp(username, otp_type='email')
     if new_otp:
         send_otp_email(user['email'], new_otp)
@@ -217,8 +203,19 @@ def setup_2fa():
         else:
             flash('Invalid 2FA code.', 'error')
 
-    totp = pyotp.TOTP(user['otpSecret'])
-    user_email_safe = quote(user['email'])
+    # --- START OF FIX: Add checks to prevent KeyError ---
+    otp_secret = user.get('otpSecret')
+    user_email = user.get('email')
+
+    if not otp_secret or not user_email:
+        flash('User account is missing required information for 2FA setup.', 'error')
+        logger.error(f"User '{username}' is missing 'otpSecret' or 'email' for 2FA setup.")
+        return redirect(url_for('auth.login'))
+    
+    totp = pyotp.TOTP(otp_secret)
+    user_email_safe = quote(user_email)
+    # --- END OF FIX ---
+
     issuer_name_safe = quote("DecoOffice")
     uri = totp.provisioning_uri(name=user_email_safe, issuer_name=issuer_name_safe)
     
@@ -226,7 +223,7 @@ def setup_2fa():
     qrcode.make(uri, image_factory=qrcode.image.svg.SvgImage).save(img_buf)
     qr_code_svg = base64.b64encode(img_buf.getvalue()).decode('utf-8')
     
-    return render_template('setup_2fa.html', form=form, otp_secret=user['otpSecret'], qr_code_svg=qr_code_svg)
+    return render_template('setup_2fa.html', form=form, otp_secret=otp_secret, qr_code_svg=qr_code_svg)
 
 @auth.route('/logout')
 def logout():

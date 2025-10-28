@@ -15,13 +15,11 @@ logger = logging.getLogger(__name__)
 def get_user_by_username(username):
     db = current_app.db
     if db is None: return None
-    # Use case-insensitive regex search for fetching
     return db.users.find_one({'username': {'$regex': f'^{re.escape(username.strip().lower())}$', '$options': 'i'}})
 
 def get_user_by_email(email):
     db = current_app.db
     if db is None: return None
-    # Use case-insensitive regex search for fetching
     return db.users.find_one({'email': {'$regex': f'^{re.escape(email.strip().lower())}$', '$options': 'i'}})
 
 def add_user(username, email, password, name):
@@ -39,7 +37,7 @@ def add_user(username, email, password, name):
             'name': name.strip(),
             'email': email.strip().lower(),
             'passwordHash': hashed_password,
-            'profile_picture_url': None,  # Added support for profile picture storage
+            'profile_picture_url': None,
             'isActive': False,
             'otpSecret': otp_secret,
             'createdAt': datetime.now(pytz.utc),
@@ -112,10 +110,24 @@ def verify_user_otp(username, submitted_otp, otp_type='email'):
     user = get_user_by_username(username)
     if not user: return False
     if otp_type == 'email':
-        if user.get('otp') == submitted_otp and user.get('otpExpiresAt', datetime.min.replace(tzinfo=pytz.utc)) > datetime.now(pytz.utc):
+        # --- START OF FIX: Correctly handle timezone-naive datetimes from MongoDB ---
+        stored_otp = user.get('otp')
+        expires_at = user.get('otpExpiresAt')  # This is a naive datetime from MongoDB
+
+        # If either value is missing, fail immediately
+        if not stored_otp or not expires_at:
+            return False
+
+        # Ensure the expiry time from the DB is treated as UTC before comparison
+        if expires_at.tzinfo is None:
+            expires_at = pytz.utc.localize(expires_at)
+
+        # Compare the stored expiration time with the current UTC time
+        if stored_otp == submitted_otp and expires_at > datetime.now(pytz.utc):
             # Also set isActive to True upon successful email verification
             db.users.update_one({'_id': user['_id']}, {'$set': {'isActive': True}, '$unset': {'otp': "", 'otpExpiresAt': ""}})
             return True
+        # --- END OF FIX ---
     elif otp_type == '2fa':
         totp = pyotp.TOTP(user['otpSecret'])
         return totp.verify(submitted_otp, valid_window=1)
@@ -126,7 +138,6 @@ def save_push_subscription(username, subscription_info):
     db = current_app.db
     if db is None: return False
     try:
-        # Use lowercased username for consistency
         db.users.update_one({'username': username.lower()}, {'$addToSet': {'push_subscriptions': subscription_info}})
         return True
     except Exception as e:
@@ -153,9 +164,7 @@ def update_personal_info(username, new_data):
         if 'name' in new_data and new_data['name']:
             update_doc['$set']['name'] = new_data['name']
         
-        # Logic to update profile picture URL, crucial for the sidebar feature
         if 'profile_picture_url' in new_data:
-            # Note: new_data['profile_picture_url'] can be None to clear the picture
             update_doc['$set']['profile_picture_url'] = new_data['profile_picture_url']
             
         if not update_doc['$set']:
@@ -163,7 +172,6 @@ def update_personal_info(username, new_data):
 
         result = db.users.update_one({'username': username.lower()}, update_doc)
         
-        # Return True if a document was matched, even if no fields were technically changed.
         return result.matched_count > 0
         
     except Exception as e:
