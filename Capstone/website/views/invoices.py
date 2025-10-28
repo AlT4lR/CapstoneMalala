@@ -28,21 +28,28 @@ from ..models import (
 logger = logging.getLogger(__name__)
 
 # --- Tesseract Configuration ---
-# Ensure this path is correct for your system.
-try:
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-except Exception as e:
-    logger.warning(f"Could not set the Tesseract path. OCR will likely fail. Error: {e}")
+# The hardcoded Windows path for Tesseract has been REMOVED to rely on the 
+# system's PATH environment variable, making it compatible with Linux/Docker.
+# A small warning block is kept for local development clarity if the path is 
+# still desired on the developer's machine, but it is commented out for 
+# production/path-based execution.
+
+# try:
+#     # For Windows development environments, uncomment and modify this line:
+#     # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+#     pass
+# except Exception as e:
+#     logger.warning(f"Could not set the Tesseract path (if applicable). OCR will search system PATH. Error: {e}")
 
 
 def perform_ocr_on_image(image_path):
-    # --- START OF MODIFICATION: More detailed error handling ---
+    # --- More detailed error handling for cross-platform stability ---
     try:
         # Use a timeout to prevent the process from hanging on difficult images
         return pytesseract.image_to_string(Image.open(image_path), timeout=15)
     except pytesseract.TesseractNotFoundError:
-        # This error is specific: the tesseract.exe file was not found at the path.
-        logger.error("TESSERACT NOT FOUND: The 'tesseract.exe' file was not found at the specified path.")
+        # This error is specific: the tesseract executable was not found in the system's PATH.
+        logger.error("TESSERACT NOT FOUND: The Tesseract executable was not found in the system's PATH.")
         return "OCR Error: Tesseract executable not found. Please check the server configuration."
     except RuntimeError as timeout_error:
         # This catches the timeout error specifically
@@ -50,10 +57,8 @@ def perform_ocr_on_image(image_path):
         return "OCR failed: Processing timed out. The image may be too complex."
     except Exception as e:
         # This catches all other errors (e.g., bad installation, missing language files)
-        # and logs the actual error message for debugging.
         logger.error(f"An unexpected OCR error occurred for image {image_path}: {e}")
         return f"OCR failed: An unexpected error occurred. Check server logs for details. (Error: {str(e)[:100]})"
-    # --- END OF MODIFICATION ---
 
 
 @main.route('/invoice')
@@ -149,14 +154,24 @@ def download_invoice_as_pdf(invoice_id):
     ocr_text = invoice.get('extracted_text', 'No text was extracted.').replace('\n', '<br/>')
     ocr_paragraph = Paragraph(ocr_text, styles['Normal'])
     w, h = ocr_paragraph.wrapOn(p, width - 2 * inch, height)
-    ocr_paragraph.drawOn(p, inch, height - 1.6 * inch - h)
+    p.saveState()
+    # Adjust position calculation for the paragraph drawing
+    paragraph_start_y = height - 1.6 * inch - h
+    ocr_paragraph.drawOn(p, inch, paragraph_start_y)
+    p.restoreState()
     
+    y_pos = paragraph_start_y - 0.5 * inch # Start drawing files below the paragraph
+
     if invoice.get('files'):
-        p.showPage() 
-        p.setFont("Helvetica-Bold", 16)
-        p.drawString(inch, height - inch, "Attached Images")
-        y_pos = height - 1.5 * inch
+        # Check if there is enough room for the file title and margin, otherwise start a new page
+        if y_pos < height - (height - 1.5 * inch): # Simple check to avoid crowding the first page title area
+             p.showPage()
+             y_pos = height - inch
         
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(inch, y_pos, "Attached Images")
+        y_pos -= 0.5 * inch # Move down after the new title
+
         for file_info in invoice['files']:
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file_info['filename'])
             if os.path.exists(filepath):
@@ -170,6 +185,7 @@ def download_invoice_as_pdf(invoice_id):
                         img_width = max_width
                         img_height *= ratio
                     
+                    # Check if the image will fit on the current page
                     if y_pos - img_height < inch: 
                         p.showPage()
                         y_pos = height - inch
@@ -179,7 +195,7 @@ def download_invoice_as_pdf(invoice_id):
                 except Exception as e:
                     logger.error(f"Could not process image for PDF: {filepath}, Error: {e}")
                     p.drawString(inch, y_pos, f"[Could not load image: {file_info['filename']}]")
-                    y_pos -= 0.5*inch
+                    y_pos -= 0.5 * inch
 
     p.save()
     buffer.seek(0)
