@@ -51,6 +51,9 @@ def send_otp_email(recipient_email, otp):
     try:
         subject = "Your DecoOffice Verification Code"
         html_content = f"Your one-time password (OTP) is: <h2><strong>{otp}</strong></h2>"
+        # --- START OF DEBUG MODIFICATION ---
+        print("5. Inside send_otp_email helper, about to call API.")
+        # --- END OF DEBUG MODIFICATION ---
         if send_email_via_api(recipient_email, subject, html_content):
             flash('A new OTP has been sent to your email address.', 'success')
         else:
@@ -115,18 +118,26 @@ def login():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # --- START OF FIX: Added form.name.data to the function call ---
+        # --- START OF DEBUG MODIFICATION ---
+        print("1. User registration form validated.")
+        print(f"2. Attempting to add user: {form.username.data}")
+        # --- END OF DEBUG MODIFICATION ---
         user_added_successfully = current_app.add_user(
             form.username.data, 
             form.email.data, 
             form.password.data,
-            form.name.data  # This was the missing argument
+            form.name.data
         )
-        # --- END OF FIX ---
         
         if user_added_successfully:
+            # --- START OF DEBUG MODIFICATION ---
+            print("3. User added successfully, now setting OTP.")
+            # --- END OF DEBUG MODIFICATION ---
             otp = current_app.set_user_otp(form.username.data, otp_type='email')
             if otp:
+                # --- START OF DEBUG MODIFICATION ---
+                print(f"4. OTP generated: {otp}. Now sending email.")
+                # --- END OF DEBUG MODIFICATION ---
                 send_otp_email(form.email.data, otp)
                 session['username_for_otp'] = form.username.data
                 return redirect(url_for('auth.verify_otp'))
@@ -166,6 +177,28 @@ def verify_otp():
                 flash('Invalid or expired OTP.', 'error')
             
     return render_template('otp_verify.html', form=form, is_2fa_login=is_2fa_login, username_in_context=username)
+
+@auth.route('/resend-otp')
+def resend_otp():
+    """Handles the request to resend an OTP email."""
+    username = session.get('username_for_otp')
+    if not username:
+        flash('Your session has expired. Please try logging in again.', 'error')
+        return redirect(url_for('auth.login'))
+
+    user = current_app.get_user_by_username(username)
+    if not user:
+        flash('An error occurred. User not found.', 'error')
+        return redirect(url_for('auth.login'))
+
+    # Generate a new OTP and send it via email
+    new_otp = current_app.set_user_otp(username, otp_type='email')
+    if new_otp:
+        send_otp_email(user['email'], new_otp)
+    else:
+        flash('Could not generate a new OTP. Please contact support.', 'error')
+
+    return redirect(url_for('auth.verify_otp'))
 
 @auth.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa():

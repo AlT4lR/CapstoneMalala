@@ -49,6 +49,13 @@
         }
         .btn-primary { background-color: #3a4d39; color: white; padding: 0.875rem; border-radius: 9999px; font-weight: 600; }
         .btn-secondary { background-color: transparent; color: #3a4d39; border: 1px solid #d4d8c4; padding: 0.875rem; border-radius: 9999px; font-weight: 600; }
+        /* --- START OF MODIFICATION: Styles for disabled resend button --- */
+        .resend-link:disabled {
+            color: #9ca3af;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+        /* --- END OF MODIFICATION --- */
     </style>
 </head>
 <body class="bg-[#333333]">
@@ -95,8 +102,56 @@
                     </a>
                 </div>
             </form>
+
+            <!-- --- START OF MODIFICATION: Add Resend OTP Link/Button --- -->
+            {% if not is_2fa_login %}
+            <div class="mt-6 text-center text-sm">
+                <p class="text-gray-500">
+                    Didn't receive the code? 
+                    <button id="resend-otp-btn" class="font-semibold text-[#6f8a6e] hover:underline resend-link">Resend</button>
+                    <span id="resend-timer" class="text-gray-400"></span>
+                </p>
+            </div>
+            {% endif %}
+            <!-- --- END OF MODIFICATION --- -->
         </div>
     </main>
+
+    <!-- --- START OF MODIFICATION: JavaScript for Resend Timer --- -->
+    {% if not is_2fa_login %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resendBtn = document.getElementById('resend-otp-btn');
+            const timerEl = document.getElementById('resend-timer');
+            let cooldown = 60; // Cooldown in seconds
+
+            function startTimer() {
+                resendBtn.disabled = true;
+                let timeLeft = cooldown;
+                timerEl.textContent = `(${timeLeft}s)`;
+
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft > 0) {
+                        timerEl.textContent = `(${timeLeft}s)`;
+                    } else {
+                        clearInterval(interval);
+                        timerEl.textContent = '';
+                        resendBtn.disabled = false;
+                    }
+                }, 1000);
+            }
+
+            resendBtn.addEventListener('click', function() {
+                // Redirect to the resend route
+                window.location.href = "{{ url_for('auth.resend_otp') }}";
+                // Start the timer immediately to provide feedback
+                startTimer();
+            });
+        });
+    </script>
+    {% endif %}
+    <!-- --- END OF MODIFICATION --- -->
 
 </body>
 </html>
