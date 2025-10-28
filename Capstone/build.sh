@@ -2,9 +2,8 @@
 # exit on error
 set -o errexit
 
-# Install Tesseract OCR and its English language pack
-apt-get update
+# Directly install the required system dependencies
 apt-get install -y tesseract-ocr tesseract-ocr-eng
 
-# Install Python dependencies
+# Install Python dependencies from requirements.txt
 pip install -r requirements.txt
