@@ -1,5 +1,4 @@
 # website/forms.py
-
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField, PasswordField, SubmitField,
@@ -16,8 +15,6 @@ import re
 def password_complexity(form, field):
     password = field.data
     errors = []
-    if len(password) < 12:
-        errors.append("Minimum 12 characters")
     if not re.search(r'[A-Z]', password):
         errors.append("One upper character")
     if not re.search(r'[a-z]', password):
@@ -27,8 +24,7 @@ def password_complexity(form, field):
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
         errors.append("One special character")
     if errors:
-        # We only show one validation error at a time in the template for simplicity
-        raise ValidationError(f"Password requires: {errors[0]}.")
+        raise ValidationError(f"Password must contain: {', '.join(errors)}.")
 
 
 # -------------------------
@@ -43,7 +39,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)])
+    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)]) # Added name field
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
@@ -73,22 +69,21 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Reset Password')
 
 
-# --- ACCOUNT MANAGEMENT FORMS ---
+# --- START OF FIX: Added missing form classes ---
 
 class UpdatePersonalInfoForm(FlaskForm):
+    """Form for updating user's personal information."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
     submit = SubmitField('Save')
 
-
 class ChangePasswordForm(FlaskForm):
-    # --- START OF MODIFICATION ---
-    # The field was incorrectly named 'current_password' in a previous version.
-    # It is now correctly named 'old_password' to match the template.
+    """Form for changing the user's password."""
     old_password = PasswordField('Old Password', validators=[DataRequired()])
-    # --- END OF MODIFICATION ---
-    new_password = PasswordField('New Password', validators=[DataRequired(), password_complexity])
+    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=12), password_complexity])
     confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
     submit = SubmitField('Change Password')
+
+# --- END OF FIX ---
 
 
 # -------------------------
@@ -96,6 +91,7 @@ class ChangePasswordForm(FlaskForm):
 # -------------------------
 
 class TransactionForm(FlaskForm):
+    """Form for creating transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
@@ -106,6 +102,7 @@ class TransactionForm(FlaskForm):
 
 
 class EditTransactionForm(FlaskForm):
+    """Form for editing a transaction."""
     name = StringField('Recipient Name', validators=[DataRequired(), Length(max=100)])
     check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
@@ -120,6 +117,7 @@ class EditTransactionForm(FlaskForm):
 # -------------------------
 
 class LoanForm(FlaskForm):
+    """Form for the 'Create Loan' modal."""
     name_of_loan = StringField('Name Of Loans', validators=[DataRequired(), Length(max=100)])
     bank_name = StringField('Bank Name', validators=[DataRequired(), Length(max=100)])
     amount = DecimalField('Amount', validators=[DataRequired()])

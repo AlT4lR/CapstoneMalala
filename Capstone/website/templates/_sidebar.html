@@ -1,4 +1,3 @@
-<!-- website/templates/_sidebar.html (Corrected Hover-to-Expand Version) -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
 
 <aside id="sidebar" class="bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 
@@ -8,7 +7,7 @@
            lg:w-20 lg:hover:w-72 group lg:overflow-hidden 
            overflow-y-auto custom-scrollbar">
     
-    <!-- Header -->
+    <!-- Header: Logo and Title -->
     <div class="flex items-center justify-between lg:justify-start gap-4 h-16 shrink-0 px-2 mb-8">
         <div class="flex items-center gap-4">
             <i class="fa-solid fa-table-cells-large fa-lg w-12 text-center"></i>
@@ -17,7 +16,7 @@
         <button id="sidebar-close-btn" class="lg:hidden text-2xl">&times;</button>
     </div>
     
-    <!-- Navigation -->
+    <!-- Navigation Links -->
     <nav class="flex flex-col space-y-2 w-full">
         {% set nav_items = [
             ('main.dashboard', 'fa-house', 'Home'),
@@ -34,7 +33,7 @@
            {% if request.path.startswith(url_for(route)) or (request.path == '/' and route == 'main.dashboard') %}
                bg-white text-[#3a4d39] font-semibold
            {% else %}
-               text-gray-300 hover:bg-[#4b5e4a] hover:text-white
+               hover:bg-[#4b5e4a]
            {% endif %}">
             <i class="w-6 text-center fa-solid {{ icon }} fa-lg"></i>
             <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">{{ name }}</span>
@@ -42,13 +41,21 @@
         {% endfor %}
     </nav>
     
-    <!-- User Profile -->
+    <!-- User Profile with Dynamic Picture -->
     <div class="mt-auto shrink-0 flex items-center gap-4 w-full h-12 px-3">
-        <div class="w-10 h-10 bg-white rounded-full flex-shrink-0 overflow-hidden">
+        <!-- Dynamic Profile Picture Logic -->
+        <div class="w-10 h-10 bg-white rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden">
             {% if current_user_data and current_user_data.profile_picture_url %}
-                <img src="{{ url_for('main.get_avatar', filename=current_user_data.profile_picture_url) }}" alt="Profile Picture" class="w-full h-full object-cover">
+                <!-- Display the uploaded profile picture -->
+                <img src="{{ url_for('main.serve_profile_picture', filename=current_user_data.profile_picture_url) }}" alt="Profile Picture" class="w-full h-full object-cover">
+            {% else %}
+                <!-- Fallback: Display the user's first initial -->
+                <span class="font-bold text-xl text-[#3a4d39]">
+                    {{ (current_user_data.name[0] if current_user_data and current_user_data.name else 'A') | upper }}
+                </span>
             {% endif %}
         </div>
+        <!-- User Name Display -->
         <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap font-semibold">
             {{ current_user_data.name.split(' ')[0] | capitalize if current_user_data and current_user_data.name else 'Admin' }}
         </span>
