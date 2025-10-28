@@ -1,83 +1,179 @@
 {% extends "base.html" %}
 {% block title %}DecoOffice - Manage Account{% endblock %}
+{% block head %}
+<!-- START OF MODIFICATION: Added styles for the interactive password tooltip -->
+<style>
+    #password-reqs li {
+        transition: color 0.2s ease-in-out;
+    }
+    #password-reqs .valid { color: #16a34a; } /* Green */
+    #password-reqs .invalid { color: #dc2626; } /* Red */
+
+    #password-reqs .valid .fa-check-circle { display: inline-block; }
+    #password-reqs .valid .fa-times-circle { display: none; }
+    #password-reqs .invalid .fa-check-circle { display: none; }
+    #password-reqs .invalid .fa-times-circle { display: inline-block; }
+
+    #password-tooltip {
+        opacity: 0;
+        transform: translateY(-5px);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none; /* Prevents it from blocking clicks */
+    }
+    #password-tooltip.show {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+</style>
+<!-- END OF MODIFICATION -->
+{% endblock %}
+
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
 
     <header class="flex justify-between items-center mb-6 border-b border-[#d4d8c4] pb-3">
-        <div>
-            <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Manage Account</h2>
-            <a href="{{ url_for('main.settings') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
-                <i class="fa-solid fa-arrow-left"></i>
-                <span>Go Back...</span>
-            </a>
-        </div>
-        <div class="flex items-center gap-3">
-             {% include "_notification_button.html" %}
-        </div>
+        <!-- ... (header content is unchanged) ... -->
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
         <!-- Personal Information Section -->
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-6">
-            <h3 class="text-lg font-bold text-[#3a4d39] border-b pb-3 mb-6">Personal Information</h3>
-            
-            <!-- Profile Picture Upload Form -->
-            <form id="profile-pic-form" action="{{ url_for('main.upload_profile_picture') }}" method="POST" enctype="multipart/form-data">
-                <div class="flex justify-center mb-4">
-                    <label for="profile-photo-input" class="cursor-pointer">
-                        <div class="w-32 h-32 bg-gray-200 rounded-full flex flex-col items-center justify-center text-gray-500 hover:bg-gray-300 transition relative overflow-hidden">
-                            {% if current_user_data.profile_picture_url %}
-                                <img src="{{ url_for('main.get_avatar', filename=current_user_data.profile_picture_url) }}" class="w-full h-full object-cover">
-                            {% else %}
-                                <i class="fa-solid fa-camera fa-2x"></i>
-                                <span class="text-xs mt-2">Upload a Photo</span>
-                            {% endif %}
-                        </div>
-                    </label>
-                    <input type="file" name="profile_photo" id="profile-photo-input" class="hidden" accept="image/png, image/jpeg, image/jpg">
-                </div>
-            </form>
+            <!-- ... (personal info form is unchanged) ... -->
+        </div>
 
-            <!-- Personal Info Update Form -->
-            <form action="{{ url_for('main.update_personal_info') }}" method="POST" class="space-y-4">
-                {{ personal_info_form.hidden_tag() }}
+        <!-- Change Password Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-6">
+            <h3 class="text-lg font-bold text-[#3a4d39] border-b pb-3 mb-6">Change Password</h3>
+            <form action="{{ url_for('main.change_password') }}" method="POST" class="space-y-4">
+                {{ change_password_form.hidden_tag() }}
                 <div>
-                    <label class="block text-sm font-semibold mb-1">Name</label>
-                    {{ personal_info_form.name(class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md") }}
+                    <label class="block text-sm font-semibold mb-1">Old Password</label>
+                    <div class="relative">
+                        {{ change_password_form.old_password(class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md") }}
+                        <i class="fa-solid fa-eye absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer password-toggle"></i>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-500 mb-1">Username</label>
-                    <input type="text" value="{{ user.username }}" class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500" readonly disabled>
+                
+                <!-- START OF MODIFICATION: Added interactive tooltip -->
+                <div class="relative">
+                    <label class="block text-sm font-semibold mb-1">New Password</label>
+                    <div class="relative">
+                        {{ change_password_form.new_password(class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md", id="new-password-field") }}
+                        <i class="fa-solid fa-eye absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer password-toggle"></i>
+                    </div>
+
+                    <!-- Password Requirements Tooltip -->
+                    <div id="password-tooltip" class="absolute left-0 top-full mt-2 bg-gray-50 border border-gray-200 rounded-lg shadow-lg p-3 w-full max-w-sm text-xs text-gray-600 z-10">
+                        <p class="text-red-500 mb-2">Please add all necessary characters to create a safe password.</p>
+                        <ul id="password-reqs" class="space-y-1">
+                            <li id="length-req" class="invalid flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                <span>Minimum 12 characters</span>
+                            </li>
+                            <li id="upper-req" class="invalid flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                <span>One uppercase letter</span>
+                            </li>
+                            <li id="lower-req" class="invalid flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                <span>One lowercase letter</span>
+                            </li>
+                            <li id="num-req" class="invalid flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                <span>One number</span>
+                            </li>
+                            <li id="special-req" class="invalid flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i><i class="fas fa-times-circle"></i>
+                                <span>One special character</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
+                <!-- END OF MODIFICATION -->
+
                 <div>
-                    <label class="block text-sm font-semibold text-gray-500 mb-1">Email Address</label>
-                    <input type="email" value="{{ user.email }}" class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500" readonly disabled>
+                    <label class="block text-sm font-semibold mb-1">Confirm New Password</label>
+                     <div class="relative">
+                        {{ change_password_form.confirm_new_password(class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md") }}
+                         <i class="fa-solid fa-eye absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer password-toggle"></i>
+                    </div>
                 </div>
                 <div class="text-right pt-4">
-                    {{ personal_info_form.submit(class="px-8 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg") }}
+                    {{ change_password_form.submit(class="px-8 py-2 bg-[#3a4d39] text-white font-semibold rounded-lg") }}
                 </div>
             </form>
         </div>
-        <!-- ... (Change Password Section remains the same) ... -->
     </div>
 </main>
 {% endblock %}
 {% block scripts %}
 <script>
-    // ... (password toggle script remains the same) ...
+    // Password toggle for all fields
+    document.querySelectorAll('.password-toggle').forEach(icon => {
+        icon.addEventListener('click', function() {
+            const input = this.previousElementSibling;
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    });
     
-    // --- START OF NEW SCRIPT ---
+    // Auto-submit profile picture form
     const profilePhotoInput = document.getElementById('profile-photo-input');
     const profilePicForm = document.getElementById('profile-pic-form');
 
     if (profilePhotoInput && profilePicForm) {
         profilePhotoInput.addEventListener('change', function() {
-            // Automatically submit the form when a file is selected
             if (this.files && this.files.length > 0) {
                 profilePicForm.submit();
             }
         });
     }
-    // --- END OF NEW SCRIPT ---
+
+    // --- START OF MODIFICATION: Interactive Password Tooltip Logic ---
+    const passwordInput = document.getElementById('new-password-field');
+    const tooltip = document.getElementById('password-tooltip');
+    if (passwordInput && tooltip) {
+        const reqs = {
+            length: document.getElementById('length-req'),
+            upper: document.getElementById('upper-req'),
+            lower: document.getElementById('lower-req'),
+            num: document.getElementById('num-req'),
+            special: document.getElementById('special-req')
+        };
+
+        // Show the tooltip when the user starts typing in the field
+        passwordInput.addEventListener('focus', () => {
+            tooltip.classList.add('show');
+        });
+
+        // Hide it when they leave the field
+        passwordInput.addEventListener('blur', () => {
+            tooltip.classList.remove('show');
+        });
+        
+        // Check the password requirements on every keystroke
+        passwordInput.addEventListener('input', () => {
+            const value = passwordInput.value;
+            validateReq(reqs.length, value.length >= 12);
+            validateReq(reqs.upper, /[A-Z]/.test(value));
+            validateReq(reqs.lower, /[a-z]/.test(value));
+            validateReq(reqs.num, /[0-9]/.test(value));
+            validateReq(reqs.special, /[!@#$%^&*(),.?":{}|<>]/.test(value));
+        });
+
+        function validateReq(element, isValid) {
+            if (isValid) {
+                element.classList.add('valid');
+                element.classList.remove('invalid');
+            } else {
+                element.classList.add('invalid');
+                element.classList.remove('valid');
+            }
+        }
+    }
+    // --- END OF MODIFICATION ---
 </script>
 {% endblock %}

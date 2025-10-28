@@ -47,9 +47,7 @@
                              <div class="flex justify-between items-start gap-4">
                                 <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3 min-w-0">
                                     <i class="fa-solid fa-folder-open text-gray-400 fa-lg flex-shrink-0"></i>
-                                    <!-- START OF MODIFICATION: Added 'break-words' -->
-                                    <span class="font-semibold text-gray-800 transaction-name-display break-words">{{ t.name }}</span>
-                                    <!-- END OF MODIFICATION -->
+                                    <span class="font-semibold text-gray-800 transaction-name-display break-words selectable-text">{{ t.name }}</span>
                                 </a>
                                 <div class="flex gap-4 text-gray-500 text-base flex-shrink-0">
                                     <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
@@ -57,20 +55,18 @@
                                 </div>
                             </div>
                             <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="block mt-3 space-y-1">
-                                <p><strong class="text-gray-500">Date:</strong> {{ t.check_date }}</p>
-                                <p><strong class="text-gray-500">Editor:</strong> {{ t.editor }}</p>
+                                <p><strong class="text-gray-500">Date:</strong> <span class="selectable-text">{{ t.check_date }}</span></p>
+                                <p><strong class="text-gray-500">Editor:</strong> <span class="selectable-text">{{ t.editor }}</span></p>
                             </a>
                         </div>
 
                         <!-- Desktop View -->
                         <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-4 items-center gap-3 min-w-0">
                             <i class="fa-solid fa-folder-open text-gray-400 fa-lg"></i>
-                            <!-- START OF MODIFICATION: Added 'truncate' -->
-                            <span class="font-semibold text-gray-800 transaction-name-display truncate">{{ t.name }}</span>
-                            <!-- END OF MODIFICATION -->
+                            <span class="font-semibold text-gray-800 transaction-name-display truncate selectable-text">{{ t.name }}</span>
                         </a>
-                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700">{{ t.check_date }}</a>
-                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700">{{ t.editor }}</a> 
+                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 selectable-text">{{ t.check_date }}</a>
+                        <a href="{{ url_for('main.paid_transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 selectable-text">{{ t.editor }}</a> 
                         <div class="hidden md:flex col-span-2 justify-end gap-5 text-gray-500">
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                             <button title="Download" class="download-btn hover:text-blue-600 transition-colors" data-id="{{ t._id }}"><i class="fa-solid fa-download"></i></button>
@@ -92,7 +88,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- START OF MODIFICATION: Functional Search with Highlighting ---
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-item');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -128,9 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
         });
     }
-    // --- END OF MODIFICATION ---
 
-    // Download Logic (remains the same)
     document.querySelectorAll('.download-btn').forEach(button => {
         button.addEventListener('click', function() {
             const transactionId = this.dataset.id;
