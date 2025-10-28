@@ -8,6 +8,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 import pytz
+import time # Added for new upload route
 
 from . import main
 from ..models import (
@@ -16,11 +17,13 @@ from ..models import (
     save_push_subscription, get_unread_notification_count, 
     get_notifications, mark_single_notification_as_read, 
     get_schedules, get_user_by_username, update_personal_info, 
-    check_password, update_user_password
+    check_password, update_user_password, update_profile_picture # Added update_profile_picture
 )
 from ..forms import UpdatePersonalInfoForm, ChangePasswordForm
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# Note: ALLOWED_EXTENSIONS and allowed_file are not used in the new upload logic,
+# but kept here for potential future use or if they are referenced elsewhere.
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} 
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -155,23 +158,14 @@ def update_personal_info_route():
         if user and user.get('name') != form.name.data:
             log_user_activity(username, 'Updated personal name')
             activity_logged = True
-
-    if 'profile_photo' in request.files:
-        file = request.files['profile_photo']
-        if file and file.filename != '' and allowed_file(file.filename):
-            filename = secure_filename(f"{username}_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
-            filepath = os.path.join(current_app.config['PROFILE_PIC_FOLDER'], filename)
-            file.save(filepath)
-            update_data['profile_picture_url'] = filename
             
-            log_user_activity(username, 'Updated profile photo')
-            activity_logged = True
+        # NOTE: Removed old profile_photo logic here since a dedicated route is now used.
 
     if update_personal_info(username, update_data):
         if activity_logged:
             flash('Your information has been updated successfully!', 'success')
         else:
-            # If nothing was changed but the user hit save, a simple confirmation is better
+            # If only the name was submitted but unchanged, or only the form submitted without file
             flash('No changes were made to your information.', 'info')
     else:
         # Fallback error flash if model update failed or form validation failed
@@ -215,11 +209,51 @@ def archive():
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
-@main.route('/uploads/profile_pics/<path:filename>')
+# --- START OF NEW PROFILE PICTURE ROUTES ---
+
+@main.route('/upload-profile-picture', methods=['POST'])
 @jwt_required()
-def serve_profile_picture(filename):
-    """Provides a secure endpoint to access uploaded profile pictures."""
-    return send_from_directory(current_app.config['PROFILE_PIC_FOLDER'], filename)
+def upload_profile_picture():
+    username = get_jwt_identity()
+    
+    if 'profile_photo' not in request.files:
+        flash('No file part in the request.', 'error')
+        return redirect(url_for('main.manage_account'))
+
+    file = request.files['profile_photo']
+    if file.filename == '':
+        flash('No file selected.', 'error')
+        return redirect(url_for('main.manage_account'))
+
+    if file and allowed_file(file.filename): # Reusing the simple allowed_file check
+        # Create a secure, unique filename (e.g., username_timestamp.ext)
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        unique_filename = secure_filename(f"{username}_{int(time.time())}{file_extension}")
+        save_path = os.path.join(current_app.config['AVATARS_FOLDER'], unique_filename)
+        
+        # Save the new file
+        file.save(save_path)
+
+        # Update the user's document in the database
+        if update_profile_picture(username, unique_filename):
+            log_user_activity(username, 'Updated profile photo')
+            flash('Profile picture updated successfully!', 'success')
+        else:
+            flash('Failed to update profile picture in database.', 'error')
+    else:
+        flash('File type not allowed.', 'error')
+
+
+    return redirect(url_for('main.manage_account'))
+
+@main.route('/avatars/<path:filename>')
+def get_avatar(filename):
+    """Securely serves an uploaded avatar file from the new AVATARS_FOLDER."""
+    # Note: Removed @jwt_required() to allow images to load directly in HTML tags
+    # after the initial page load (which is protected by JWT).
+    return send_from_directory(current_app.config['AVATARS_FOLDER'], filename)
+
+# Removed the old @main.route('/uploads/profile_pics/<path:filename>') serve_profile_picture
 
 # --- Core API Routes ---
 @main.route('/api/activity/recent', methods=['GET'])

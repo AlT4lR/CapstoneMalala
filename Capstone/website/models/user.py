@@ -1,3 +1,5 @@
+# website/models/user.py
+
 import bcrypt
 import logging
 from datetime import datetime, timedelta
@@ -39,10 +41,10 @@ def add_user(username, email, password, name):
             'name': name.strip(),
             'email': email.strip().lower(),
             'passwordHash': hashed_password,
-            'profile_picture_url': None,  # Added support for profile picture storage
             'isActive': False,
             'otpSecret': otp_secret,
             'createdAt': datetime.now(pytz.utc),
+            'profile_picture_url': None, # <-- NEW FIELD ADDED
             'failedLoginAttempts': 0,
             'lockoutUntil': None,
             'lastLogin': None,
@@ -143,7 +145,6 @@ def get_user_push_subscriptions(username):
 def update_personal_info(username, new_data):
     """
     Updates the user's name and/or profile picture URL.
-    This includes the necessary logic to handle the `profile_picture_url` field.
     """
     db = current_app.db
     if db is None: return False
@@ -161,6 +162,7 @@ def update_personal_info(username, new_data):
         if not update_doc['$set']:
             return True # Nothing to update
 
+        # Use lowercased username for consistency
         result = db.users.update_one({'username': username.lower()}, update_doc)
         
         # Return True if a document was matched, even if no fields were technically changed.
@@ -169,3 +171,19 @@ def update_personal_info(username, new_data):
     except Exception as e:
         logger.error(f"Error updating personal info for {username}: {e}", exc_info=True)
         return False
+
+# --- START OF NEW FUNCTION ---
+def update_profile_picture(username, filename):
+    """Updates the user's profile picture filename in the database."""
+    db = current_app.db
+    if db is None: return False
+    try:
+        result = db.users.update_one(
+            {'username': username.lower()},
+            {'$set': {'profile_picture_url': filename}}
+        )
+        return result.matched_count > 0
+    except Exception as e:
+        logger.error(f"Error updating profile picture for {username}: {e}", exc_info=True)
+        return False
+# --- END OF NEW FUNCTION ---
