@@ -8,21 +8,21 @@ import os
 import uuid
 from datetime import datetime, timedelta
 import pytz
-import time # Added for new upload route
+import time # Used for unique profile picture filenames
 
-from . import main
+from . import main # Import the blueprint
 from ..models import (
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
     get_notifications, mark_single_notification_as_read, 
-    get_schedules, get_user_by_username, update_personal_info, 
-    check_password, update_user_password, update_profile_picture # Added update_profile_picture
+    get_schedules, get_user_by_username, 
+    update_personal_info, # Using the original model function name
+    check_password, update_user_password, update_profile_picture 
 )
 from ..forms import UpdatePersonalInfoForm, ChangePasswordForm
 
-# Note: ALLOWED_EXTENSIONS and allowed_file are not used in the new upload logic,
-# but kept here for potential future use or if they are referenced elsewhere.
+# Note: ALLOWED_EXTENSIONS and allowed_file are now used for profile photo validation.
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'} 
 
 def allowed_file(filename):
@@ -130,7 +130,8 @@ def manage_account():
     user = get_user_by_username(username)
     if not user:
         flash('User not found.', 'error')
-        return redirect(url_for('main.settings'))
+        # Redirect to settings since manage_account is accessed from there
+        return redirect(url_for('main.settings')) 
 
     personal_info_form = UpdatePersonalInfoForm(obj=user)
     change_password_form = ChangePasswordForm()
@@ -145,7 +146,8 @@ def manage_account():
 
 @main.route('/update-personal-info', methods=['POST'])
 @jwt_required()
-def update_personal_info_route():
+# Function name is 'update_personal_info' (Resolved BuildError)
+def update_personal_info(): 
     username = get_jwt_identity()
     form = UpdatePersonalInfoForm()
     update_data = {}
@@ -153,33 +155,35 @@ def update_personal_info_route():
 
     if form.validate_on_submit():
         update_data['name'] = form.name.data
+        
         # Log name change if it's different from the current name
         user = get_user_by_username(username)
         if user and user.get('name') != form.name.data:
             log_user_activity(username, 'Updated personal name')
             activity_logged = True
-            
-        # NOTE: Removed old profile_photo logic here since a dedicated route is now used.
 
-    if update_personal_info(username, update_data):
-        if activity_logged:
-            flash('Your information has been updated successfully!', 'success')
+        # Using the imported update_personal_info model function
+        if update_personal_info(username, update_data):
+            if activity_logged:
+                flash('Your information has been updated successfully!', 'success')
+            else:
+                flash('No changes were made to your information.', 'info')
         else:
-            # If only the name was submitted but unchanged, or only the form submitted without file
-            flash('No changes were made to your information.', 'info')
+            flash('An error occurred while updating your information.', 'error')
     else:
-        # Fallback error flash if model update failed or form validation failed
+        # Flash the first validation error found
         if form.errors:
             first_error_field = next(iter(form.errors))
             flash(form.errors[first_error_field][0], 'error')
         else:
-            flash('An error occurred while updating your information.', 'error')
-        
+            flash('Invalid data submitted.', 'error')
+            
     return redirect(url_for('main.manage_account'))
 
 @main.route('/change-password', methods=['POST'])
 @jwt_required()
-def change_password_route():
+# Function name is 'change_password' (Resolved BuildError)
+def change_password():
     username = get_jwt_identity()
     user = get_user_by_username(username)
     form = ChangePasswordForm()
@@ -209,7 +213,7 @@ def archive():
     back_url = request.args.get('back') or url_for('main.dashboard')
     return render_template('_archive.html', show_sidebar=True, archived_items=archived_items, back_url=back_url)
 
-# --- START OF NEW PROFILE PICTURE ROUTES ---
+# --- Profile Picture Routes (New Dedicated Logic) ---
 
 @main.route('/upload-profile-picture', methods=['POST'])
 @jwt_required()
@@ -225,7 +229,7 @@ def upload_profile_picture():
         flash('No file selected.', 'error')
         return redirect(url_for('main.manage_account'))
 
-    if file and allowed_file(file.filename): # Reusing the simple allowed_file check
+    if file and allowed_file(file.filename): 
         # Create a secure, unique filename (e.g., username_timestamp.ext)
         file_extension = os.path.splitext(file.filename)[1].lower()
         unique_filename = secure_filename(f"{username}_{int(time.time())}{file_extension}")
@@ -239,21 +243,21 @@ def upload_profile_picture():
             log_user_activity(username, 'Updated profile photo')
             flash('Profile picture updated successfully!', 'success')
         else:
+            # Delete file if database update fails
+            os.remove(save_path)
             flash('Failed to update profile picture in database.', 'error')
     else:
-        flash('File type not allowed.', 'error')
+        flash('File type not allowed. Must be a PNG, JPG, JPEG, or GIF.', 'error')
 
 
     return redirect(url_for('main.manage_account'))
 
 @main.route('/avatars/<path:filename>')
 def get_avatar(filename):
-    """Securely serves an uploaded avatar file from the new AVATARS_FOLDER."""
-    # Note: Removed @jwt_required() to allow images to load directly in HTML tags
-    # after the initial page load (which is protected by JWT).
+    """Securely serves an uploaded avatar file from the AVATARS_FOLDER."""
+    # Note: Removed @jwt_required() to allow images to load directly in HTML tags 
+    # (e.g., <img src="...">) after the initial protected page load.
     return send_from_directory(current_app.config['AVATARS_FOLDER'], filename)
-
-# Removed the old @main.route('/uploads/profile_pics/<path:filename>') serve_profile_picture
 
 # --- Core API Routes ---
 @main.route('/api/activity/recent', methods=['GET'])
