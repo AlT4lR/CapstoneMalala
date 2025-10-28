@@ -1,6 +1,12 @@
-<!-- website/templates/_sidebar.html (Corrected Hover-to-Expand Version) -->
+<!-- website/templates/_sidebar.html -->
+<!-- --- START OF MODIFICATION: Added smooth hover animations --- -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
 
+<!-- 
+    CHANGES MADE:
+    1. Added `overflow-y-auto` to allow vertical scrolling when content exceeds screen height.
+    2. Added `custom-scrollbar` to apply consistent styling to the new scrollbar.
+-->
 <aside id="sidebar" class="bg-[#3a4d39] text-white p-4 flex flex-col shrink-0 
            transition-all duration-300 ease-in-out
            fixed lg:relative inset-y-0 left-0 z-40
@@ -12,6 +18,11 @@
     <div class="flex items-center justify-between lg:justify-start gap-4 h-16 shrink-0 px-2 mb-8">
         <div class="flex items-center gap-4">
             <i class="fa-solid fa-table-cells-large fa-lg w-12 text-center"></i>
+            <!-- 
+                CHANGES MADE:
+                1. Added `duration-300` to match the parent's transition speed.
+                2. Added `whitespace-nowrap` to prevent the text from wrapping to a new line during the animation.
+            -->
             <span class="text-xl font-bold opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">DecoOffice</span>
         </div>
         <button id="sidebar-close-btn" class="lg:hidden text-2xl">&times;</button>
@@ -31,11 +42,7 @@
         {% for route, icon, name in nav_items %}
         <a href="{{ url_for(route) }}" 
            class="flex items-center gap-4 w-full h-12 px-4 rounded-lg transition-colors
-           {% if request.path.startswith(url_for(route)) or (request.path == '/' and route == 'main.dashboard') %}
-               bg-white text-[#3a4d39] font-semibold
-           {% else %}
-               text-gray-300 hover:bg-[#4b5e4a] hover:text-white
-           {% endif %}">
+           {% if request.path.startswith(url_for(route)) %}bg-white text-[#3a4d39] font-semibold{% else %}hover:bg-[#4b5e4a]{% endif %}">
             <i class="w-6 text-center fa-solid {{ icon }} fa-lg"></i>
             <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">{{ name }}</span>
         </a>
@@ -44,13 +51,8 @@
     
     <!-- User Profile -->
     <div class="mt-auto shrink-0 flex items-center gap-4 w-full h-12 px-3">
-        <div class="w-10 h-10 bg-white rounded-full flex-shrink-0 overflow-hidden">
-            {% if current_user_data and current_user_data.profile_picture_url %}
-                <img src="{{ url_for('main.get_avatar', filename=current_user_data.profile_picture_url) }}" alt="Profile Picture" class="w-full h-full object-cover">
-            {% endif %}
-        </div>
-        <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap font-semibold">
-            {{ current_user_data.name.split(' ')[0] | capitalize if current_user_data and current_user_data.name else 'Admin' }}
-        </span>
+        <div class="w-10 h-10 bg-white rounded-full"></div>
+        <span class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Admin</span>
     </div>
 </aside>
+<!-- --- END OF MODIFICATION --- -->

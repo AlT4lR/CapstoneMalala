@@ -12,38 +12,21 @@ from wtforms.validators import (
 from flask import current_app
 import re
 
-# --- Custom Password Validator ---
-def password_complexity(form, field):
-    password = field.data
-    errors = []
-    if len(password) < 12:
-        errors.append("Minimum 12 characters")
-    if not re.search(r'[A-Z]', password):
-        errors.append("One upper character")
-    if not re.search(r'[a-z]', password):
-        errors.append("One lowercase character")
-    if not re.search(r'[0-9]', password):
-        errors.append("One number")
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        errors.append("One special character")
-    if errors:
-        # We only show one validation error at a time in the template for simplicity
-        raise ValidationError(f"Password requires: {errors[0]}.")
-
 
 # -------------------------
 # AUTHENTICATION FORMS
 # -------------------------
 
 class LoginForm(FlaskForm):
+    """Form for user login."""
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
 
 class RegistrationForm(FlaskForm):
+    """Form for user registration."""
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
@@ -59,36 +42,21 @@ class RegistrationForm(FlaskForm):
 
 
 class OTPForm(FlaskForm):
+    """Form for OTP and 2FA verification."""
     submit = SubmitField('Verify')
 
 
 class ForgotPasswordForm(FlaskForm):
+    """Form for requesting a password reset link."""
     email = StringField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Send Reset Link')
 
 
 class ResetPasswordForm(FlaskForm):
+    """Form for setting a new password after a reset request."""
     password = PasswordField('New Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Reset Password')
-
-
-# --- ACCOUNT MANAGEMENT FORMS ---
-
-class UpdatePersonalInfoForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired(), Length(max=50)])
-    submit = SubmitField('Save')
-
-
-class ChangePasswordForm(FlaskForm):
-    # --- START OF MODIFICATION ---
-    # The field was incorrectly named 'current_password' in a previous version.
-    # It is now correctly named 'old_password' to match the template.
-    old_password = PasswordField('Old Password', validators=[DataRequired()])
-    # --- END OF MODIFICATION ---
-    new_password = PasswordField('New Password', validators=[DataRequired(), password_complexity])
-    confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
-    submit = SubmitField('Change Password')
 
 
 # -------------------------
