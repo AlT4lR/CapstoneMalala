@@ -45,13 +45,6 @@ def create_app(config_name='dev'):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
-    # --- START OF MODIFICATION ---
-    # Define and create the folder for avatar uploads
-    app.config['AVATARS_FOLDER'] = os.path.join(app.root_path, '..', 'uploads', 'avatars')
-    if not os.path.exists(app.config['AVATARS_FOLDER']):
-        os.makedirs(app.config['AVATARS_FOLDER'])
-    # --- END OF MODIFICATION ---
-    
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
     if not os.path.exists(app.config['PROFILE_PIC_FOLDER']):
@@ -88,7 +81,6 @@ def create_app(config_name='dev'):
     app.save_push_subscription = save_push_subscription
     app.get_user_push_subscriptions = get_user_push_subscriptions
     app.update_personal_info = update_personal_info
-    app.update_profile_picture = update_profile_picture # <-- ADDED LINE
 
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
@@ -101,7 +93,8 @@ def create_app(config_name='dev'):
     app.get_analytics_data = get_analytics_data
     app.get_weekly_billing_summary = get_weekly_billing_summary
 
-    # --- START OF MODIFICATION (Activity Log) ---
+    # --- START OF MODIFICATION ---
+    # Attaching the missing activity log functions
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
     # --- END OF MODIFICATION ---
