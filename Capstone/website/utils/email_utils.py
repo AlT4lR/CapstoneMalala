@@ -18,9 +18,20 @@ def send_email_via_api(recipient_email, subject, html_content):
     sender_email = current_app.config.get('MAIL_DEFAULT_SENDER_EMAIL')
     sender_name = current_app.config.get('MAIL_DEFAULT_SENDER_NAME')
 
+    # --- START OF MODIFICATION: Enhanced Logging ---
+    # This will print the exact values your live server is using.
+    print("--- DIAGNOSTIC: CHECKING EMAIL CONFIG ---")
+    print(f"BREVO_API_KEY being used: {brevo_api_key}")
+    print(f"SENDER_EMAIL being used: {sender_email}")
+    print(f"SENDER_NAME being used: {sender_name}")
+    print("-----------------------------------------")
+
     if not all([brevo_api_key, sender_email, sender_name]):
-        logger.error("Brevo API Key or sender info is not configured. Cannot send email.")
+        logger.error("Brevo API Key or sender info is not configured correctly. Cannot send email.")
+        # Added a print statement here as well for clarity in logs
+        print("ERROR: One or more required email configuration variables are missing.")
         return False
+    # --- END OF MODIFICATION ---
 
     configuration = sib_api_v3_sdk.Configuration()
     configuration.api_key['api-key'] = brevo_api_key
@@ -38,22 +49,22 @@ def send_email_via_api(recipient_email, subject, html_content):
         logger.info(f"Successfully sent email to {recipient_email} via Brevo API. Message ID: {api_response.message_id}")
         return True
     except ApiException as e:
-        # It's important to log the body of the error from Brevo's API for debugging
+        # --- START OF MODIFICATION: Detailed Exception Logging ---
         logger.error(f"Failed to send email to {recipient_email} via Brevo API. Body: {e.body}", exc_info=True)
+        # Added a print statement here to see the specific API error
+        print(f"BREVO API EXCEPTION: {e.body}")
+        # --- END OF MODIFICATION ---
         return False
 
 def send_notification_email(recipient_email, subject, title, message, url):
     """
     Constructs an email from a template and sends it using the Brevo API.
     """
-    # On Render, SERVER_NAME is not set, so we must construct the URL manually
-    # using the environment variable RENDER_EXTERNAL_URL.
     render_url = os.environ.get('RENDER_EXTERNAL_URL', None)
     base_url = render_url or url_for('main.root_route', _external=True)
     full_url = f"{base_url.rstrip('/')}{url}" if url else None
 
     try:
-        # Renders the HTML body of the email from a template
         html_body = render_template(
             'emails/notification_email.html',
             title=title,
@@ -61,7 +72,6 @@ def send_notification_email(recipient_email, subject, title, message, url):
             url=full_url,
             now=datetime.utcnow()
         )
-        # Calls the central API function to send the rendered email
         return send_email_via_api(recipient_email, subject, html_body)
     except Exception as e:
         logger.error(f"Failed to render or send notification email to {recipient_email}: {e}", exc_info=True)
