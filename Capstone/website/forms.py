@@ -15,15 +15,19 @@ import re
 def password_complexity(form, field):
     password = field.data
     errors = []
+    if len(password) < 8:
+        # This check is now part of the complexity validator
+        errors.append("At least 8 characters")
     if not re.search(r'[A-Z]', password):
-        errors.append("One upper character")
+        errors.append("One uppercase letter")
     if not re.search(r'[a-z]', password):
-        errors.append("One lowercase character")
+        errors.append("One lowercase letter")
     if not re.search(r'[0-9]', password):
         errors.append("One number")
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
         errors.append("One special character")
     if errors:
+        # Raise a single error with all requirements
         raise ValidationError(f"Password must contain: {', '.join(errors)}.")
 
 
@@ -39,9 +43,11 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)]) # Added name field
+    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    # --- START OF FIX: Replaced Length(min=8) with the custom complexity validator ---
+    password = PasswordField('Password', validators=[DataRequired(), password_complexity])
+    # --- END OF FIX ---
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Sign Up')
 
@@ -69,8 +75,6 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Reset Password')
 
 
-# --- START OF FIX: Added missing form classes ---
-
 class UpdatePersonalInfoForm(FlaskForm):
     """Form for updating user's personal information."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
@@ -83,8 +87,6 @@ class ChangePasswordForm(FlaskForm):
     confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
     submit = SubmitField('Change Password')
 
-# --- END OF FIX ---
-
 
 # -------------------------
 # BILLINGS / TRANSACTIONS FORMS
@@ -94,8 +96,8 @@ class TransactionForm(FlaskForm):
     """Form for creating transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
-    check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
-    due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
+    check_date = DateField('Date Created', format='%Y-m-%d', validators=[DataRequired()])
+    due_date = DateField('Due Date', format='%Y-m-%d', validators=[Optional()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     submit = SubmitField('Add')
@@ -104,8 +106,8 @@ class TransactionForm(FlaskForm):
 class EditTransactionForm(FlaskForm):
     """Form for editing a transaction."""
     name = StringField('Recipient Name', validators=[DataRequired(), Length(max=100)])
-    check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
-    due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
+    check_date = DateField('Check Date', format='%Y-m-%d', validators=[DataRequired()])
+    due_date = DateField('Due Date', format='%Y-m-%d', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
@@ -121,6 +123,6 @@ class LoanForm(FlaskForm):
     name_of_loan = StringField('Name Of Loans', validators=[DataRequired(), Length(max=100)])
     bank_name = StringField('Bank Name', validators=[DataRequired(), Length(max=100)])
     amount = DecimalField('Amount', validators=[DataRequired()])
-    date_issued = DateField('Date Issued', format='%Y-%m-%d', validators=[DataRequired()])
-    date_paid = DateField('Date Paid', format='%Y-%m-%d', validators=[Optional()])
+    date_issued = DateField('Date Issued', format='%Y-m-%d', validators=[DataRequired()])
+    date_paid = DateField('Date Paid', format='%Y-m-%d', validators=[Optional()])
     submit = SubmitField('Add')

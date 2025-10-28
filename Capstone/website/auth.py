@@ -11,11 +11,7 @@ import io
 import base64
 import logging
 import os
-
-# --- START OF MODIFICATION ---
-# Add the 'quote' function for URL encoding
 from urllib.parse import quote
-# --- END OF MODIFICATION ---
 
 from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
@@ -80,10 +76,7 @@ def send_password_reset_email(recipient_email, token):
 def login():
     form = LoginForm()
 
-    # --- START OF MODIFICATION (Rate Limit Change) ---
-    # The rate limit has been changed from "5 per minute" to "50 per hour".
     @limiter.limit("50 per hour")
-    # --- END OF MODIFICATION ---
     def handle_login_attempt():
         user = current_app.get_user_by_username(form.username.data)
         if user and user.get('lockoutUntil') and user['lockoutUntil'] > datetime.utcnow():
@@ -122,7 +115,15 @@ def login():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user_added_successfully = current_app.add_user(form.username.data, form.email.data, form.password.data)
+        # --- START OF FIX: Added form.name.data to the function call ---
+        user_added_successfully = current_app.add_user(
+            form.username.data, 
+            form.email.data, 
+            form.password.data,
+            form.name.data  # This was the missing argument
+        )
+        # --- END OF FIX ---
+        
         if user_added_successfully:
             otp = current_app.set_user_otp(form.username.data, otp_type='email')
             if otp:
@@ -184,15 +185,9 @@ def setup_2fa():
             flash('Invalid 2FA code.', 'error')
 
     totp = pyotp.TOTP(user['otpSecret'])
-
-    # --- START OF MODIFICATION (URL Encoding) ---
-    # We now manually URL-encode the email and issuer name.
-    # This prevents any special characters from breaking the URI format,
-    # ensuring authenticator apps always recognize it correctly.
     user_email_safe = quote(user['email'])
     issuer_name_safe = quote("DecoOffice")
     uri = totp.provisioning_uri(name=user_email_safe, issuer_name=issuer_name_safe)
-    # --- END OF MODIFICATION ---
     
     img_buf = io.BytesIO()
     qrcode.make(uri, image_factory=qrcode.image.svg.SvgImage).save(img_buf)
