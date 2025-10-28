@@ -1,6 +1,6 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v5'; // Increment version
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v5';
+const STATIC_CACHE_NAME = 'decooffice-static-v6'; // Increment version
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v6';
 
 const urlsToCache = [
     '/',
