@@ -216,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
+            // Assuming you have a custom confirm dialog setup in common.js
             window.showCustomConfirm(`Are you sure you want to archive "${this.dataset.name}"?`, async () => {
                 const transactionId = this.dataset.id;
                 try {
