@@ -6,10 +6,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
-# --- START OF MERGED IMPORTS (Full OCR support) ---
+# --- START OF CONSOLIDATED IMPORTS (Includes Full OCR Support) ---
 import pytesseract
 from PIL import Image
-# --- END OF MERGED IMPORTS ---
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
@@ -18,6 +17,7 @@ from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 import logging
+# --- END OF CONSOLIDATED IMPORTS ---
 
 from . import main # Import the blueprint
 from ..models import (
@@ -30,9 +30,6 @@ logger = logging.getLogger(__name__)
 # --- Tesseract Configuration (Kept for context, but commented out for PATH reliance) ---
 # The hardcoded Windows path for Tesseract has been REMOVED to rely on the 
 # system's PATH environment variable, making it compatible with Linux/Docker.
-# A small warning block is kept for local development clarity if the path is 
-# still desired on the developer's machine, but it is commented out for 
-# production/path-based execution.
 
 # try:
 #     # For Windows development environments, uncomment and modify this line:
@@ -41,7 +38,7 @@ logger = logging.getLogger(__name__)
 # except Exception as e:
 #     logger.warning(f"Could not set the Tesseract path (if applicable). OCR will search system PATH. Error: {e}")
 
-# --- START OF MERGED FUNCTION (Full OCR with robust error handling) ---
+# --- START OF FULL OCR FUNCTION WITH ROBUST ERROR HANDLING ---
 def perform_ocr_on_image(image_path):
     """
     Performs Optical Character Recognition (OCR) on an image file using Tesseract.
@@ -56,14 +53,14 @@ def perform_ocr_on_image(image_path):
         logger.error("TESSERACT NOT FOUND: The Tesseract executable was not found in the system's PATH.")
         return "OCR Error: Tesseract executable not found. Please check the server configuration."
     except RuntimeError as timeout_error:
-        # This catches the timeout error specifically
+        # This catches the timeout error specifically (e.g., Tesseract process hanging)
         logger.error(f"OCR timed out for image {image_path}: {timeout_error}")
         return "OCR failed: Processing timed out. The image may be too complex."
     except Exception as e:
         # This catches all other errors (e.g., bad installation, missing language files)
         logger.error(f"An unexpected OCR error occurred for image {image_path}: {e}")
         return f"OCR failed: An unexpected error occurred. Check server logs for details. (Error: {str(e)[:100]})"
-# --- END OF MERGED FUNCTION ---
+# --- END OF FULL OCR FUNCTION ---
 
 
 @main.route('/invoice')
@@ -100,7 +97,7 @@ def upload_invoice():
     }
     
     processed_files_info = []
-    extracted_text_all = []
+    extracted_text_all = [] # List to hold OCR text from all uploaded files
 
     for file in files:
         if file:
@@ -108,7 +105,7 @@ def upload_invoice():
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # This calls the now fully-functional OCR
+            # Perform OCR on the saved file
             extracted_text = perform_ocr_on_image(filepath)
             
             extracted_text_all.append(extracted_text)
@@ -119,6 +116,7 @@ def upload_invoice():
 
     if add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
         log_user_activity(username, 'Uploaded an invoice')
+        # Original behavior: Redirect on successful upload
         return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
     else:
         # Ensure cleanup of uploaded files if the database operation fails, though not strictly required by the prompt
@@ -160,8 +158,10 @@ def download_invoice_as_pdf(invoice_id):
     
     p.setFont("Helvetica-Bold", 12)
     p.drawString(inch, height - 1.5 * inch, "Extracted Text (OCR)")
+    # Replace newlines with <br/> for ReportLab's Paragraph to handle multiline text
     ocr_text = invoice.get('extracted_text', 'No text was extracted.').replace('\n', '<br/>')
     ocr_paragraph = Paragraph(ocr_text, styles['Normal'])
+    # Calculate wrapped size
     w, h = ocr_paragraph.wrapOn(p, width - 2 * inch, height)
     p.saveState()
     # Adjust position calculation for the paragraph drawing
@@ -172,8 +172,8 @@ def download_invoice_as_pdf(invoice_id):
     y_pos = paragraph_start_y - 0.5 * inch # Start drawing files below the paragraph
 
     if invoice.get('files'):
-        # Check if there is enough room for the file title and margin, otherwise start a new page
-        if y_pos < height - (height - 1.5 * inch): # Simple check to avoid crowding the first page title area
+        # Check if there is enough room for the file title and margin
+        if y_pos < height - (height - 1.5 * inch):
              p.showPage()
              y_pos = height - inch
         
@@ -190,6 +190,7 @@ def download_invoice_as_pdf(invoice_id):
                     
                     max_width = width - 2 * inch
                     if img_width > max_width:
+                        # Scale the image down if it's too wide
                         ratio = max_width / img_width
                         img_width = max_width
                         img_height *= ratio
@@ -199,6 +200,7 @@ def download_invoice_as_pdf(invoice_id):
                         p.showPage()
                         y_pos = height - inch
 
+                    # Draw the image
                     p.drawImage(img_reader, inch, y_pos - img_height, width=img_width, height=img_height)
                     y_pos -= (img_height + 0.5 * inch)
                 except Exception as e:

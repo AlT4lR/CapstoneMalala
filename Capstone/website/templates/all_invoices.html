@@ -25,13 +25,11 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] overflow-hidden">
-        <!-- Header -->
         <div class="hidden md:grid grid-cols-3 p-3 bg-[#3a4d39] text-white font-semibold text-sm">
             <div class="col-span-1">File Name</div>
             <div class="col-span-1">Dates</div>
             <div class="col-span-1">Categories</div>
         </div>
-        <!-- Body -->
         <div id="invoice-table-body" class="flex flex-col">
             {% for invoice in invoices %}
             <div class="w-full border-t border-gray-200 hover:bg-gray-50 invoice-row cursor-pointer" 
@@ -70,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const invoiceRows = tableBody.querySelectorAll('.invoice-row');
     const noResultsRow = document.getElementById('no-results-row');
 
+    // --- Search Logic (Unchanged) ---
     if (searchInput && invoiceRows.length > 0) {
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
@@ -87,12 +86,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- START OF MODIFIED Modal Logic (Full Feature Set) ---
     const modal = document.getElementById('invoice-details-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const modalTitle = document.getElementById('modal-invoice-title');
     const modalImage = document.getElementById('modal-invoice-image');
-    const imagePlaceholder = document.getElementById('modal-image-placeholder');
-    const modalOcrText = document.getElementById('modal-ocr-text');
+    // Note: The original code's imagePlaceholder is not strictly needed if the image element is managed correctly.
+    // However, the new logic uses dedicated detail fields which are incorporated here.
+    
+    // Detail fields from the incoming modification
+    const detailFolderName = document.getElementById('detail-folder-name');
+    const detailCategory = document.getElementById('detail-category');
+    const detailDate = document.getElementById('detail-date');
+    const thumbnailContainer = document.getElementById('thumbnail-container');
+    // OCR Text field from previous version (assuming it still exists in the modal HTML)
+    const modalOcrText = document.getElementById('modal-ocr-text'); 
+
     const modalDownloadBtn = document.getElementById('modal-download-btn');
     const modalDeleteBtn = document.getElementById('modal-delete-btn');
 
@@ -108,19 +117,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) throw new Error('Failed to fetch invoice details.');
                 const data = await response.json();
                 
+                // Populate main details
                 modalTitle.textContent = data.folder_name || 'Invoice Details';
                 
+                // Populate detail fields
+                if (detailFolderName) detailFolderName.textContent = data.folder_name || 'N/A';
+                if (detailCategory) detailCategory.textContent = data.category || 'N/A';
+                // Format the date for display
+                if (detailDate) {
+                    detailDate.textContent = data.date 
+                        ? new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) 
+                        : 'N/A';
+                }
+
+                // Populate OCR Text (from the previous version)
+                if (modalOcrText) modalOcrText.textContent = data.extracted_text || 'No text could be extracted from this image.';
+
+
+                // Clear previous thumbnails
+                if (thumbnailContainer) thumbnailContainer.innerHTML = '';
+                
+                // Populate thumbnails and set initial image
                 if (data.files && data.files.length > 0) {
                      modalImage.src = `/invoices/uploads/${data.files[0].filename}`;
                      modalImage.classList.remove('hidden');
-                     imagePlaceholder.classList.add('hidden');
+                     // Assuming imagePlaceholder is not used with this new logic
+                     // if (imagePlaceholder) imagePlaceholder.classList.add('hidden');
+                     
+                     data.files.forEach((file, index) => {
+                         const thumb = document.createElement('img');
+                         thumb.src = `/invoices/uploads/${file.filename}`;
+                         thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39]';
+                         if (index === 0) {
+                             thumb.classList.add('border-[#3a4d39]'); // Highlight first one
+                         }
+                         thumb.addEventListener('click', () => {
+                             modalImage.src = thumb.src;
+                             // Highlight the clicked thumbnail
+                             thumbnailContainer.querySelectorAll('img').forEach(t => t.classList.remove('border-[#3a4d39]'));
+                             thumb.classList.add('border-[#3a4d39]');
+                         });
+                         if (thumbnailContainer) thumbnailContainer.appendChild(thumb);
+                     });
                 } else {
-                     modalImage.src = '';
+                     modalImage.src = ''; // Or a placeholder image
                      modalImage.classList.add('hidden');
-                     imagePlaceholder.classList.remove('hidden');
+                     // if (imagePlaceholder) imagePlaceholder.classList.remove('hidden');
                 }
                 
-                modalOcrText.textContent = data.extracted_text || 'No text could be extracted from this image.';
                 modalDownloadBtn.href = `/api/invoices/${invoiceId}/download`;
                 modalDeleteBtn.dataset.id = data._id;
                 modalDeleteBtn.dataset.name = data.folder_name || 'this invoice';
@@ -163,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    // --- END OF MODIFIED Modal Logic ---
 });
 </script>
 {% endblock %}

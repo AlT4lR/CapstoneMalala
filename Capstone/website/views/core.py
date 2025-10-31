@@ -1,6 +1,6 @@
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    send_from_directory, jsonify, flash, current_app
+    send_from_directory, jsonify, flash, current_app, abort
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from werkzeug.utils import secure_filename
@@ -11,12 +11,14 @@ import pytz
 
 from . import main
 from ..models import (
+    # ... (other model imports)
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
     get_notifications, mark_single_notification_as_read, 
     get_schedules, get_user_by_username, update_personal_info, 
-    check_password, update_user_password
+    check_password, update_user_password,
+    get_transaction_by_id, get_invoice_by_id # IMPORTANT: These imports must be present
 )
 from ..forms import UpdatePersonalInfoForm, ChangePasswordForm
 
@@ -287,3 +289,25 @@ def delete_item_permanently_route(item_type, item_id):
         log_user_activity(username, f'Permanently deleted a {item_type.lower()}')
         return jsonify({'success': True}), 200
     return jsonify({'error': 'An unexpected error occurred.'}), 500
+
+# --- START OF MODIFICATION: New API endpoints for viewing ARCHIVED item details ---
+@main.route('/api/archive/details/transaction/<item_id>', methods=['GET'])
+@jwt_required()
+def get_archived_transaction_details(item_id):
+    username = get_jwt_identity()
+    # We can reuse the existing get_transaction_by_id as it doesn't filter by `isArchived`
+    transaction_data = get_transaction_by_id(username, item_id)
+    if transaction_data:
+        return jsonify(transaction_data)
+    return jsonify({'error': 'Archived transaction not found'}), 404
+
+@main.route('/api/archive/details/invoice/<item_id>', methods=['GET'])
+@jwt_required()
+def get_archived_invoice_details(item_id):
+    username = get_jwt_identity()
+    # We can reuse the existing get_invoice_by_id
+    invoice_data = get_invoice_by_id(username, item_id)
+    if invoice_data:
+        return jsonify(invoice_data)
+    return jsonify({'error': 'Archived invoice not found'}), 404
+# --- END OF MODIFICATION ---

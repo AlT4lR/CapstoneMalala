@@ -14,24 +14,37 @@
             </button>
         </header>
 
+        <!-- --- START OF MODIFICATION: Redesigned main content area --- -->
         <main class="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden bg-white">
             
             <!-- Image Container -->
-            <div id="modal-image-container" class="w-full md:w-2/3 h-1/2 md:h-full flex items-center justify-center p-4 relative bg-[#f6f7f1]">
-                 <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain hidden">
-                 <p id="modal-image-placeholder" class="text-gray-500 hidden">No Image Available</p>
-                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-[#3a4d39] rounded-md text-white shadow-lg">
-                    <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-l-md">+</button>
-                    <button class="px-3 py-1 text-lg hover:bg-opacity-80 rounded-r-md border-l border-white/20">-</button>
-                </div>
+            <div id="modal-image-container" class="w-full md:w-2/3 lg:w-3/4 h-1/2 md:h-full flex items-center justify-center p-4 bg-[#f6f7f1]">
+                 <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain">
             </div>
 
-            <!-- Extracted Text Container -->
-            <div class="w-full md:w-1/3 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-gray-50">
-                <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-100 flex-shrink-0">Extracted Text (OCR)</h3>
-                <pre id="modal-ocr-text" class="flex-1 p-3 overflow-y-auto text-xs text-gray-700 whitespace-pre-wrap font-sans selectable-text"></pre>
-            </div>
+            <!-- Details & Thumbnails Sidebar -->
+            <aside class="w-full md:w-1/3 lg:w-1/4 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-gray-50">
+                <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-100 flex-shrink-0">Details</h3>
+                <div class="p-3 space-y-2 text-sm border-b">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Name:</span>
+                        <span id="detail-folder-name" class="font-semibold text-right"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Category:</span>
+                        <span id="detail-category" class="font-semibold text-right"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Date:</span>
+                        <span id="detail-date" class="font-semibold text-right"></span>
+                    </div>
+                </div>
+                <div id="thumbnail-container" class="flex-1 p-3 overflow-y-auto space-y-2">
+                    <!-- Thumbnails will be injected here by JS -->
+                </div>
+            </aside>
         </main>
+        <!-- --- END OF MODIFICATION --- -->
 
         <footer class="p-3 flex justify-end gap-3 flex-shrink-0 bg-[#eef2e9] border-t">
             <button id="modal-edit-btn" class="px-6 py-2 bg-white border border-gray-400 text-[#3a4d39] font-semibold rounded-lg shadow-sm hover:bg-gray-100">Edit</button>
