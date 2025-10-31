@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Branch - DecoOffice</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <link rel="icon" href="{{ url_for('static', filename='imgs/icons/logo.ico') }}" type="image/x-icon">
     <script>
-        // Custom Tailwind CSS configuration to match the login screen design
         tailwind.config = {
             theme: {
                 extend: {
@@ -29,7 +25,9 @@
         }
     </script>
 </head>
-<body class="bg-brand-dark font-poppins text-white antialiased">
+<!-- --- START OF MODIFICATION: Changed background color --- -->
+<body class="bg-brand-green font-poppins text-white antialiased">
+<!-- --- END OF MODIFICATION --- -->
     <div class="relative min-h-screen flex flex-col items-center justify-center p-6">
 
         <header class="absolute top-0 right-0 p-6">
@@ -40,14 +38,12 @@
         </header>
 
         <main class="text-center">
-            <!-- --- START OF MODIFICATION: Responsive text and layout --- -->
             <div class="mb-12">
                 <h1 class="text-3xl sm:text-4xl font-bold text-brand-cream mb-2">DecoOffice</h1>
                 <p class="text-base sm:text-lg text-gray-300">Please select your assigned branch to continue.</p>
             </div>
 
             <div class="flex flex-col md:flex-row justify-center items-center gap-8 sm:gap-10">
-                <!-- Montalban Branch Card -->
                 <a href="{{ url_for('main.select_branch', branch_name='MONTALBAN') }}" 
                    class="group w-full max-w-xs sm:w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
                           transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
@@ -55,7 +51,6 @@
                     <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Montalban</span>
                 </a>
                 
-                <!-- Laguna Branch Card -->
                 <a href="{{ url_for('main.select_branch', branch_name='LAGUNA') }}" 
                    class="group w-full max-w-xs sm:w-72 h-80 bg-white rounded-2xl shadow-lg border border-gray-400 flex flex-col items-center justify-center
                           transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-brand-green">
@@ -63,7 +58,6 @@
                     <span class="text-2xl font-bold text-brand-dark uppercase tracking-wider">Laguna</span>
                 </a>
             </div>
-            <!-- --- END OF MODIFICATION --- -->
         </main>
     </div>
 </body>

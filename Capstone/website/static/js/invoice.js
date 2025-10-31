@@ -3,19 +3,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
     const fileList = document.getElementById("file-list");
-    // --- START OF MODIFICATION ---
-    const MAX_FILES = 10; // Define the upload limit
+    const MAX_FILES = 10;
     const invoiceForm = document.getElementById('invoice-form');
     const uploadBtn = document.getElementById('upload-btn');
     let filesToUpload = [];
-    // --- END OF MODIFICATION ---
 
     if (!dropZone || !fileInput || !fileList) {
         console.error("Uploader elements not found.");
         return;
     }
 
-    // --- Event Listeners ---
     dropZone.addEventListener("click", () => fileInput.click());
     dropZone.addEventListener("dragover", e => {
         e.preventDefault();
@@ -31,29 +28,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     fileInput.addEventListener("change", e => handleFiles(e.target.files));
 
-
-    // --- Core Functions ---
     const handleFiles = (files) => {
-        // --- START OF MODIFICATION: File limit logic ---
         const existingFilesCount = filesToUpload.length;
         const allowedNewFilesCount = MAX_FILES - existingFilesCount;
 
         if (files.length > allowedNewFilesCount) {
             alert(`You can only upload a maximum of ${MAX_FILES} files in total. Please select ${allowedNewFilesCount > 0 ? `up to ${allowedNewFilesCount} more files.` : 'no more files.'}`);
-            if (allowedNewFilesCount <= 0) return; // Stop if the list is already full
+            if (allowedNewFilesCount <= 0) return;
         }
         
-        // Take only the number of files that are allowed
         const filesToProcess = Array.from(files).slice(0, allowedNewFilesCount);
 
         filesToProcess.forEach(file => {
-        // --- END OF MODIFICATION ---
             const fileId = `file-${Date.now()}-${Math.random()}`;
             const fileItemHTML = createFileItemHTML(file, fileId);
             fileList.insertAdjacentHTML('beforeend', fileItemHTML);
             filesToUpload.push(file);
 
-            // Add event listener to the new remove button
             document.getElementById(fileId).querySelector('.remove-btn').addEventListener('click', () => {
                 removeFile(file, fileId);
             });
@@ -61,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const createFileItemHTML = (file, fileId) => {
-        const fileSize = (file.size / 1024).toFixed(1); // in KB
+        const fileSize = (file.size / 1024).toFixed(1);
         return `
             <div id="${fileId}" class="flex items-center gap-4 p-3 bg-white border border-gray-200 rounded-lg">
                 <div class="flex-shrink-0">
@@ -78,17 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     };
     
-    // --- START OF MODIFICATION ---
     const removeFile = (file, fileId) => {
-        // Remove from the array
         filesToUpload = filesToUpload.filter(f => !(f.name === file.name && f.size === file.size));
-        // Remove from the DOM
         const element = document.getElementById(fileId);
         if (element) element.remove();
     };
-    // --- END OF MODIFICATION ---
 
-    // --- START OF MODIFICATION: Real form submission logic ---
     if (invoiceForm && uploadBtn) {
         invoiceForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -102,12 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
             uploadBtn.textContent = 'Uploading...';
 
             const formData = new FormData();
-            // Append form fields
             formData.append('folder-name', document.getElementById('folder-name').value);
             formData.append('categories', document.getElementById('categories').value);
             formData.append('date', document.getElementById('date').value);
             
-            // Append files
             filesToUpload.forEach(file => {
                 formData.append('files', file);
             });
@@ -127,22 +111,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 const result = await response.json();
                 
-                if (result.success && result.redirect_url) {
-                    window.location.href = result.redirect_url;
+                // --- START OF MODIFICATION: Handle success without redirecting ---
+                if (result.success) {
+                    // Create and display a temporary success message
+                    const successNotif = document.createElement('div');
+                    successNotif.className = "fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-center p-4 mb-2 rounded-lg shadow-lg bg-white border border-[#d4d8c4]";
+                    successNotif.innerHTML = `<span class="text-sm font-medium text-[#3a4d39]">Invoice uploaded successfully!</span>`;
+                    document.body.appendChild(successNotif);
+
+                    // Reset the form and file list for the next upload
+                    invoiceForm.reset();
+                    fileList.innerHTML = '';
+                    filesToUpload = [];
+
+                    // Remove the notification after a few seconds
+                    setTimeout(() => {
+                        successNotif.style.transition = 'opacity 0.5s ease';
+                        successNotif.style.opacity = '0';
+                        setTimeout(() => successNotif.remove(), 500);
+                    }, 3000);
                 } else {
                     alert(result.error || 'An unknown error occurred during upload.');
-                    uploadBtn.disabled = false;
-                    uploadBtn.textContent = 'Upload';
                 }
+                // --- END OF MODIFICATION ---
 
             } catch (error) {
                 console.error("Upload failed:", error);
                 alert("An error occurred while uploading the files. Please check the console and try again.");
+            } finally {
+                // --- START OF MODIFICATION: Always re-enable button ---
                 uploadBtn.disabled = false;
                 uploadBtn.textContent = 'Upload';
+                // --- END OF MODIFICATION ---
             }
         });
     }
-    // --- END OF MODIFICATION ---
-
 });
