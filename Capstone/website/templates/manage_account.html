@@ -4,25 +4,21 @@
 {% block head %}
 <style>
     /* --- Password Tooltip Styles --- */
-    /* Ensure Font Awesome is loaded for the icons */
     @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
     
     #password-reqs li {
         transition: color 0.2s ease-in-out;
     }
-    #password-reqs .valid { color: #16a34a; /* green */ }
-    #password-reqs .invalid { color: #dc2626; /* red */ }
+    #password-reqs .valid { color: #16a34a; }
+    #password-reqs .invalid { color: #dc2626; }
     
-    /* Show check icon and hide cross icon for valid requirements */
     #password-reqs .valid .fa-check-circle { display: inline-block; }
     #password-reqs .valid .fa-times-circle { display: none; }
     
-    /* Hide check icon and show cross icon for invalid requirements */
     #password-reqs .invalid .fa-check-circle { display: none; }
     #password-reqs .invalid .fa-times-circle { display: inline-block; }
 
     #password-tooltip {
-        /* Initial state: invisible and collapsed */
         opacity: 0;
         transform: translateY(-5px);
         transition: opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease;
@@ -32,7 +28,6 @@
         padding-top: 0;
     }
     #password-tooltip.visible {
-        /* Active state: visible and expanded */
         opacity: 1;
         transform: translateY(0);
         max-height: 500px; 
@@ -44,8 +39,8 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-[#f6f7f1]">
 
-    <!-- Header is now responsive for small screens -->
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
+    <!-- --- START OF FINAL FIX: Restructured header for correct responsive alignment --- -->
+    <header class="flex justify-between items-start mb-6 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold text-[#3a4d39] uppercase tracking-wide">Manage Account</h2>
             <a href="{{ url_for('main.settings') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
@@ -53,46 +48,38 @@
                 <span>Go Back...</span>
             </a>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 pt-1">
             {% include "_notification_button.html" %}
         </div>
     </header>
+    <!-- --- END OF FINAL FIX --- -->
 
-    <!-- Content grid (stacks on mobile, side-by-side on large screens) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-6xl mx-auto">
         
-        <!-- Personal Information Section (with Photo Upload) -->
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 sm:p-6">
             <h3 class="text-lg font-bold text-[#3a4d39] border-b pb-3 mb-6">Personal Information</h3>
             
             <form action="{{ url_for('main.update_personal_info_route') }}" method="POST" class="space-y-4" enctype="multipart/form-data">
                 {{ personal_info_form.hidden_tag() }}
                 
-                <!-- Photo Uploader Component -->
                 <div class="flex justify-center mb-4">
-                    <!-- The label acts as the clickable photo area -->
                     <label for="photo-upload-input" class="w-32 h-32 bg-gray-200 rounded-full flex flex-col items-center justify-center text-gray-500 hover:bg-gray-300 transition cursor-pointer relative overflow-hidden">
                         
-                        <!-- Image Preview (shows existing or uploaded photo) -->
                         <img id="photo-preview" 
                              src="{{ url_for('main.serve_profile_picture', filename=user.profile_picture_url) if user.profile_picture_url else '' }}" 
                              class="w-full h-full object-cover absolute {{ 'hidden' if not user.profile_picture_url }}">
                         
-                        <!-- Placeholder (shows when no photo is present) -->
                         <div id="upload-placeholder" class="{{ '' if not user.profile_picture_url else 'hidden' }}">
                             <i class="fa-solid fa-camera fa-2x"></i>
                             <span class="text-xs mt-2">Upload a Photo</span>
                         </div>
                     </label>
                     
-                    <!-- Hidden File Input (must match name='profile_photo' in Flask route) -->
                     <input type="file" name="profile_photo" id="photo-upload-input" class="hidden" accept="image/png, image/jpeg, image/gif">
                 </div>
-                <!-- END: Photo Uploader Component -->
 
                 <div>
                     <label class="block text-sm font-semibold mb-1">Name</label>
-                    <!-- Pre-fill name using the 'user' object -->
                     {{ personal_info_form.name(class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md", value=user.name or '') }}
                 </div>
                 <div>
@@ -109,7 +96,6 @@
             </form>
         </div>
 
-        <!-- Change Password Section -->
         <div class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 sm:p-6">
             <h3 class="text-lg font-bold text-[#3a4d39] border-b pb-3 mb-6">Change Password</h3>
             <form action="{{ url_for('main.change_password_route') }}" method="POST" class="space-y-4">
@@ -122,7 +108,6 @@
                     </div>
                 </div>
 
-                <!-- START: New Password Field with Dynamic Tooltip -->
                 <div class="relative">
                     <label class="block text-sm font-semibold mb-1">New Password</label>
                     <div class="relative">
@@ -130,7 +115,6 @@
                         <i class="fa-solid fa-eye absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer password-toggle"></i>
                     </div>
 
-                    <!-- The Dynamic Tooltip for Password Requirements -->
                     <div id="password-tooltip" class="text-xs p-3 bg-gray-50 border border-gray-200 rounded-md shadow-inner">
                         <p class="text-[#3a4d39] font-bold mb-1">Password Requirements:</p>
                         <ul id="password-reqs" class="list-none space-y-1 pl-1">
@@ -156,13 +140,11 @@
                             </li>
                         </ul>
                     </div>
-                    <!-- END: Dynamic Tooltip -->
 
                     {% if change_password_form.new_password.errors %}
                         <div class="text-red-500 text-xs mt-1">{{ change_password_form.new_password.errors[0] }}</div>
                     {% endif %}
                 </div>
-                <!-- END: New Password Field with Dynamic Tooltip -->
 
                 <div>
                     <label class="block text-sm font-semibold mb-1">Confirm New Password</label>
@@ -185,10 +167,8 @@
 
 {% block scripts %}
 <script>
-// --- Password Toggle Script (From Block 1) ---
 document.querySelectorAll('.password-toggle').forEach(icon => {
     icon.addEventListener('click', function() {
-        // Find the input element right before the icon
         const input = this.previousElementSibling; 
         const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
         input.setAttribute('type', type);
@@ -197,7 +177,6 @@ document.querySelectorAll('.password-toggle').forEach(icon => {
     });
 });
 
-// --- Photo Preview Script (From Block 1) ---
 const photoUploadInput = document.getElementById('photo-upload-input');
 const photoPreview = document.getElementById('photo-preview');
 const uploadPlaceholder = document.getElementById('upload-placeholder');
@@ -208,9 +187,7 @@ if (photoUploadInput) {
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                // Set the image source to the selected file data
                 photoPreview.src = e.target.result;
-                // Show the image and hide the placeholder
                 photoPreview.classList.remove('hidden');
                 uploadPlaceholder.classList.add('hidden');
             }
@@ -219,7 +196,6 @@ if (photoUploadInput) {
     });
 }
 
-// --- Password Validation Tooltip Script (From Block 2) ---
 const passwordInput = document.getElementById('new-password-input');
 const tooltip = document.getElementById('password-tooltip');
 const reqs = {
@@ -231,7 +207,7 @@ const reqs = {
 };
 
 function validateRequirement(element, isValid) {
-    if (element) { // Check if element exists before manipulating classes
+    if (element) {
         if (isValid) {
             element.classList.add('valid');
             element.classList.remove('invalid');
@@ -243,28 +219,22 @@ function validateRequirement(element, isValid) {
 }
 
 if (passwordInput && tooltip) {
-    // Show tooltip on focus
     passwordInput.addEventListener('focus', () => {
         tooltip.classList.add('visible');
     });
 
-    // Hide tooltip on blur
     passwordInput.addEventListener('blur', () => {
-        // Only hide if the input is empty and no errors are currently displayed by Jinja/Flask
-        // For simplicity, we'll hide on blur regardless, as validation errors will show below the field.
         if (passwordInput.value === '') {
              tooltip.classList.remove('visible');
         }
     });
     
-    // Validate on every input
     passwordInput.addEventListener('input', () => {
         const value = passwordInput.value;
         validateRequirement(reqs.length, value.length >= 12);
         validateRequirement(reqs.upper, /[A-Z]/.test(value));
         validateRequirement(reqs.lower, /[a-z]/.test(value));
         validateRequirement(reqs.num, /[0-9]/.test(value));
-        // Using a more comprehensive set of common special characters
         validateRequirement(reqs.special, /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value));
     });
 }
