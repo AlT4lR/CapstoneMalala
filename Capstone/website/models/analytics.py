@@ -1,3 +1,5 @@
+# website/models/analytics.py
+
 import logging
 from datetime import datetime, timedelta
 import pytz
@@ -6,14 +8,9 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-# --- Configuration Constant: Defines the 100% scale for the monthly chart ---
-# Setting the 100% mark at 2,000,000.0 for consistent chart scaling.
-FIXED_MAX_EARNING_SCALE = 2000000.0
-
 def get_analytics_data(username, branch, year, month):
     """
-    Generates data for the main analytics chart.
-    The percentage is calculated against a fixed maximum earnings scale.
+    Generates data for the main analytics chart with a dynamic scale.
     """
     db = current_app.db
     if db is None: return {}
@@ -26,15 +23,17 @@ def get_analytics_data(username, branch, year, month):
         next_year_val = year if month < 12 else year + 1
         month_end = datetime(next_year_val, next_month_val, 1, tzinfo=pytz.utc)
 
+        # --- START OF FIX: Add a robust check for the 'paidAt' field ---
         base_match = {
             'username': username, 
             'branch': branch, 
             'status': 'Paid', 
             'parent_id': None,
+            'paidAt': {'$exists': True, '$type': "date"}, # Ensures paidAt is a valid date
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }
+        # --- END OF FIX ---
 
-        # --- Year Total Calculation ---
         year_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': None, 'total': {'$sum': '$amount'}}}
@@ -42,7 +41,6 @@ def get_analytics_data(username, branch, year, month):
         year_result = list(db.transactions.aggregate(year_pipeline))
         total_year_earning = year_result[0]['total'] if year_result else 0.0
 
-        # --- Monthly Totals for Chart ---
         month_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': {'$month': '$paidAt'}, 'total': {'$sum': '$amount'}}}
@@ -50,34 +48,23 @@ def get_analytics_data(username, branch, year, month):
         monthly_totals_docs = list(db.transactions.aggregate(month_pipeline))
         monthly_totals = {doc['_id']: doc['total'] for doc in monthly_totals_docs}
         
-        # --- Generate Chart Data using FIXED_MAX_EARNING_SCALE ---
+        max_earning_for_year = max(monthly_totals.values(), default=0)
+
         chart_data = []
         for i in range(1, 13):
             total = monthly_totals.get(i, 0.0)
-            
-            # Calculate percentage against the fixed scale
-            percentage = (total / FIXED_MAX_EARNING_SCALE) * 100
-            
+            percentage = (total / max_earning_for_year * 100) if max_earning_for_year > 0 else 0
             chart_data.append({
                 'month_name': month_name[i][:3].upper(),
                 'month_name_full': month_name[i],
                 'total': total,
-                'percentage': min(100, percentage), # Cap at 100%
+                'percentage': percentage,
                 'is_current_month': i == datetime.now().month and year == datetime.now().year
             })
 
-        # --- Weekly Breakdown for Selected Month (Capped at 4 Weeks) ---
         weekly_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': month_start, '$lt': month_end}}},
-            {'$project': { 
-                'amount': 1, 
-                'weekOfMonth': {
-                    '$min': [ 
-                        4, 
-                        {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]}
-                    ]
-                }
-            }},
+            {'$project': { 'amount': 1, 'weekOfMonth': {'$min': [ 4, {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]}]}}},
             {'$group': { '_id': '$weekOfMonth', 'total': {'$sum': '$amount'}}},
             {'$sort': {'_id': 1}}
         ]
@@ -89,6 +76,7 @@ def get_analytics_data(username, branch, year, month):
         return {
             'year': year,
             'total_year_earning': total_year_earning,
+            'max_earning_for_year': max_earning_for_year,
             'current_month_name': month_name[month],
             'current_month_total': current_month_total,
             'chart_data': chart_data,
@@ -96,8 +84,12 @@ def get_analytics_data(username, branch, year, month):
         }
     except Exception as e:
         logger.error(f"Error getting analytics data for {username}: {e}", exc_info=True)
-        return {}
-
+        # Return an empty but valid structure on error
+        return {
+            'year': year, 'total_year_earning': 0, 'max_earning_for_year': 0,
+            'current_month_name': month_name[month], 'current_month_total': 0,
+            'chart_data': [], 'weekly_breakdown': []
+        }
 
 def get_weekly_billing_summary(username, branch, year, week):
     db = current_app.db

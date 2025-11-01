@@ -1,6 +1,6 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v7'; // Increment version number
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v7'; // Increment version number
+const STATIC_CACHE_NAME = 'decooffice-static-v8'; // Increment version number
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v8'; // Increment version number
 
 const urlsToCache = [
     '/',
@@ -10,7 +10,7 @@ const urlsToCache = [
     '/static/js/db.js',
     'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
-    // --- START OF MODIFICATION: Add all icon paths to the cache ---
+    // --- START OF MODIFICATION: Add all app icon paths to the cache ---
     '/static/imgs/icons/logo192.png',
     '/static/imgs/icons/logo512.png',
     '/static/imgs/icons/icon-maskable-512.png'
