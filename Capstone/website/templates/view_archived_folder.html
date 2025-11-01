@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}View Archived: {{ folder.name }}{% endblock %}
+{% block content %}
+<main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
+    
+    <header class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold uppercase">Archived Transaction</h2>
+      <a href="{{ url_for('main.archive') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i>
+        Go Back to Archive
+      </a>
+    </header>
+
+    <!-- Archived Item Banner -->
+    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md mb-4" role="alert">
+      <p class="font-bold">This item is archived.</p>
+      <p>This is a read-only view. To make changes, please restore the item from the archive.</p>
+    </div>
+
+    <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+      <!-- Left side: List of checks -->
+      <div class="lg:col-span-2 flex flex-col bg-white rounded-md border border-gray-200 shadow-sm p-4 overflow-hidden">
+        <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
+          <span class="col-span-3">Name of issued Checked</span>
+          <span class="col-span-2">Check No.</span>
+          <span class="col-span-2">Check Date</span>
+          <span class="col-span-2">EWT</span>
+          <span class="col-span-3">Countered Check</span>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            {% for check in child_checks %}
+            <div class="border-b">
+                <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-3 items-center">
+                    <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
+                    <span class="col-span-2">{{ check.check_no }}</span>
+                    <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
+                    <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
+                    <span class="col-span-3">₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-center text-gray-400 p-10">No checks were found in this archived folder.</p>
+            {% endfor %}
+        </div>
+      </div>
+
+      <!-- Right side: Details (Read-only) -->
+      <div class="flex flex-col space-y-4">
+        <div class="bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
+          <label class="font-medium text-sm">Notes</label>
+          <textarea class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none bg-gray-100" readonly disabled>{{ folder.notes or '' }}</textarea>
+          
+          <label class="font-medium text-sm">Total Check Amount (Debt)</label>
+          <input type="text" value="₱ {{ "{:,.2f}".format(folder.amount) if folder.amount else '0.00' }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly disabled>
+          
+          <label class="font-medium text-sm">Total of Issued Checks</label>
+          <input type="text" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly disabled>
+        </div>
+      </div>
+    </div>
+</main>
+{% endblock %}
