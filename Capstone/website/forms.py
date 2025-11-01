@@ -72,12 +72,10 @@ class ResetPasswordForm(FlaskForm):
 
 
 class UpdatePersonalInfoForm(FlaskForm):
-    """Form for updating user's personal information."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
     submit = SubmitField('Save')
 
 class ChangePasswordForm(FlaskForm):
-    """Form for changing the user's password."""
     old_password = PasswordField('Old Password', validators=[DataRequired()])
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=12), password_complexity])
     confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
@@ -96,9 +94,7 @@ class TransactionForm(FlaskForm):
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
-    # --- START OF FIX: Ensure 'amount' is part of the form ---
     amount = DecimalField('Total Check Amount (Debt)', validators=[Optional()])
-    # --- END OF FIX ---
     submit = SubmitField('Add')
 
 
