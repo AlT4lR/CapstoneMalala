@@ -1,0 +1,40 @@
+<!-- website/templates/_edit_check_modal.html -->
+<div id="edit-check-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
+        <button id="close-edit-check-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+        
+        <h2 class="text-xl font-bold text-[#3a4d39] mb-6">Edit Issued Check</h2>
+        
+        <form id="edit-check-form" method="POST" class="space-y-6" novalidate>
+            <input type="hidden" id="edit-check-id" name="transaction_id">
+            {{ form.hidden_tag() }} <!-- Reusing the TransactionForm for fields -->
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div>
+                    {{ form.name_of_issued_check.label(for="edit-check-name", class="block text-sm font-semibold mb-2") }}
+                    {{ form.name_of_issued_check(id="edit-check-name", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.countered_check.label(for="edit-check-countered", class="block text-sm font-semibold mb-2") }}
+                    {{ form.countered_check(id="edit-check-countered", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
+                </div>
+                <div>
+                    {{ form.check_no.label(for="edit-check-no", class="block text-sm font-semibold mb-2") }}
+                    {{ form.check_no(id="edit-check-no", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.ewt.label(for="edit-check-ewt", class="block text-sm font-semibold mb-2") }}
+                    {{ form.ewt(id="edit-check-ewt", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
+                </div>
+                <div class="md:col-span-2">
+                    {{ form.check_date.label(for="edit-check-date-field", class="block text-sm font-semibold mb-2") }}
+                    {{ form.check_date(id="edit-check-date-field", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
+                </div>
+            </div>
+            <div class="flex justify-end mt-8 space-x-6">
+                <button type="button" id="cancel-edit-check-btn" class="px-12 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg">Cancel</button>
+                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
