@@ -1,3 +1,4 @@
+# website/models/transaction.py
 import logging
 from datetime import datetime
 import pytz
@@ -69,19 +70,21 @@ def get_transactions_by_status(username, branch, status):
                 else doc.get('username', 'N/A').capitalize()
             )
             
-            # --- START OF MODIFICATION ---
-            # This logic is now safer. It checks if check_date is a valid datetime
-            # object before trying to format it, preventing crashes from bad data.
             check_date_val = doc.get('check_date')
-            check_date_str = 'N/A'  # Default value
+            check_date_str = 'N/A'
             if isinstance(check_date_val, datetime):
                 check_date_str = check_date_val.strftime('%m/%d/%Y')
-            # --- END OF MODIFICATION ---
+            
+            due_date_val = doc.get('due_date')
+            due_date_str = 'N/A'
+            if isinstance(due_date_val, datetime):
+                due_date_str = due_date_val.strftime('%m/%d/%Y')
 
             transaction_info = {
                 '_id': str(doc['_id']),
                 'name': doc.get('name'),
                 'check_date': check_date_str,
+                'due_date': due_date_str,
                 'editor': editor
             }
             transactions.append(transaction_info)
@@ -94,7 +97,6 @@ def get_transactions_by_status(username, branch, status):
 # GET CHILD TRANSACTIONS
 # =========================================================
 def get_child_transactions_by_parent_id(username, parent_id):
-    """Fetches all child transactions for a given parent ID, regardless of status."""
     db = current_app.db
     if db is None:
         return []
@@ -158,21 +160,15 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
 # UPDATE TRANSACTION
 # =========================================================
 def update_transaction(username, transaction_id, form_data):
-    """Updates an existing transaction in the database."""
+    """Updates an existing transaction folder's basic details."""
     db = current_app.db
     if db is None:
         return False
     try:
+        # --- START OF MODIFICATION: Simplified update logic for folder quick edit ---
         update_fields = {
             'name': form_data.get('name'),
-            'notes': form_data.get('notes')
         }
-        for field in ['ewt', 'countered_check']:
-            value = form_data.get(field)
-            try:
-                update_fields[field] = float(value) if value is not None else 0.0
-            except (ValueError, TypeError):
-                update_fields[field] = 0.0
 
         check_date_obj = form_data.get('check_date')
         if check_date_obj:
@@ -183,6 +179,7 @@ def update_transaction(username, transaction_id, form_data):
             update_fields['due_date'] = pytz.utc.localize(datetime.combine(due_date_obj, datetime.min.time()))
         else:
             update_fields['due_date'] = None
+        # --- END OF MODIFICATION ---
 
         result = db.transactions.update_one(
             {'_id': ObjectId(transaction_id), 'username': username},
@@ -195,12 +192,9 @@ def update_transaction(username, transaction_id, form_data):
 
 
 # =========================================================
-# UPDATE TRANSACTION STATUSES (FIXED VERSION)
+# UPDATE TRANSACTION STATUSES
 # =========================================================
 def update_transaction_statuses(username, transaction_ids, new_status):
-    """
-    Updates the status for a batch of transactions.
-    """
     db = current_app.db
     if db is None:
         return 0
@@ -228,7 +222,7 @@ def update_transaction_statuses(username, transaction_ids, new_status):
 
 
 # =========================================================
-# MARK FOLDER AS PAID (FIXED)
+# MARK FOLDER AS PAID
 # =========================================================
 def mark_folder_as_paid(username, folder_id, notes, amount):
     db = current_app.db
