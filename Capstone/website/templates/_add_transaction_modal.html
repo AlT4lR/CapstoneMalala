@@ -4,7 +4,6 @@
         
         <button id="close-create-modal-btn" class="absolute top-4 right-5 text-gray-500 hover:text-red-600 text-3xl font-light">&times;</button>
         
-        <!-- Success Message: Initially hidden -->
         <div id="success-message-container" class="hidden text-center mb-6">
             <div class="inline-block px-6 py-2 border border-gray-300 rounded-lg bg-white">
                 <span class="text-sm font-medium text-[#3a4d39] underline">Successfully added a new transaction!</span>
@@ -15,25 +14,25 @@
             
             {{ form.hidden_tag() }}
 
-            <!-- Form Fields updated to include Due Date -->
             <div class="space-y-4">
                 <div>
                     <label for="name_of_issued_check" class="block text-sm font-medium mb-2">Name</label>
                     {{ form.name_of_issued_check(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
                 <div>
+                    <label for="amount" class="block text-sm font-medium mb-2">Total Check Amount (Debt)</label>
+                    {{ form.amount(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", placeholder="0.00") }}
+                </div>
+                <div>
                     <label for="check_date" class="block text-sm font-medium mb-2">Date Created</label>
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
                     {{ form.check_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", type="text") }}
                 </div>
                 <div>
                     <label for="due_date" class="block text-sm font-medium mb-2">Due Date</label>
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
                     {{ form.due_date(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", type="text") }}
                 </div>
             </div>
 
-            <!-- Create Button -->
             <div class="flex justify-center pt-6">
                 <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90">Create</button>
             </div>

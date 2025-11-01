@@ -1,6 +1,6 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v6'; // Increment version
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v6';
+const STATIC_CACHE_NAME = 'decooffice-static-v7'; // Increment version number
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v7'; // Increment version number
 
 const urlsToCache = [
     '/',
@@ -9,7 +9,12 @@ const urlsToCache = [
     '/static/js/common.js',
     '/static/js/db.js',
     'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+    // --- START OF MODIFICATION: Add all icon paths to the cache ---
+    '/static/imgs/icons/logo192.png',
+    '/static/imgs/icons/logo512.png',
+    '/static/imgs/icons/icon-maskable-512.png'
+    // --- END OF MODIFICATION ---
 ];
 
 importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/umd.js');
@@ -29,30 +34,20 @@ self.addEventListener('activate', event => {
     );
 });
 
-// --- START OF MODIFICATION: The Definitive Fetch Handler ---
 self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // --- THIS IS THE CRITICAL FIX ---
-                // Before caching, we check if the response is valid.
-                // We do NOT cache:
-                // - Bad responses (not status 200 OK)
-                // - Redirects (response.type is not 'basic')
-                // - Responses from other origins (also not 'basic')
                 if (response && response.status === 200 && response.type === 'basic') {
                     const clonedResponse = response.clone();
                     caches.open(DYNAMIC_CACHE_NAME).then(cache => {
                         cache.put(event.request.url, clonedResponse);
                     });
                 }
-                // --- END OF FIX ---
                 
-                // We always return the original response to the browser, regardless of whether we cached it.
                 return response;
             })
             .catch(() => {
-                // If the network fails entirely (offline), try to serve from the cache.
                 return caches.match(event.request).then(cachedResponse => {
                     if (cachedResponse) {
                         return cachedResponse;
@@ -64,7 +59,6 @@ self.addEventListener('fetch', event => {
             })
     );
 });
-// --- END OF MODIFICATION ---
 
 
 // --- Other Service Worker logic (Push, Sync) ---

@@ -12,9 +12,8 @@ from reportlab.lib.utils import ImageReader
 import io
 import os
 import logging
-from datetime import datetime
 
-from . import main # Import the blueprint
+from . import main
 from ..forms import TransactionForm, EditTransactionForm
 from ..models import (
     log_user_activity, add_transaction, get_transactions_by_status, 
@@ -156,13 +155,9 @@ def pay_transaction_folder(folder_id):
         flash('Invalid request data.', 'error')
         return jsonify({'success': False, 'error': 'Invalid request data.'}), 400
 
-    notes, amount = data.get('notes'), data.get('amount')
+    notes = data.get('notes')
 
-    if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
-        flash('Please enter a valid check amount.', 'error')
-        return jsonify({'success': False, 'error': 'A valid amount is required.'}), 400
-
-    if mark_folder_as_paid(username, folder_id, notes, amount):
+    if mark_folder_as_paid(username, folder_id, notes):
         log_user_activity(username, f'Marked transaction folder as Paid')
         flash('Transaction successfully marked as Paid!', 'success')
         return jsonify({'success': True})
@@ -185,26 +180,29 @@ def download_transaction_pdf(transaction_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
+    # --- START OF MODIFICATION: Use new logo and place it on the right ---
     try:
-        logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'AppLogoOfDecolores.png')
+        # Update the path to the new logo file
+        logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
         if os.path.exists(logo_path):
-            p.drawImage(logo_path, 0.75 * inch, height - 1.1 * inch, width=1*inch, height=0.5*inch, preserveAspectRatio=True, mask='auto')
+            logo_size = 1.2 * inch
+            # Position the logo near the top right margin
+            x_position = width - (0.75 * inch) - logo_size
+            y_position = height - (0.5 * inch) - logo_size
+            p.drawImage(logo_path, x_position, y_position, width=logo_size, height=logo_size, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         logger.error(f"Could not draw logo on PDF: {e}")
     
     p.setFont("Helvetica-Bold", 14)
     p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
+    # --- END OF MODIFICATION ---
 
     p.setFont("Helvetica", 11)
     p.drawString(0.75 * inch, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
     p.drawString(0.75 * inch, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
     p.drawString(0.75 * inch, height - 1.65 * inch, f"{folder.get('name')} ({folder.get('branch', 'N/A')})")
-    
-    # --- START OF MODIFICATION: Safely format paid date ---
-    paid_at_date = folder.get('paidAt')
-    paid_date_str = paid_at_date.strftime('%B %d, %Y') if isinstance(paid_at_date, datetime) else 'N/A'
-    p.drawString(0.75 * inch, height - 1.85 * inch, paid_date_str)
-    # --- END OF MODIFICATION ---
+    paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
+    p.drawString(0.75 * inch, height - 1.85 * inch, paid_date)
 
     y_pos = height - 2.5 * inch
     headers = ["Name Issued Check", "Check No.", "Check Date", "EWT", "Countered Check"]
@@ -235,7 +233,7 @@ def download_transaction_pdf(transaction_id):
         current_x += col_widths[0]
         p.drawCentredString(current_x + col_widths[1]/2, y_pos + 0.08 * inch, str(check.get('check_no', '')))
         current_x += col_widths[1]
-        date_str = check.get('check_date').strftime('%m/%d/%Y') if isinstance(check.get('check_date'), datetime) else ''
+        date_str = check.get('check_date').strftime('%m/%d/%Y') if check.get('check_date') else ''
         p.drawCentredString(current_x + col_widths[2]/2, y_pos + 0.08 * inch, date_str)
         current_x += col_widths[2]
         p.drawRightString(current_x + col_widths[3] - 0.1 * inch, y_pos + 0.08 * inch, f"{check.get('ewt', 0):,.2f}")
