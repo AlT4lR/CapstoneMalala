@@ -38,7 +38,9 @@ logger = logging.getLogger(__name__)
 
 mail = Mail()
 jwt = JWTManager()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+# --- START OF MODIFICATION: Removed the default_limits ---
+limiter = Limiter(key_func=get_remote_address)
+# --- END OF MODIFICATION ---
 csrf = CSRFProtect()
 
 def create_app(config_name='dev'):
@@ -93,11 +95,8 @@ def create_app(config_name='dev'):
     app.get_analytics_data = get_analytics_data
     app.get_weekly_billing_summary = get_weekly_billing_summary
 
-    # --- START OF MODIFICATION ---
-    # Attaching the missing activity log functions
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
-    # --- END OF MODIFICATION ---
 
     app.add_invoice = add_invoice
     app.get_invoices = get_invoices

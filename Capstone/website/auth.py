@@ -17,6 +17,9 @@ from . import jwt, limiter
 from .forms import LoginForm, RegistrationForm, OTPForm, ForgotPasswordForm, ResetPasswordForm
 from .models import get_user_by_email, update_user_password, get_user_by_username
 from .utils.email_utils import send_email_via_api
+# --- START OF MODIFICATION: Import get_remote_address for fallback ---
+from flask_limiter.util import get_remote_address
+# --- END OF MODIFICATION ---
 
 logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
@@ -111,8 +114,11 @@ def login():
     return render_template('login.html', form=form, show_sidebar=False)
 
 
+# --- START OF MODIFICATION: Add per-person rate limit decorator to registration ---
 @auth.route('/register', methods=['GET', 'POST'])
+@limiter.limit("50/hour", key_func=lambda: request.form.get('username') or request.form.get('email') or get_remote_address())
 def register():
+# --- END OF MODIFICATION ---
     form = RegistrationForm()
     if form.validate_on_submit():
         user_added_successfully = current_app.add_user(
@@ -203,7 +209,6 @@ def setup_2fa():
         else:
             flash('Invalid 2FA code.', 'error')
 
-    # --- START OF FIX: Add checks to prevent KeyError ---
     otp_secret = user.get('otpSecret')
     user_email = user.get('email')
 
@@ -214,8 +219,7 @@ def setup_2fa():
     
     totp = pyotp.TOTP(otp_secret)
     user_email_safe = quote(user_email)
-    # --- END OF FIX ---
-
+    
     issuer_name_safe = quote("DecoOffice")
     uri = totp.provisioning_uri(name=user_email_safe, issuer_name=issuer_name_safe)
     
