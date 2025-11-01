@@ -3,7 +3,6 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
-    <!-- START OF MODIFICATION: Updated header to match the 'Paid' page style -->
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
@@ -23,25 +22,23 @@
             {% include "_notification_button.html" %}
         </div>
     </header>
-    <!-- END OF MODIFICATION -->
 
     <div class="flex-1 flex flex-col overflow-hidden">
         
-        <!-- START OF MODIFICATION: Added month title and updated table headers -->
         <h3 class="text-xl font-bold text-[#3a4d39] mb-4">October 2025</h3>
 
-        <div class="hidden md:grid grid-cols-10 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
+        <div class="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
             <span class="col-span-5">Name</span>
-            <span class="col-span-2">Date</span>
+            <span class="col-span-2">Date Created</span>
+            <span class="col-span-2">Due Date</span>
             <span class="col-span-3 text-right">Actions</span>
         </div>
-        <!-- END OF MODIFICATION -->
 
         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
             <div id="transaction-list-container" class="space-y-3 md:space-y-2">
                 {% for t in transactions %}
                 <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
-                    <div class="md:grid md:grid-cols-10 md:gap-4 md:items-center px-4 py-3">
+                    <div class="md:grid md:grid-cols-12 md:gap-4 md:items-center px-4 py-3">
                         
                         <!-- Mobile View -->
                         <div class="md:hidden">
@@ -57,8 +54,9 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2">
-                                <strong>Date:</strong> <span class="selectable-text">{{ t.check_date }}</span>
+                            <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2 space-y-1">
+                                <p><strong>Date Created:</strong> <span class="selectable-text">{{ t.check_date }}</span></p>
+                                <p><strong>Due Date:</strong> <span class="selectable-text">{{ t.due_date }}</span></p>
                             </a>
                         </div>
                         
@@ -68,6 +66,7 @@
                             <span class="font-semibold text-gray-800 transaction-name-display truncate selectable-text">{{ t.name }}</span>
                         </a>
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.check_date }}</a>
+                        <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.due_date }}</a>
                         <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
                             <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
@@ -84,23 +83,45 @@
         </div>
     </div>
 </main>
-{% include "_edit_transaction_modal.html" %}
+
+<!-- --- START OF MODIFICATION: Simplified Edit Modal --- -->
+<div id="edit-transaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-lg p-8 relative text-gray-700">
+        <button id="close-edit-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+        
+        <h2 class="text-xl font-bold text-[#3a4d39] mb-6">Edit Folder</h2>
+        
+        <form id="edit-transaction-form" method="POST" class="space-y-4" novalidate>
+            <input type="hidden" id="edit-transaction-id" name="transaction_id">
+            {{ edit_form.hidden_tag() }}
+
+            <div>
+                {{ edit_form.name.label(class="block text-sm font-semibold mb-2") }}
+                {{ edit_form.name(id="edit-name", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
+            </div>
+            <div>
+                {{ edit_form.check_date.label(class="block text-sm font-semibold mb-2") }}
+                {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
+            </div>
+            <div>
+                {{ edit_form.due_date.label(class="block text-sm font-semibold mb-2") }}
+                {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
+            </div>
+
+            <div class="flex justify-end pt-6 space-x-4">
+                <button type="button" id="cancel-edit-btn" class="px-8 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg">Cancel</button>
+                <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- --- END OF MODIFICATION --- -->
 {% endblock %}
+
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    flatpickr("#edit-check-date", {
-        dateFormat: "Y-m-d",
-        altInput: true,
-        altFormat: "F j, Y",
-    });
-    flatpickr("#edit-due-date", {
-        dateFormat: "Y-m-d",
-        altInput: true,
-        altFormat: "F j, Y",
-    });
-
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -136,6 +157,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    flatpickr("#edit-check-date", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+    });
+    flatpickr("#edit-due-date", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "F j, Y",
+    });
+
     const editModal = document.getElementById('edit-transaction-modal');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
@@ -162,13 +194,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) throw new Error('Failed to fetch transaction details');
                 const data = await response.json();
 
+                // --- START OF MODIFICATION: Populate simplified modal ---
                 document.getElementById('edit-transaction-id').value = transactionId;
                 document.getElementById('edit-name').value = data.name || '';
                 document.getElementById('edit-check-date').value = data.check_date || '';
                 document.getElementById('edit-due-date').value = data.due_date || '';
-                document.getElementById('edit-ewt').value = data.ewt || '0.00';
-                document.getElementById('edit-countered-check').value = data.countered_check || '0.00';
-                document.getElementById('edit-notes').value = data.notes || '';
+                // --- END OF MODIFICATION ---
 
                 openEditModal();
             } catch (error) {
@@ -216,7 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
         button.addEventListener('click', function(event) {
             event.preventDefault();
-            // Assuming you have a custom confirm dialog setup in common.js
             window.showCustomConfirm(`Are you sure you want to archive "${this.dataset.name}"?`, async () => {
                 const transactionId = this.dataset.id;
                 try {

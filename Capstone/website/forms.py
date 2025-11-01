@@ -41,9 +41,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    # --- START OF FIX: Added the 'name' field to the form definition ---
     name = StringField('Name', validators=[DataRequired(), Length(min=2, max=50)])
-    # --- END OF FIX ---
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), password_complexity])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
@@ -74,12 +72,10 @@ class ResetPasswordForm(FlaskForm):
 
 
 class UpdatePersonalInfoForm(FlaskForm):
-    """Form for updating user's personal information."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
     submit = SubmitField('Save')
 
 class ChangePasswordForm(FlaskForm):
-    """Form for changing the user's password."""
     old_password = PasswordField('Old Password', validators=[DataRequired()])
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=12), password_complexity])
     confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
@@ -91,7 +87,6 @@ class ChangePasswordForm(FlaskForm):
 # -------------------------
 
 class TransactionForm(FlaskForm):
-    """Form for creating transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
@@ -101,15 +96,14 @@ class TransactionForm(FlaskForm):
     submit = SubmitField('Add')
 
 
+# --- START OF MODIFICATION: Simplified Edit Form for Folders ---
 class EditTransactionForm(FlaskForm):
-    """Form for editing a transaction."""
-    name = StringField('Recipient Name', validators=[DataRequired(), Length(max=100)])
-    check_date = DateField('Check Date', format='%Y-%m-%d', validators=[DataRequired()])
+    """Form for editing a transaction folder's basic details."""
+    name = StringField('Folder Name', validators=[DataRequired(), Length(max=100)])
+    check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
-    ewt = DecimalField('EWT', validators=[Optional()])
-    countered_check = DecimalField('Countered Check', validators=[Optional()])
-    notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Save Changes')
+# --- END OF MODIFICATION ---
 
 
 # -------------------------
@@ -117,7 +111,6 @@ class EditTransactionForm(FlaskForm):
 # -------------------------
 
 class LoanForm(FlaskForm):
-    """Form for the 'Create Loan' modal."""
     name_of_loan = StringField('Name Of Loans', validators=[DataRequired(), Length(max=100)])
     bank_name = StringField('Bank Name', validators=[DataRequired(), Length(max=100)])
     amount = DecimalField('Amount', validators=[DataRequired()])
