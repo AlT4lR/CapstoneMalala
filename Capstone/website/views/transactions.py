@@ -180,30 +180,33 @@ def download_transaction_pdf(transaction_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # --- START OF MODIFICATION: Use new logo and place it on the right ---
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
+
     try:
-        # Update the path to the new logo file
         logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
         if os.path.exists(logo_path):
             logo_size = 1.2 * inch
-            # Position the logo near the top right margin
             x_position = width - (0.75 * inch) - logo_size
             y_position = height - (0.5 * inch) - logo_size
             p.drawImage(logo_path, x_position, y_position, width=logo_size, height=logo_size, preserveAspectRatio=True, mask='auto')
     except Exception as e:
         logger.error(f"Could not draw logo on PDF: {e}")
-    
-    p.setFont("Helvetica-Bold", 14)
-    p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
-    # --- END OF MODIFICATION ---
 
     p.setFont("Helvetica", 11)
     p.drawString(0.75 * inch, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
     p.drawString(0.75 * inch, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
-    p.drawString(0.75 * inch, height - 1.65 * inch, f"{folder.get('name')} ({folder.get('branch', 'N/A')})")
+    
+    folder_name = folder.get('name', 'N/A')
+    p.drawString(0.75 * inch, height - 1.65 * inch, folder_name)
+    name_width = p.stringWidth(folder_name, "Helvetica", 11)
+    p.line(0.75 * inch, height - 1.67 * inch, 0.75 * inch + name_width, height - 1.67 * inch)
+    
     paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
     p.drawString(0.75 * inch, height - 1.85 * inch, paid_date)
 
+    p.line(0.75 * inch, height - 2.1 * inch, width - 0.75 * inch, height - 2.1 * inch)
+    
     y_pos = height - 2.5 * inch
     headers = ["Name Issued Check", "Check No.", "Check Date", "EWT", "Countered Check"]
     col_widths = [2.5 * inch, 1.2 * inch, 1.2 * inch, 1.2 * inch, 1.4 * inch]
@@ -221,14 +224,13 @@ def download_transaction_pdf(transaction_id):
     
     p.setFont("Helvetica", 9)
     p.setFillColor(colors.black)
-    p.setStrokeColor(colors.gray)
+    p.setStrokeColor(colors.black)
     y_pos -= (0.25 * inch)
     row_height = 0.25 * inch
 
     for check in child_checks:
         current_x = x_offset
         p.grid([x_offset, x_offset + col_widths[0], x_offset + sum(col_widths[:2]), x_offset + sum(col_widths[:3]), x_offset + sum(col_widths[:4]), x_offset + sum(col_widths)], [y_pos, y_pos + row_height])
-        
         p.drawString(current_x + 0.1 * inch, y_pos + 0.08 * inch, str(check.get('name', '')))
         current_x += col_widths[0]
         p.drawCentredString(current_x + col_widths[1]/2, y_pos + 0.08 * inch, str(check.get('check_no', '')))
@@ -245,29 +247,26 @@ def download_transaction_pdf(transaction_id):
         p.grid([x_offset, x_offset + col_widths[0], x_offset + sum(col_widths[:2]), x_offset + sum(col_widths[:3]), x_offset + sum(col_widths[:4]), x_offset + sum(col_widths)], [y_pos, y_pos + row_height])
         y_pos -= row_height
 
+    # --- START OF FIX: Adjust label position to prevent collision ---
     p.setFont("Helvetica", 10)
-    summary_label_x = width - 3.5 * inch
-    summary_value_x = width - 1.5 * inch
+    summary_box_x = width - 2.75 * inch
+    summary_label_end_x = summary_box_x - 0.1 * inch # Position label to the left of the box
     summary_y = y_pos - 0.3 * inch
     
-    p.drawString(summary_label_x, summary_y, "Countered Checks")
-    p.drawRightString(summary_value_x, summary_y, f"₱ {total_countered_check:,.2f}")
+    p.drawRightString(summary_label_end_x, summary_y + 0.35 * inch, "Countered Checks")
+    p.rect(summary_box_x, summary_y + 0.25 * inch, 2.0 * inch, 0.25 * inch)
+    p.drawRightString(summary_box_x + 1.95 * inch, summary_y + 0.35 * inch, f"₱ {total_countered_check:,.2f}")
     
     p.setFont("Helvetica-Bold", 10)
-    p.drawString(summary_label_x, summary_y - 0.3*inch, "Check Amount")
-    p.drawRightString(summary_value_x, summary_y - 0.3*inch, f"₱ {folder.get('amount', 0.0):,.2f}")
+    p.drawRightString(summary_label_end_x, summary_y + 0.1 * inch, "Check Amount")
+    p.rect(summary_box_x, summary_y, 2.0 * inch, 0.25 * inch)
+    p.drawRightString(summary_box_x + 1.95 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
+    # --- END OF FIX ---
 
     p.setFont("Helvetica-Bold", 11)
     notes_y_start = y_pos - 1.2 * inch
     p.drawString(x_offset, notes_y_start, "Notes")
     p.rect(x_offset, 1 * inch, width - 1.5 * inch, notes_y_start - 1.1 * inch, stroke=1, fill=0)
-    
-    notes_text = folder.get('notes', 'No notes provided.')
-    p_style = getSampleStyleSheet()['Normal']
-    p_style.fontSize = 10
-    notes_p = Paragraph(notes_text.replace('\n', '<br/>'), p_style)
-    w, h = notes_p.wrapOn(p, width - 1.7 * inch, notes_y_start - 1.2 * inch)
-    notes_p.drawOn(p, x_offset + 0.1 * inch, notes_y_start - 0.1 * inch - h)
 
     p.showPage()
     p.save()
