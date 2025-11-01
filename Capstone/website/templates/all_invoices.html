@@ -68,7 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const invoiceRows = tableBody.querySelectorAll('.invoice-row');
     const noResultsRow = document.getElementById('no-results-row');
 
-    // --- Search Logic (Unchanged) ---
     if (searchInput && invoiceRows.length > 0) {
         searchInput.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase().trim();
@@ -86,21 +85,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- START OF MODIFIED Modal Logic (Full Feature Set) ---
     const modal = document.getElementById('invoice-details-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const modalTitle = document.getElementById('modal-invoice-title');
     const modalImage = document.getElementById('modal-invoice-image');
-    // Note: The original code's imagePlaceholder is not strictly needed if the image element is managed correctly.
-    // However, the new logic uses dedicated detail fields which are incorporated here.
     
-    // Detail fields from the incoming modification
     const detailFolderName = document.getElementById('detail-folder-name');
     const detailCategory = document.getElementById('detail-category');
     const detailDate = document.getElementById('detail-date');
     const thumbnailContainer = document.getElementById('thumbnail-container');
-    // OCR Text field from previous version (assuming it still exists in the modal HTML)
-    const modalOcrText = document.getElementById('modal-ocr-text'); 
 
     const modalDownloadBtn = document.getElementById('modal-download-btn');
     const modalDeleteBtn = document.getElementById('modal-delete-btn');
@@ -117,52 +110,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) throw new Error('Failed to fetch invoice details.');
                 const data = await response.json();
                 
-                // Populate main details
                 modalTitle.textContent = data.folder_name || 'Invoice Details';
-                
-                // Populate detail fields
-                if (detailFolderName) detailFolderName.textContent = data.folder_name || 'N/A';
-                if (detailCategory) detailCategory.textContent = data.category || 'N/A';
-                // Format the date for display
-                if (detailDate) {
-                    detailDate.textContent = data.date 
-                        ? new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) 
-                        : 'N/A';
-                }
+                detailFolderName.textContent = data.folder_name || 'N/A';
+                detailCategory.textContent = data.category || 'N/A';
+                detailDate.textContent = data.date ? new Date(data.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) : 'N/A';
 
-                // Populate OCR Text (from the previous version)
-                if (modalOcrText) modalOcrText.textContent = data.extracted_text || 'No text could be extracted from this image.';
+                thumbnailContainer.innerHTML = '';
 
-
-                // Clear previous thumbnails
-                if (thumbnailContainer) thumbnailContainer.innerHTML = '';
-                
-                // Populate thumbnails and set initial image
                 if (data.files && data.files.length > 0) {
                      modalImage.src = `/invoices/uploads/${data.files[0].filename}`;
-                     modalImage.classList.remove('hidden');
-                     // Assuming imagePlaceholder is not used with this new logic
-                     // if (imagePlaceholder) imagePlaceholder.classList.add('hidden');
                      
+                     // --- START OF FIX: Correctly build and attach event listeners to thumbnails ---
                      data.files.forEach((file, index) => {
                          const thumb = document.createElement('img');
                          thumb.src = `/invoices/uploads/${file.filename}`;
-                         thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39]';
+                         thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39] transition';
+                         
                          if (index === 0) {
-                             thumb.classList.add('border-[#3a4d39]'); // Highlight first one
+                             thumb.classList.add('border-[#3a4d39]');
                          }
+                         
                          thumb.addEventListener('click', () => {
                              modalImage.src = thumb.src;
-                             // Highlight the clicked thumbnail
                              thumbnailContainer.querySelectorAll('img').forEach(t => t.classList.remove('border-[#3a4d39]'));
                              thumb.classList.add('border-[#3a4d39]');
                          });
-                         if (thumbnailContainer) thumbnailContainer.appendChild(thumb);
+                         thumbnailContainer.appendChild(thumb);
                      });
+                     // --- END OF FIX ---
+
                 } else {
                      modalImage.src = ''; // Or a placeholder image
-                     modalImage.classList.add('hidden');
-                     // if (imagePlaceholder) imagePlaceholder.classList.remove('hidden');
                 }
                 
                 modalDownloadBtn.href = `/api/invoices/${invoiceId}/download`;
@@ -193,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`/api/invoices/${invoiceId}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-Token': window.getCsrfToken ? window.getCsrfToken() : '' }
+                    headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
                 });
                 const result = await response.json();
                 if (response.ok && result.success) {
@@ -207,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    // --- END OF MODIFIED Modal Logic ---
 });
 </script>
 {% endblock %}

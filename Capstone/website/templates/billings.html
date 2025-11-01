@@ -196,7 +196,7 @@
                 const searchMatches = (itemName.includes(searchTerm));
 
                 if (weekMatches && searchMatches) {
-                    item.style.display = 'grid'; // Use 'grid' for desktop view consistency
+                    item.style.display = 'grid';
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
@@ -247,31 +247,29 @@
             monthYearDisplay.textContent = `${monthName} ${year}`;
             weekButtonsContainer.innerHTML = '';
 
+            // --- START OF FIX: Always generate exactly 4 weeks ---
             const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-            let currentDay = new Date(firstDayOfMonth);
-            let weeksInMonth = [];
+            const startWeekNum = getWeekNumber(firstDayOfMonth);
 
-            while (currentDay.getUTCMonth() === month) {
-                const weekNum = getWeekNumber(currentDay);
-                if (!weeksInMonth.includes(weekNum)) {
-                    weeksInMonth.push(weekNum);
-                }
-                currentDay.setUTCDate(currentDay.getUTCDate() + 7);
-            }
-
-            weeksInMonth.forEach((weekNum, index) => {
+            for (let i = 0; i < 4; i++) {
+                const weekNum = startWeekNum + i;
                 const button = document.createElement('button');
                 button.dataset.weekIndex = weekNum;
-                button.textContent = `WEEK ${index + 1}`;
+                button.textContent = `WEEK ${i + 1}`;
                 button.className = 'week-btn bg-[#6f8a6e] hover:bg-[#7f9c7e] border-2 border-transparent text-white font-semibold py-2 rounded-md transition-colors';
                 weekButtonsContainer.appendChild(button);
-            });
+            }
+            // --- END OF FIX ---
             
             const today = new Date();
-            const startWeekNum = weeksInMonth[0];
             if (today.getUTCFullYear() === year && today.getUTCMonth() === month) {
                  const todayWeekNum = getWeekNumber(today);
-                 currentWeek = weeksInMonth.includes(todayWeekNum) ? todayWeekNum : startWeekNum;
+                 // Check if today's week is within the 4 weeks we generated
+                 if (todayWeekNum >= startWeekNum && todayWeekNum < startWeekNum + 4) {
+                    currentWeek = todayWeekNum;
+                 } else {
+                    currentWeek = startWeekNum; // Default to the first week
+                 }
             } else {
                 currentWeek = startWeekNum;
             }
