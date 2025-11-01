@@ -4,126 +4,52 @@
 
 {% block head %}
 <style>
-    /* === GENERAL PAGE STYLES === */
-    main {
-        background-color: #f6f7f1; /* Page background */
-    }
-
-    /* === TOOLTIP === */
+    main { background-color: #f6f7f1; }
     #chart-tooltip {
-        position: absolute;
-        opacity: 0;
-        visibility: hidden;
-        background-color: #fff;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        text-align: center;
-        pointer-events: none;
-        transform: translate(-50%, -130%);
+        position: absolute; opacity: 0; visibility: hidden; background-color: #fff;
+        padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; text-align: center;
+        pointer-events: none; transform: translate(-50%, -130%);
         transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
-        z-index: 10;
-        white-space: nowrap;
-        border: 1px solid #e5e7eb;
+        z-index: 10; white-space: nowrap; border: 1px solid #e5e7eb;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
     #chart-tooltip::after {
-        content: '';
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -6px;
-        border-width: 6px;
-        border-style: solid;
-        border-color: white transparent transparent transparent;
+        content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
+        border-width: 6px; border-style: solid; border-color: white transparent transparent transparent;
     }
-
-    /* === MAIN CONTAINER === */
     .chart-container {
-        border-radius: 16px;
-        background: white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-radius: 16px; background: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         padding: 1.5rem 2rem;
     }
-    
-    .bar-wrapper {
-        transition: transform 0.2s ease;
-        padding: 0 4px; /* Add some spacing between bars */
-    }
-    .bar-wrapper:hover {
-        transform: translateY(-4px);
-    }
+    .bar-wrapper { transition: transform 0.2s ease; padding: 0 4px; }
+    .bar-wrapper:hover { transform: translateY(-4px); }
     .bar-track {
-        background-color: #e5e7eb; 
-        width: 100%;
-        height: 100%;
-        position: relative;
-        border-radius: 5px 5px 0 0;
-        overflow: hidden;
+        background-color: #e5e7eb; width: 100%; height: 100%; position: relative;
+        border-radius: 5px 5px 0 0; overflow: hidden;
     }
     .bar-fill {
-        background-color: #3a4d39; 
-        width: 100%;
-        position: absolute;
-        bottom: 0;
+        background-color: #3a4d39; width: 100%; position: absolute; bottom: 0;
         transition: background-color 0.2s;
     }
-    .bar-wrapper:hover .bar-fill {
-        background-color: #4b5e4a; 
-    }
-    
-    /* === TITLES === */
-    .analytics-title {
-        color: #3a4d39;
-        font-weight: bold;
-        font-size: 1.5rem;
-    }
-
-    /* === YEAR NAVIGATION === */
-    #prev-year-btn, #next-year-btn {
-        color: #3a4d39;
-        transition: background 0.2s;
-    }
-    #prev-year-btn:hover, #next-year-btn:hover {
-        background-color: #e6e9dd;
-    }
-
+    .bar-wrapper:hover .bar-fill { background-color: #4b5e4a; }
+    .analytics-title { color: #3a4d39; font-weight: bold; font-size: 1.5rem; }
+    #prev-year-btn, #next-year-btn { color: #3a4d39; transition: background 0.2s; }
+    #prev-year-btn:hover, #next-year-btn:hover { background-color: #e6e9dd; }
     .weekly-summary-card {
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        padding: 1.5rem;
+        background-color: #f8f9fa; border-radius: 12px; padding: 1.5rem;
         border: 1px solid #e5e7eb;
     }
-
-    .font-mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-    
-    #x-axis-labels-container {
-        padding-left: 3rem; 
-        height: 20px;
-        margin-top: 0.5rem;
-    }
-
-    /* Responsive Slanted Labels */
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    #x-axis-labels-container { padding-left: 3rem; height: 20px; margin-top: 0.5rem; }
+    .y-axis-label { flex-grow: 1; display: flex; align-items: flex-start; }
     @media (max-width: 768px) {
-        #x-axis-labels-container {
-            margin-top: 2rem; 
-            height: 40px; 
-        }
+        #x-axis-labels-container { margin-top: 2rem; height: 40px; }
         #x-axis-labels-container span {
-            transform: rotate(-60deg);
-            transform-origin: top right;
-            font-size: 0.65rem; 
-            text-align: right !important; 
+            transform: rotate(-60deg); transform-origin: top right;
+            font-size: 0.65rem; text-align: right !important;
         }
     }
-
-    @media (max-width: 1024px) {
-        .chart-container {
-            padding: 1rem;
-        }
-    }
+    @media (max-width: 1024px) { .chart-container { padding: 1rem; } }
 </style>
 {% endblock %}
 
@@ -133,9 +59,7 @@
     <header class="flex justify-between items-center mb-6 flex-shrink-0">
         <h1 class="analytics-title">Analytics</h1>
         <div class="flex items-center gap-4">
-            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
-                <i class="fa-solid fa-box-archive fa-lg"></i>
-            </a>
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
             {% include "_notification_button.html" %}
         </div>
     </header>
@@ -146,20 +70,16 @@
     
     <div id="chart-main-container" class="chart-container flex-1 flex flex-col">
         <div class="flex justify-center items-center gap-2 text-[#3a4d39] mb-6 flex-shrink-0">
-             <button id="prev-year-btn" class="p-2 rounded-full">
-                <i class="fa-solid fa-chevron-left"></i>
-             </button>
+             <button id="prev-year-btn" class="p-2 rounded-full"><i class="fa-solid fa-chevron-left"></i></button>
              <span id="year-display" class="font-bold text-xl tracking-wider">YEAR {{ analytics_data.year }}</span>
-             <button id="next-year-btn" class="p-2 rounded-full">
-                <i class="fa-solid fa-chevron-right"></i>
-             </button>
+             <button id="next-year-btn" class="p-2 rounded-full"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
             <div class="lg:col-span-2 flex flex-col">
                 <div class="flex flex-1 min-w-full">
-                    <div class="flex flex-col justify-between text-sm text-gray-500 pr-4 py-2 flex-shrink-0">
-                        <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+                    <div id="y-axis-labels-container" class="flex flex-col text-xs text-gray-500 pr-4 flex-shrink-0">
+                        <!-- Y-Axis Labels Generated by JS -->
                     </div>
                     <div id="bar-chart-container" class="w-full flex justify-between items-end border-b-2 border-l-2 border-gray-200 relative">
                         <div id="chart-tooltip"></div>
@@ -167,10 +87,7 @@
                 </div>
                 <div id="x-axis-labels-container" class="w-full flex justify-between flex-shrink-0"></div>
             </div>
-
-            <div id="weekly-breakdown-container" class="self-start weekly-summary-card">
-                <!-- Content will be generated by JavaScript -->
-            </div>
+            <div id="weekly-breakdown-container" class="self-start weekly-summary-card"></div>
         </div>
     </div>
 </main>
@@ -179,24 +96,36 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- STATE MANAGEMENT ---
     let currentYear = new Date().getFullYear();
     let selectedMonth = null;
     let fullChartData = [];
 
-    // --- DOM ELEMENTS ---
-    const chartMainContainer = document.getElementById('chart-main-container');
     const yearDisplay = document.getElementById('year-display');
     const barChartContainer = document.getElementById('bar-chart-container');
     const xAxisContainer = document.getElementById('x-axis-labels-container');
+    const yAxisContainer = document.getElementById('y-axis-labels-container');
     const weeklyContainer = document.getElementById('weekly-breakdown-container');
     const prevYearBtn = document.getElementById('prev-year-btn');
     const nextYearBtn = document.getElementById('next-year-btn');
     const tooltip = document.getElementById('chart-tooltip');
     
-    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+    const tooltipCurrencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP'});
 
-    // --- RENDER FUNCTIONS ---
+    // --- START OF FIX: Use fixed percentage labels ---
+    function renderYAxis() {
+        yAxisContainer.innerHTML = '';
+        const labels = ['100%', '75%', '50%', '25%', '0%'];
+        
+        // Create labels from top to bottom
+        labels.forEach(text => {
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'y-axis-label';
+            labelDiv.textContent = text;
+            yAxisContainer.appendChild(labelDiv);
+        });
+    }
+    // --- END OF FIX ---
+
     function renderChart(chartData, activeMonthIndex) {
         barChartContainer.innerHTML = ''; 
         xAxisContainer.innerHTML = '';    
@@ -225,17 +154,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderWeeklyBreakdown(weeklyData, monthName, year, monthTotal) {
-        let weeklyRows = '';
-        for (let i = 1; i <= 4; i++) {
-            const week = weeklyData.find(w => w.week === `Week ${i}`);
-            const total = week ? week.total : 0;
-            weeklyRows += `
-                <div class="flex justify-between items-center text-sm gap-4">
-                    <span class="text-gray-600 flex-shrink-0">Week ${i}</span>
-                    <span class="font-semibold text-gray-800 font-mono text-right break-all">${currencyFormatter.format(total)}</span>
-                </div>
-            `;
-        }
+        let weeklyRows = weeklyData.map(week => `
+            <div class="flex justify-between items-center text-sm gap-4">
+                <span class="text-gray-600 flex-shrink-0">${week.week}</span>
+                <span class="font-semibold text-gray-800 font-mono text-right break-all">${tooltipCurrencyFormatter.format(week.total)}</span>
+            </div>
+        `).join('');
 
         weeklyContainer.innerHTML = `
             <h4 class="font-bold text-center text-gray-800 mb-4 uppercase">${monthName} ${year}</h4>
@@ -243,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <hr class="my-4 border-gray-300">
             <div class="flex justify-between items-center font-bold text-base text-[#3a4d39] gap-4">
                 <span class="flex-shrink-0">Total</span>
-                <span class="font-mono text-right break-all">${currencyFormatter.format(monthTotal)}</span>
+                <span class="font-mono text-right break-all">${tooltipCurrencyFormatter.format(monthTotal)}</span>
             </div>
         `;
     }
@@ -252,28 +176,16 @@ document.addEventListener('DOMContentLoaded', function () {
         weeklyContainer.innerHTML = `
             <h4 class="font-bold text-center text-gray-400 mb-4 uppercase">SELECT A MONTH</h4>
             <div class="space-y-3">
-                ${[1,2,3,4].map(i => `
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-400">Week ${i}</span>
-                        <span class="font-semibold text-gray-400 font-mono">-</span>
-                    </div>
-                `).join('')}
+                ${[1,2,3,4].map(i => `<div class="flex justify-between items-center text-sm"><span class="text-gray-400">Week ${i}</span><span class="font-semibold text-gray-400 font-mono">-</span></div>`).join('')}
             </div>
             <hr class="my-4 border-gray-300">
-            <div class="flex justify-between items-center font-bold text-base text-gray-400">
-                <span>Total</span>
-                <span class="font-mono">-</span>
-            </div>
+            <div class="flex justify-between items-center font-bold text-base text-gray-400"><span>Total</span><span class="font-mono">-</span></div>
         `;
     }
 
-    // --- DATA FETCHING ---
     async function updateAnalyticsView(year, month) {
         barChartContainer.innerHTML = '<p class="w-full text-center py-20 text-gray-500">Loading...</p>';
-        
-        if (!month) {
-            renderEmptyWeeklyBreakdown();
-        }
+        if (!month) { renderEmptyWeeklyBreakdown(); }
         
         try {
             const response = await fetch(`/api/analytics/summary?year=${year}&month=${month || new Date().getMonth() + 1}`);
@@ -282,8 +194,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             currentYear = data.year;
             selectedMonth = month;
-            
             yearDisplay.textContent = `YEAR ${data.year}`;
+
+            renderYAxis();
             renderChart(data.chart_data, month);
 
             if (month) {
@@ -295,65 +208,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- EVENTS ---
-    prevYearBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentYear--;
-        updateAnalyticsView(currentYear, null);
-    });
-    nextYearBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentYear++;
-        updateAnalyticsView(currentYear, null);
-    });
-    
-    chartMainContainer.addEventListener('click', (e) => {
+    document.getElementById('chart-main-container').addEventListener('click', (e) => {
         const barWrapper = e.target.closest('.bar-wrapper');
         const yearControls = e.target.closest('#prev-year-btn, #next-year-btn');
-
         if (barWrapper) {
             const monthIndex = parseInt(barWrapper.dataset.index, 10) + 1;
-            if (monthIndex === selectedMonth) {
-                updateAnalyticsView(currentYear, null);
-            } else {
-                updateAnalyticsView(currentYear, monthIndex);
-            }
-        // --- START OF MODIFICATION: Check if the click was outside interactive elements ---
-        } else if (!yearControls && e.target.closest('#weekly-breakdown-container') === null) {
-            if (selectedMonth !== null) {
-                updateAnalyticsView(currentYear, null);
-            }
+            updateAnalyticsView(currentYear, monthIndex === selectedMonth ? null : monthIndex);
+        } else if (!yearControls && !e.target.closest('#weekly-breakdown-container')) {
+            if (selectedMonth !== null) { updateAnalyticsView(currentYear, null); }
         }
-        // --- END OF MODIFICATION ---
     });
 
+    prevYearBtn.addEventListener('click', () => { currentYear--; updateAnalyticsView(currentYear, null); });
+    nextYearBtn.addEventListener('click', () => { currentYear++; updateAnalyticsView(currentYear, null); });
+    
     barChartContainer.addEventListener('mouseover', (e) => {
         const barWrapper = e.target.closest('.bar-wrapper');
         if (barWrapper && fullChartData.length > 0) {
             const index = parseInt(barWrapper.dataset.index, 10);
-            const month = fullChartData[index];
-
-            tooltip.innerHTML = `
-                <p class="text-xs text-gray-500">Total Earning</p>
-                <p class="font-bold text-lg text-[#3a4d39]">${currencyFormatter.format(month.total)}</p>
-            `;
-            
+            const monthData = fullChartData[index];
+            tooltip.innerHTML = `<p class="text-xs text-gray-500">Total Earning</p><p class="font-bold text-lg text-[#3a4d39]">${tooltipCurrencyFormatter.format(monthData.total)}</p>`;
             const barRect = barWrapper.getBoundingClientRect();
             const containerRect = barChartContainer.getBoundingClientRect();
-            
             tooltip.style.left = `${barRect.left - containerRect.left + barRect.width / 2}px`;
             tooltip.style.top = `${barRect.top - containerRect.top}px`;
             tooltip.style.opacity = '1';
             tooltip.style.visibility = 'visible';
         }
     });
+    barChartContainer.addEventListener('mouseout', () => { tooltip.style.opacity = '0'; tooltip.style.visibility = 'hidden'; });
 
-    barChartContainer.addEventListener('mouseout', () => {
-        tooltip.style.opacity = '0';
-        tooltip.style.visibility = 'hidden';
-    });
-
-    // --- INITIAL LOAD ---
     const initialData = JSON.parse('{{ analytics_data | tojson | safe }}');
     currentYear = initialData.year;
     updateAnalyticsView(currentYear, null);

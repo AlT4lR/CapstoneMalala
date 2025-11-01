@@ -12,6 +12,7 @@ from reportlab.lib.utils import ImageReader
 import io
 import os
 import logging
+from datetime import datetime
 
 from . import main # Import the blueprint
 from ..forms import TransactionForm, EditTransactionForm
@@ -105,7 +106,7 @@ def add_transaction_route():
             if add_transaction(username, selected_branch, form.data):
                 log_user_activity(username, 'Created a new transaction folder')
                 flash('Successfully created a new transaction folder!', 'success')
-                return jsonify({'success': True, 'redirect_url': url_for('main.transactions_pending')})
+                return jsonify({'success': True, 'redirect_url': url_for('main.transactions')})
             else:
                 flash('An error occurred while saving the folder.', 'error')
                 return jsonify({'success': False, 'error': 'Database error'}), 500
@@ -184,7 +185,13 @@ def download_transaction_pdf(transaction_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
-    # --- START OF MODIFICATION: PDF generation logic for document-style report ---
+    try:
+        logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'AppLogoOfDecolores.png')
+        if os.path.exists(logo_path):
+            p.drawImage(logo_path, 0.75 * inch, height - 1.1 * inch, width=1*inch, height=0.5*inch, preserveAspectRatio=True, mask='auto')
+    except Exception as e:
+        logger.error(f"Could not draw logo on PDF: {e}")
+    
     p.setFont("Helvetica-Bold", 14)
     p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
 
@@ -192,10 +199,13 @@ def download_transaction_pdf(transaction_id):
     p.drawString(0.75 * inch, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
     p.drawString(0.75 * inch, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
     p.drawString(0.75 * inch, height - 1.65 * inch, f"{folder.get('name')} ({folder.get('branch', 'N/A')})")
-    paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
-    p.drawString(0.75 * inch, height - 1.85 * inch, paid_date)
+    
+    # --- START OF MODIFICATION: Safely format paid date ---
+    paid_at_date = folder.get('paidAt')
+    paid_date_str = paid_at_date.strftime('%B %d, %Y') if isinstance(paid_at_date, datetime) else 'N/A'
+    p.drawString(0.75 * inch, height - 1.85 * inch, paid_date_str)
+    # --- END OF MODIFICATION ---
 
-    # Table headers
     y_pos = height - 2.5 * inch
     headers = ["Name Issued Check", "Check No.", "Check Date", "EWT", "Countered Check"]
     col_widths = [2.5 * inch, 1.2 * inch, 1.2 * inch, 1.2 * inch, 1.4 * inch]
@@ -211,7 +221,6 @@ def download_transaction_pdf(transaction_id):
         p.drawCentredString(current_x + col_widths[i] / 2, y_pos + 0.1 * inch, header)
         current_x += col_widths[i]
     
-    # Table rows
     p.setFont("Helvetica", 9)
     p.setFillColor(colors.black)
     p.setStrokeColor(colors.gray)
@@ -226,7 +235,7 @@ def download_transaction_pdf(transaction_id):
         current_x += col_widths[0]
         p.drawCentredString(current_x + col_widths[1]/2, y_pos + 0.08 * inch, str(check.get('check_no', '')))
         current_x += col_widths[1]
-        date_str = check.get('check_date').strftime('%m/%d/%Y') if check.get('check_date') else ''
+        date_str = check.get('check_date').strftime('%m/%d/%Y') if isinstance(check.get('check_date'), datetime) else ''
         p.drawCentredString(current_x + col_widths[2]/2, y_pos + 0.08 * inch, date_str)
         current_x += col_widths[2]
         p.drawRightString(current_x + col_widths[3] - 0.1 * inch, y_pos + 0.08 * inch, f"{check.get('ewt', 0):,.2f}")
@@ -234,12 +243,10 @@ def download_transaction_pdf(transaction_id):
         p.drawRightString(current_x + col_widths[4] - 0.1 * inch, y_pos + 0.08 * inch, f"{check.get('countered_check', 0):,.2f}")
         y_pos -= row_height
 
-    # Fill remaining rows to maintain layout
     for _ in range(len(child_checks), 12):
         p.grid([x_offset, x_offset + col_widths[0], x_offset + sum(col_widths[:2]), x_offset + sum(col_widths[:3]), x_offset + sum(col_widths[:4]), x_offset + sum(col_widths)], [y_pos, y_pos + row_height])
         y_pos -= row_height
 
-    # Summary
     p.setFont("Helvetica", 10)
     summary_label_x = width - 3.5 * inch
     summary_value_x = width - 1.5 * inch
@@ -252,7 +259,6 @@ def download_transaction_pdf(transaction_id):
     p.drawString(summary_label_x, summary_y - 0.3*inch, "Check Amount")
     p.drawRightString(summary_value_x, summary_y - 0.3*inch, f"₱ {folder.get('amount', 0.0):,.2f}")
 
-    # Notes
     p.setFont("Helvetica-Bold", 11)
     notes_y_start = y_pos - 1.2 * inch
     p.drawString(x_offset, notes_y_start, "Notes")
@@ -264,7 +270,6 @@ def download_transaction_pdf(transaction_id):
     notes_p = Paragraph(notes_text.replace('\n', '<br/>'), p_style)
     w, h = notes_p.wrapOn(p, width - 1.7 * inch, notes_y_start - 1.2 * inch)
     notes_p.drawOn(p, x_offset + 0.1 * inch, notes_y_start - 0.1 * inch - h)
-    # --- END OF MODIFICATION ---
 
     p.showPage()
     p.save()
