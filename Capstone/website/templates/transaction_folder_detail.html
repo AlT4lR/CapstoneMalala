@@ -114,12 +114,11 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Create Check Modal Logic ---
     flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y", });
-
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
-    
     if (createCheckModal) {
         const openModal = () => { createCheckModal.classList.remove('hidden'); setTimeout(() => createCheckModal.classList.add('active'), 10); };
         const closeModal = () => { createCheckModal.classList.remove('active'); createCheckModal.addEventListener('transitionend', () => { createCheckModal.classList.add('hidden'); }, { once: true }); };
@@ -128,13 +127,12 @@ document.addEventListener('DOMContentLoaded', function() {
         createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
     }
 
+    // --- Edit Check Modal Logic ---
     const editCheckModal = document.getElementById('edit-check-modal');
     const closeEditCheckBtn = document.getElementById('close-edit-check-modal-btn');
     const cancelEditCheckBtn = document.getElementById('cancel-edit-check-btn');
     const editCheckForm = document.getElementById('edit-check-form');
-
     flatpickr("#edit-check-date-field", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-    
     if(editCheckModal) {
         const openEditCheckModal = () => { editCheckModal.classList.remove('hidden'); setTimeout(() => editCheckModal.classList.add('active'), 10); };
         const closeEditCheckModal = () => { editCheckModal.classList.remove('active'); editCheckModal.addEventListener('transitionend', () => editCheckModal.classList.add('hidden'), { once: true }); };
@@ -142,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelEditCheckBtn.addEventListener('click', closeEditCheckModal);
         editCheckModal.addEventListener('click', e => { if (e.target === editCheckModal) closeEditCheckModal(); });
     }
-
     document.querySelectorAll('.edit-check-btn').forEach(button => {
         button.addEventListener('click', async function() {
             const checkId = this.dataset.id;
@@ -150,14 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`/api/transactions/details/${checkId}`);
                 if (!response.ok) throw new Error('Failed to fetch check details');
                 const data = await response.json();
-
                 document.getElementById('edit-check-id').value = checkId;
                 document.getElementById('edit-check-name').value = data.name || '';
                 document.getElementById('edit-check-no').value = data.check_no || '';
                 document.getElementById('edit-check-date-field').value = data.check_date || '';
                 document.getElementById('edit-check-ewt').value = data.ewt || '0.00';
                 document.getElementById('edit-check-countered').value = data.countered_check || '0.00';
-                
                 editCheckModal.classList.remove('hidden');
                 setTimeout(() => editCheckModal.classList.add('active'), 10);
             } catch (error) {
@@ -166,7 +161,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -174,21 +168,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitButton = this.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
-            
             const editFormData = new FormData(this);
-
             try {
                 const response = await fetch(`/api/transactions/update/${checkId}`, {
                     method: 'POST',
-                    body: new URLSearchParams(editFormData).toString(),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
-                    }
+                    body: new URLSearchParams(editFormData),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
                 });
-                if (response.ok) {
-                    window.location.reload();
-                } else {
+                if (response.ok) { window.location.reload(); }
+                else {
                     const result = await response.json();
                     alert('Error: ' + (result.error || 'Could not save changes.'));
                     submitButton.disabled = false;
@@ -203,18 +191,66 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- Pay and Delete Button Logic ---
     const payBtn = document.getElementById('pay-btn');
     const notesTextarea = document.getElementById('notes-textarea');
-    const folderTotalAmount = parseFloat("{{ folder.amount or 0 }}");
-    const totalCounteredChecks = parseFloat("{{ total_countered_check }}");
-
+    
+    // --- START OF FINAL FIX: Robust validation and debugging for Pay button ---
     function validateForPayment() {
-        const canPay = folderTotalAmount > 0 && Math.abs(folderTotalAmount - totalCounteredChecks) < 0.001;
-        payBtn.disabled = !canPay;
+        // Round both numbers to 2 decimal places to avoid floating point errors
+        const folderTotalAmount = Math.round(parseFloat("{{ folder.amount or 0 }}") * 100) / 100;
+        const totalCounteredChecks = Math.round(parseFloat("{{ total_countered_check }}") * 100) / 100;
+
+        // DEBUGGING: Open the browser console (F12) to see these values
+        console.log("--- Pay Button Validation ---");
+        console.log("Debt (Folder Amount):", folderTotalAmount);
+        console.log("Paid (Issued Checks):", totalCounteredChecks);
+
+        const canPay = folderTotalAmount > 0 && folderTotalAmount === totalCounteredChecks;
+        
+        console.log("Is button enabled?", canPay);
+        console.log("---------------------------");
+
+        if (payBtn) {
+            payBtn.disabled = !canPay;
+        }
     }
+    
+    // Run the check when the page loads
     validateForPayment();
 
-    if(payBtn) { payBtn.addEventListener('click', async () => { /* ... existing pay logic ... */ }); }
+    if (payBtn) {
+        payBtn.addEventListener('click', async () => {
+            const folderId = "{{ folder._id }}";
+            const finalNotes = notesTextarea.value;
+
+            payBtn.disabled = true;
+            payBtn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                    },
+                    body: JSON.stringify({ notes: finalNotes })
+                });
+
+                if (response.ok) {
+                     window.location.href = "{{ url_for('main.transactions_paid') }}";
+                } else {
+                    alert('Failed to process payment. Please try again.');
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('A network error occurred.');
+                window.location.reload();
+            }
+        });
+    }
+    // --- END OF FINAL FIX ---
 });
 </script>
 {% endblock %}
