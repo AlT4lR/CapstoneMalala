@@ -10,12 +10,13 @@ logger = logging.getLogger(__name__)
 
 def get_analytics_data(username, branch, year, month):
     """
-    Generates data for the main analytics chart with a dynamic scale.
+    Generates data for the main analytics chart with a dynamic scale based on the year's max earning.
     """
     db = current_app.db
     if db is None: return {}
 
     try:
+        # Date calculations for the year and current month
         year_start = datetime(year, 1, 1, tzinfo=pytz.utc)
         year_end = datetime(year + 1, 1, 1, tzinfo=pytz.utc)
         month_start = datetime(year, month, 1, tzinfo=pytz.utc)
@@ -32,6 +33,7 @@ def get_analytics_data(username, branch, year, month):
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }
 
+        # 1. Total Earning for the Year
         year_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': None, 'total': {'$sum': '$amount'}}}
@@ -39,6 +41,7 @@ def get_analytics_data(username, branch, year, month):
         year_result = list(db.transactions.aggregate(year_pipeline))
         total_year_earning = year_result[0]['total'] if year_result else 0.0
 
+        # 2. Monthly Breakdowns for Chart Data
         month_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
             {'$group': {'_id': {'$month': '$paidAt'}, 'total': {'$sum': '$amount'}}}
@@ -46,11 +49,13 @@ def get_analytics_data(username, branch, year, month):
         monthly_totals_docs = list(db.transactions.aggregate(month_pipeline))
         monthly_totals = {doc['_id']: doc['total'] for doc in monthly_totals_docs}
         
+        # Determine the maximum monthly earning for dynamic chart scaling
         max_earning_for_year = max(monthly_totals.values(), default=0)
 
         chart_data = []
         for i in range(1, 13):
             total = monthly_totals.get(i, 0.0)
+            # Calculate each bar's height relative to the year's highest earning month.
             percentage = (total / max_earning_for_year * 100) if max_earning_for_year > 0 else 0
             chart_data.append({
                 'month_name': month_name[i][:3].upper(),
@@ -60,6 +65,7 @@ def get_analytics_data(username, branch, year, month):
                 'is_current_month': i == datetime.now().month and year == datetime.now().year
             })
 
+        # 3. Weekly Breakdown for Current Month
         weekly_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': month_start, '$lt': month_end}}},
             {'$project': { 'amount': 1, 'weekOfMonth': {'$min': [ 4, {'$add': [{'$floor': {'$divide': [{'$subtract': [{'$dayOfMonth': '$paidAt'}, 1]}, 7]}}, 1]}]}}},
@@ -68,12 +74,14 @@ def get_analytics_data(username, branch, year, month):
         ]
         weekly_docs = list(db.transactions.aggregate(weekly_pipeline))
         weekly_totals_dict = {doc['_id']: doc['total'] for doc in weekly_docs}
+        # Assuming a maximum of 4 weeks for the breakdown (as per the $min: [4, ...] logic)
         weekly_breakdown = [{'week': f"Week {i}", 'total': weekly_totals_dict.get(i, 0.0)} for i in range(1, 5)]
         current_month_total = monthly_totals.get(month, 0.0)
 
         return {
             'year': year,
             'total_year_earning': total_year_earning,
+            'max_earning_for_year': max_earning_for_year, # Included from the 'Final Fix' version
             'current_month_name': month_name[month],
             'current_month_total': current_month_total,
             'chart_data': chart_data,
@@ -82,17 +90,23 @@ def get_analytics_data(username, branch, year, month):
     except Exception as e:
         logger.error(f"Error getting analytics data for {username}: {e}", exc_info=True)
         return {
-            'year': year, 'total_year_earning': 0,
+            'year': year, 'total_year_earning': 0, 'max_earning_for_year': 0,
             'current_month_name': month_name[month], 'current_month_total': 0,
             'chart_data': [], 'weekly_breakdown': []
         }
 
 def get_weekly_billing_summary(username, branch, year, week):
+    """
+    Generates a summary of billing for a specific week, including transactions, EWT, countered checks, and loans.
+    """
     db = current_app.db
     if db is None: return {}
     try:
+        # Calculate start and end of the specified ISO week
         start_of_week = datetime.fromisocalendar(year, week, 1).replace(tzinfo=pytz.utc)
         end_of_week = start_of_week + timedelta(days=7)
+        
+        # Find parent transactions (the checks/billing folders) for the week
         parent_folders = list(db.transactions.find({
             'username': username, 'branch': branch, 'status': 'Paid', 'parent_id': None, 
             'paidAt': {'$gte': start_of_week, '$lt': end_of_week},
@@ -100,6 +114,8 @@ def get_weekly_billing_summary(username, branch, year, week):
         }))
         total_check_amount = sum(folder.get('amount', 0) for folder in parent_folders)
         parent_ids = [folder['_id'] for folder in parent_folders]
+        
+        # Aggregate child transactions (EWT and Countered Checks)
         total_ewt, total_countered = 0, 0
         if parent_ids:
             child_pipeline = [
@@ -110,6 +126,8 @@ def get_weekly_billing_summary(username, branch, year, week):
             if child_result:
                 total_ewt = child_result[0].get('total_ewt', 0)
                 total_countered = child_result[0].get('total_countered', 0)
+
+        # Aggregate loans paid within the week
         loans_pipeline = [
             {'$match': {
                 'username': username, 'branch': branch,
@@ -120,6 +138,7 @@ def get_weekly_billing_summary(username, branch, year, week):
         ]
         loans_result = list(db.loans.aggregate(loans_pipeline))
         total_loans = loans_result[0]['total_loans'] if loans_result else 0
+
         return {
             'check_amount': total_check_amount, 'ewt_collected': total_ewt,
             'countered_check': total_countered, 'other_loans': total_loans
