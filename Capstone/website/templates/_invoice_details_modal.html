@@ -14,15 +14,12 @@
             </button>
         </header>
 
-        <!-- --- START OF MODIFICATION: Redesigned main content area --- -->
         <main class="flex-1 flex flex-col md:flex-row items-stretch overflow-hidden bg-white">
             
-            <!-- Image Container -->
             <div id="modal-image-container" class="w-full md:w-2/3 lg:w-3/4 h-1/2 md:h-full flex items-center justify-center p-4 bg-[#f6f7f1]">
                  <img id="modal-invoice-image" src="" alt="Invoice Image" class="max-w-full max-h-full object-contain">
             </div>
 
-            <!-- Details & Thumbnails Sidebar -->
             <aside class="w-full md:w-1/3 lg:w-1/4 h-1/2 md:h-full flex flex-col border-t md:border-t-0 md:border-l border-gray-300 bg-gray-50">
                 <h3 class="p-3 font-semibold text-[#3a4d39] border-b bg-gray-100 flex-shrink-0">Details</h3>
                 <div class="p-3 space-y-2 text-sm border-b">
@@ -39,12 +36,13 @@
                         <span id="detail-date" class="font-semibold text-right"></span>
                     </div>
                 </div>
-                <div id="thumbnail-container" class="flex-1 p-3 overflow-y-auto space-y-2">
+                <!-- --- START OF MODIFICATION: Added max-height and custom scrollbar --- -->
+                <div id="thumbnail-container" class="flex-1 p-3 overflow-y-auto space-y-2 max-h-80 custom-scrollbar">
                     <!-- Thumbnails will be injected here by JS -->
                 </div>
+                <!-- --- END OF MODIFICATION --- -->
             </aside>
         </main>
-        <!-- --- END OF MODIFICATION --- -->
 
         <footer class="p-3 flex justify-end gap-3 flex-shrink-0 bg-[#eef2e9] border-t">
             <button id="modal-edit-btn" class="px-6 py-2 bg-white border border-gray-400 text-[#3a4d39] font-semibold rounded-lg shadow-sm hover:bg-gray-100">Edit</button>
