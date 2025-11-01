@@ -72,10 +72,12 @@ class ResetPasswordForm(FlaskForm):
 
 
 class UpdatePersonalInfoForm(FlaskForm):
+    """Form for updating user's personal information."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
     submit = SubmitField('Save')
 
 class ChangePasswordForm(FlaskForm):
+    """Form for changing the user's password."""
     old_password = PasswordField('Old Password', validators=[DataRequired()])
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=12), password_complexity])
     confirm_new_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('new_password', message='New passwords must match.')])
@@ -87,23 +89,26 @@ class ChangePasswordForm(FlaskForm):
 # -------------------------
 
 class TransactionForm(FlaskForm):
+    """Form for creating transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
+    # --- START OF FIX: Ensure 'amount' is part of the form ---
+    amount = DecimalField('Total Check Amount (Debt)', validators=[Optional()])
+    # --- END OF FIX ---
     submit = SubmitField('Add')
 
 
-# --- START OF MODIFICATION: Simplified Edit Form for Folders ---
 class EditTransactionForm(FlaskForm):
-    """Form for editing a transaction folder's basic details."""
+    """Form for editing a transaction FOLDER."""
     name = StringField('Folder Name', validators=[DataRequired(), Length(max=100)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
+    amount = DecimalField('Total Check Amount (Debt)', validators=[Optional()])
     submit = SubmitField('Save Changes')
-# --- END OF MODIFICATION ---
 
 
 # -------------------------
@@ -111,6 +116,7 @@ class EditTransactionForm(FlaskForm):
 # -------------------------
 
 class LoanForm(FlaskForm):
+    """Form for the 'Create Loan' modal."""
     name_of_loan = StringField('Name Of Loans', validators=[DataRequired(), Length(max=100)])
     bank_name = StringField('Bank Name', validators=[DataRequired(), Length(max=100)])
     amount = DecimalField('Amount', validators=[DataRequired()])

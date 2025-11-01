@@ -40,7 +40,6 @@
                 <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-[#6f8a6e] hover:shadow-md transition-all duration-200 transaction-row group" data-name="{{ t.name }}">
                     <div class="md:grid md:grid-cols-12 md:gap-4 md:items-center px-4 py-3">
                         
-                        <!-- Mobile View -->
                         <div class="md:hidden">
                             <div class="flex justify-between items-start">
                                 <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="flex items-center gap-3 min-w-0">
@@ -60,7 +59,6 @@
                             </a>
                         </div>
                         
-                        <!-- Desktop View -->
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:flex col-span-5 items-center gap-3 min-w-0">
                             <i class="fa-solid fa-folder text-gray-400 fa-lg"></i>
                             <span class="font-semibold text-gray-800 transaction-name-display truncate selectable-text">{{ t.name }}</span>
@@ -83,8 +81,6 @@
         </div>
     </div>
 </main>
-
-<!-- --- START OF MODIFICATION: Simplified Edit Modal --- -->
 <div id="edit-transaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
     <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-lg p-8 relative text-gray-700">
         <button id="close-edit-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
@@ -95,29 +91,32 @@
             <input type="hidden" id="edit-transaction-id" name="transaction_id">
             {{ edit_form.hidden_tag() }}
 
-            <div>
-                {{ edit_form.name.label(class="block text-sm font-semibold mb-2") }}
-                {{ edit_form.name(id="edit-name", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
+            <div class="space-y-4">
+                <div>
+                    {{ edit_form.name.label(class="block text-sm font-semibold mb-2") }}
+                    {{ edit_form.name(id="edit-name", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                </div>
+                <div>
+                    {{ edit_form.check_date.label(class="block text-sm font-semibold mb-2") }}
+                    {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
+                </div>
+                <div>
+                    {{ edit_form.due_date.label(class="block text-sm font-semibold mb-2") }}
+                    {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
+                </div>
+                 <div>
+                    {{ edit_form.amount.label(class="block text-sm font-semibold mb-2") }}
+                    {{ edit_form.amount(id="edit-amount", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
+                </div>
             </div>
-            <div>
-                {{ edit_form.check_date.label(class="block text-sm font-semibold mb-2") }}
-                {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
-            </div>
-            <div>
-                {{ edit_form.due_date.label(class="block text-sm font-semibold mb-2") }}
-                {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
-            </div>
-
-            <div class="flex justify-end pt-6 space-x-4">
+            <div class="flex justify-end mt-6 space-x-4">
                 <button type="button" id="cancel-edit-btn" class="px-8 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg">Cancel</button>
                 <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg">Save Changes</button>
             </div>
         </form>
     </div>
 </div>
-<!-- --- END OF MODIFICATION --- -->
 {% endblock %}
-
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
@@ -128,27 +127,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (searchInput && transactionRows.length > 0) {
         searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim();
-            const searchTermLower = searchTerm.toLowerCase();
+            const searchTerm = this.value.trim().toLowerCase();
             let visibleCount = 0;
-
             transactionRows.forEach(row => {
                 const nameDisplayElement = row.querySelector('.transaction-name-display');
                 if (!nameDisplayElement) return;
-
-                const originalName = row.dataset.name;
-                const originalNameLower = originalName.toLowerCase();
-
-                if (searchTermLower === '' || originalNameLower.includes(searchTermLower)) {
+                const originalName = row.dataset.name.toLowerCase();
+                if (searchTerm === '' || originalName.includes(searchTerm)) {
                     row.style.display = 'block';
                     visibleCount++;
-
-                    if (searchTermLower === '') {
-                        nameDisplayElement.innerHTML = originalName;
-                    } else {
-                        const regex = new RegExp(searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-                        nameDisplayElement.innerHTML = originalName.replace(regex, match => `<mark class="bg-yellow-200 px-0 rounded-sm">${match}</mark>`);
-                    }
                 } else {
                     row.style.display = 'none';
                 }
@@ -157,30 +144,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    flatpickr("#edit-check-date", {
-        dateFormat: "Y-m-d",
-        altInput: true,
-        altFormat: "F j, Y",
-    });
-    flatpickr("#edit-due-date", {
-        dateFormat: "Y-m-d",
-        altInput: true,
-        altFormat: "F j, Y",
-    });
+    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    flatpickr("#edit-due-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
 
     const editModal = document.getElementById('edit-transaction-modal');
     const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const editForm = document.getElementById('edit-transaction-form');
 
-    const openEditModal = () => {
-        editModal.classList.remove('hidden');
-        setTimeout(() => editModal.classList.add('active'), 10);
-    };
-    const closeEditModal = () => {
-        editModal.classList.remove('active');
-        editModal.addEventListener('transitionend', () => editModal.classList.add('hidden'), { once: true });
-    };
+    const openEditModal = () => { editModal.classList.remove('hidden'); setTimeout(() => editModal.classList.add('active'), 10); };
+    const closeEditModal = () => { editModal.classList.remove('active'); editModal.addEventListener('transitionend', () => editModal.classList.add('hidden'), { once: true }); };
 
     if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
     if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
@@ -194,12 +167,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) throw new Error('Failed to fetch transaction details');
                 const data = await response.json();
 
-                // --- START OF MODIFICATION: Populate simplified modal ---
                 document.getElementById('edit-transaction-id').value = transactionId;
                 document.getElementById('edit-name').value = data.name || '';
                 document.getElementById('edit-check-date').value = data.check_date || '';
                 document.getElementById('edit-due-date').value = data.due_date || '';
-                // --- END OF MODIFICATION ---
+                document.getElementById('edit-amount').value = data.amount || '0.00';
 
                 openEditModal();
             } catch (error) {
@@ -224,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: new URLSearchParams(formData).toString(),
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
                     }
                 });
                 if (response.ok) {
@@ -252,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const response = await fetch(`/api/transactions/${transactionId}`, {
                         method: 'DELETE',
-                        headers: { 'X-CSRF-Token': window.getCSRFToken() }
+                        headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
                     });
                     if (response.ok) {
                         window.location.reload();

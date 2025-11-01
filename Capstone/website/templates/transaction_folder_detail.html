@@ -4,7 +4,6 @@
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
-    <!-- Header -->
     <header class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold uppercase">Transactions</h2>
       <div class="flex items-center gap-4">
@@ -17,19 +16,15 @@
       </div>
     </header>
 
-    <!-- "Go Back" button link is now correct -->
     <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
       <i class="fa-solid fa-arrow-left"></i>
       Go Back...
     </a>
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
 
-    <!-- Main content grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
 
-      <!-- Left side container -->
       <div class="lg:col-span-2 flex flex-col">
-        <!-- White box for the scrollable list -->
         <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
           <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
             <span class="col-span-3">Name of issued Checked</span>
@@ -41,9 +36,7 @@
 
           <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
               {% for check in child_checks %}
-              <!-- --- START OF MODIFICATION: Responsive row --- -->
               <div class="check-row border-b hover:bg-gray-50 transition-colors" data-name="{{ check.name | lower }}">
-                  <!-- Mobile Card View -->
                   <div class="p-3 md:hidden">
                       <div class="flex justify-between items-start mb-2 gap-2">
                           <p class="font-semibold text-gray-800 break-words">{{ check.name }}</p>
@@ -74,7 +67,6 @@
                       </div>
                   </div>
 
-                  <!-- Desktop Table Row View -->
                   <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-3 items-center">
                       <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
                       <span class="col-span-2">{{ check.check_no }}</span>
@@ -91,7 +83,6 @@
                       </div>
                   </div>
               </div>
-              <!-- --- END OF MODIFICATION --- -->
               {% else %}
               <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
               {% endfor %}
@@ -106,17 +97,16 @@
         </div>
       </div>
 
-      <!-- Right side -->
       <div class="flex flex-col space-y-4">
         <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
           <label class="font-medium text-sm">Notes</label>
           <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
           
-          <label class="font-medium text-sm">Total Countered Checks</label>
-          <input type="text" id="total-countered-checks-display" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+          <label for="check-amount-display" class="font-medium text-sm">Total Check Amount (Debt)</label>
+          <input type="text" id="check-amount-display" value="₱ {{ "{:,.2f}".format(folder.amount) if folder.amount else '0.00' }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
           
-          <label for="check-amount-input" class="font-medium text-sm">Check Amount</label>
-          <input type="number" id="check-amount-input" name="check_amount" placeholder="₱ 0.00" step="0.01" class="p-2 bg-white border border-gray-300 rounded-md font-mono focus:ring-2 focus:ring-[#6f8a6e] focus:outline-none">
+          <label class="font-medium text-sm">Total of Issued Checks</label>
+          <input type="text" id="total-countered-checks-display" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
         </div>
 
         <div class="flex justify-end">
@@ -136,7 +126,6 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Search Logic ---
     const searchInput = document.getElementById('search-input');
     const checkRows = document.querySelectorAll('.check-row');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -160,9 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    flatpickr("#check_date", {
-        dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y",
-    });
+    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y", });
 
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
@@ -178,23 +165,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const payBtn = document.getElementById('pay-btn');
     const notesTextarea = document.getElementById('notes-textarea');
-    const checkAmountInput = document.getElementById('check-amount-input');
+    
+    const folderTotalAmount = parseFloat("{{ folder.amount or 0 }}");
     const totalCounteredChecks = parseFloat("{{ total_countered_check }}");
 
-    function validateAmount() {
-        const enteredAmount = parseFloat(checkAmountInput.value);
-        const areEqual = Math.abs(enteredAmount - totalCounteredChecks) < 0.001;
-        payBtn.disabled = !areEqual;
+    function validateForPayment() {
+        const canPay = folderTotalAmount > 0 && Math.abs(folderTotalAmount - totalCounteredChecks) < 0.001;
+        payBtn.disabled = !canPay;
     }
     
-    if (checkAmountInput) {
-        checkAmountInput.addEventListener('input', validateAmount);
-    }
+    validateForPayment();
 
     payBtn.addEventListener('click', async () => {
         const folderId = "{{ folder._id }}";
         const finalNotes = notesTextarea.value;
-        const finalAmount = parseFloat(checkAmountInput.value);
 
         payBtn.disabled = true;
         payBtn.textContent = 'Processing...';
@@ -204,19 +188,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
                 },
-                body: JSON.stringify({ notes: finalNotes, amount: finalAmount })
+                body: JSON.stringify({ notes: finalNotes })
             });
 
             if (response.ok) {
                  window.location.href = "{{ url_for('main.transactions_paid') }}";
             } else {
+                alert('Failed to process payment. Please try again.');
                 window.location.reload();
             }
            
         } catch (error) {
             console.error('Error:', error);
+            alert('A network error occurred.');
             window.location.reload();
         }
     });
