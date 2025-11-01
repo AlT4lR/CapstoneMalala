@@ -23,16 +23,14 @@ def get_analytics_data(username, branch, year, month):
         next_year_val = year if month < 12 else year + 1
         month_end = datetime(next_year_val, next_month_val, 1, tzinfo=pytz.utc)
 
-        # --- START OF FIX: Add a robust check for the 'paidAt' field ---
         base_match = {
             'username': username, 
             'branch': branch, 
             'status': 'Paid', 
             'parent_id': None,
-            'paidAt': {'$exists': True, '$type': "date"}, # Ensures paidAt is a valid date
+            'paidAt': {'$exists': True, '$type': "date"},
             '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
         }
-        # --- END OF FIX ---
 
         year_pipeline = [
             {'$match': {**base_match, 'paidAt': {'$gte': year_start, '$lt': year_end}}},
@@ -76,7 +74,6 @@ def get_analytics_data(username, branch, year, month):
         return {
             'year': year,
             'total_year_earning': total_year_earning,
-            'max_earning_for_year': max_earning_for_year,
             'current_month_name': month_name[month],
             'current_month_total': current_month_total,
             'chart_data': chart_data,
@@ -84,9 +81,8 @@ def get_analytics_data(username, branch, year, month):
         }
     except Exception as e:
         logger.error(f"Error getting analytics data for {username}: {e}", exc_info=True)
-        # Return an empty but valid structure on error
         return {
-            'year': year, 'total_year_earning': 0, 'max_earning_for_year': 0,
+            'year': year, 'total_year_earning': 0,
             'current_month_name': month_name[month], 'current_month_total': 0,
             'chart_data': [], 'weekly_breakdown': []
         }
