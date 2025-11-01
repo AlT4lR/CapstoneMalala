@@ -51,7 +51,6 @@
 
     <!-- Loans Section -->
     <section class="bg-white rounded-lg shadow-sm border border-[#e1e4d5] p-4 flex-1 flex flex-col">
-        <!-- Section Header with Search -->
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
             <h2 class="text-lg font-bold">Loans</h2>
             <div class="relative">
@@ -61,50 +60,39 @@
         </div>
 
         <div class="flex-1 flex flex-col min-h-0">
-            <!-- Table Header (Desktop Only) -->
-            <div class="hidden sm:grid grid-cols-12 items-center px-3 py-2 text-sm font-semibold bg-[#3a4d39] text-white rounded-t-md">
+            <div class="hidden sm:grid grid-cols-11 items-center px-3 py-2 text-sm font-semibold bg-[#3a4d39] text-white rounded-t-md">
                 <span class="col-span-3">Name Of Loans</span>
                 <span class="col-span-2">Bank Name</span>
-                <span class="col-span-2">Amount</span>
                 <span class="col-span-2">Date Issued</span>
                 <span class="col-span-2">Date Paid</span>
-                <span class="col-span-1 text-right">Actions</span>
+                <span class="col-span-2">Amount</span>
             </div>
 
-            <!-- Table Body -->
             <div id="loan-list-container" class="flex-1 overflow-y-auto">
                 {% for loan in loans %}
                 {% set date_issued = loan.date_issued %}
                 {% set week_num = (date_issued.isocalendar()[1]) if date_issued else 0 %}
                 {% set year_num = date_issued.year if date_issued else 0 %}
-                <div class="loan-item sm:grid sm:grid-cols-12 sm:items-center sm:px-3 sm:py-2.5 border-b text-sm hover:bg-gray-50" 
+                <div class="loan-item sm:grid sm:grid-cols-11 sm:items-center sm:px-3 sm:py-2.5 border-b text-sm hover:bg-gray-50" 
                      data-name="{{ loan.name | lower }}"
                      data-week="{{ week_num }}"
                      data-year="{{ year_num }}">
                     
-                    <!-- Mobile Card View -->
                     <div class="p-3 sm:hidden">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="font-semibold text-gray-800 break-words selectable-text">{{ loan.name }}</p>
-                            <button class="text-gray-400 hover:text-[#3a4d39] p-1 -mt-1 flex-shrink-0"><i class="fa-solid fa-pen-to-square"></i></button>
-                        </div>
+                        <p class="font-semibold text-gray-800 break-words selectable-text mb-2">{{ loan.name }}</p>
                         <div class="space-y-1 text-gray-600">
                             <p><strong class="font-medium text-gray-500">Bank:</strong> <span class="selectable-text">{{ loan.bank_name }}</span></p>
-                            <p><strong class="font-medium text-gray-500">Amount:</strong> <span class="selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span></p>
                             <p><strong class="font-medium text-gray-500">Issued:</strong> <span class="selectable-text">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span></p>
                             <p><strong class="font-medium text-gray-500">Paid:</strong> <span class="selectable-text">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span></p>
+                            <p><strong class="font-medium text-gray-500">Amount:</strong> <span class="selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span></p>
                         </div>
                     </div>
 
-                    <!-- Desktop Table Row View -->
                     <span class="hidden sm:block col-span-3 font-medium truncate selectable-text">{{ loan.name }}</span>
                     <span class="hidden sm:block col-span-2 text-gray-600 truncate selectable-text">{{ loan.bank_name }}</span>
-                    <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
                     <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">{{ loan.date_issued.strftime('%m/%d/%Y') if loan.date_issued else 'N/A' }}</span>
                     <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">{{ loan.date_paid.strftime('%m/%d/%Y') if loan.date_paid else '-' }}</span>
-                    <div class="hidden sm:flex col-span-1 justify-end">
-                        <button class="text-gray-400 hover:text-[#3a4d39]"><i class="fa-solid fa-pen-to-square"></i></button>
-                    </div>
+                    <span class="hidden sm:block col-span-2 text-gray-600 selectable-text">₱ {{ "{:,.2f}".format(loan.amount) }}</span>
                 </div>
                 {% else %}
                 <p id="no-loans-message" class="text-center text-gray-500 p-8">No loans have been recorded for this branch yet.</p>
@@ -189,10 +177,11 @@
         const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
         function getWeekNumber(d) {
-            const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-            date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
-            const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-            return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            return weekNo;
         }
 
         function filterAndSearchLoans(year, week) {
@@ -207,7 +196,7 @@
                 const searchMatches = (itemName.includes(searchTerm));
 
                 if (weekMatches && searchMatches) {
-                    item.style.display = 'grid';
+                    item.style.display = 'grid'; // Use 'grid' for desktop view consistency
                     visibleCount++;
                 } else {
                     item.style.display = 'none';
@@ -259,21 +248,30 @@
             weekButtonsContainer.innerHTML = '';
 
             const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-            const startWeekNum = getWeekNumber(firstDayOfMonth);
+            let currentDay = new Date(firstDayOfMonth);
+            let weeksInMonth = [];
 
-            for (let i = 0; i < 4; i++) {
-                const weekNum = startWeekNum + i;
+            while (currentDay.getUTCMonth() === month) {
+                const weekNum = getWeekNumber(currentDay);
+                if (!weeksInMonth.includes(weekNum)) {
+                    weeksInMonth.push(weekNum);
+                }
+                currentDay.setUTCDate(currentDay.getUTCDate() + 7);
+            }
+
+            weeksInMonth.forEach((weekNum, index) => {
                 const button = document.createElement('button');
                 button.dataset.weekIndex = weekNum;
-                button.textContent = `WEEK ${i + 1}`;
+                button.textContent = `WEEK ${index + 1}`;
                 button.className = 'week-btn bg-[#6f8a6e] hover:bg-[#7f9c7e] border-2 border-transparent text-white font-semibold py-2 rounded-md transition-colors';
                 weekButtonsContainer.appendChild(button);
-            }
+            });
             
             const today = new Date();
+            const startWeekNum = weeksInMonth[0];
             if (today.getUTCFullYear() === year && today.getUTCMonth() === month) {
                  const todayWeekNum = getWeekNumber(today);
-                 currentWeek = (todayWeekNum >= startWeekNum && todayWeekNum < startWeekNum + 4) ? todayWeekNum : startWeekNum;
+                 currentWeek = weeksInMonth.includes(todayWeekNum) ? todayWeekNum : startWeekNum;
             } else {
                 currentWeek = startWeekNum;
             }

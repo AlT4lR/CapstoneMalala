@@ -1,6 +1,6 @@
 from flask import (
     Blueprint, render_template, request, redirect, url_for, session,
-    send_from_directory, jsonify, flash, current_app, abort
+    send_from_directory, jsonify, flash, current_app
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from werkzeug.utils import secure_filename
@@ -11,14 +11,13 @@ import pytz
 
 from . import main
 from ..models import (
-    # ... (other model imports)
     get_transactions_by_status, get_recent_activity, get_archived_items, 
     log_user_activity, restore_item, delete_item_permanently, 
     save_push_subscription, get_unread_notification_count, 
     get_notifications, mark_single_notification_as_read, 
     get_schedules, get_user_by_username, update_personal_info, 
-    check_password, update_user_password,
-    get_transaction_by_id, get_invoice_by_id # IMPORTANT: These imports must be present
+    check_password, update_user_password, get_transaction_by_id,
+    get_child_transactions_by_parent_id, get_invoice_by_id
 )
 from ..forms import UpdatePersonalInfoForm, ChangePasswordForm
 
@@ -46,7 +45,7 @@ def splash():
 @main.route('/')
 def root_route():
     try:
-        verify_jwt_in_request(optional=True) # Ensure this is called to check JWT if present
+        verify_jwt_in_request(optional=True)
         if get_jwt_identity():
             return redirect(url_for('main.dashboard')) if session.get('selected_branch') else redirect(url_for('main.branches'))
         return redirect(url_for('auth.login'))
@@ -68,7 +67,6 @@ def select_branch(branch_name):
 @main.route('/change_branch')
 @jwt_required()
 def change_branch():
-    """Clears the selected branch from the session to allow re-selection."""
     session.pop('selected_branch', None)
     return redirect(url_for('main.branches'))
 
@@ -152,7 +150,6 @@ def update_personal_info_route():
 
     if form.validate_on_submit():
         update_data['name'] = form.name.data
-        # Log name change if it's different from the current name
         user = get_user_by_username(username)
         if user and user.get('name') != form.name.data:
             log_user_activity(username, 'Updated personal name')
@@ -173,10 +170,8 @@ def update_personal_info_route():
         if activity_logged:
             flash('Your information has been updated successfully!', 'success')
         else:
-            # If nothing was changed but the user hit save, a simple confirmation is better
             flash('No changes were made to your information.', 'info')
     else:
-        # Fallback error flash if model update failed or form validation failed
         if form.errors:
             first_error_field = next(iter(form.errors))
             flash(form.errors[first_error_field][0], 'error')
@@ -220,7 +215,6 @@ def archive():
 @main.route('/uploads/profile_pics/<path:filename>')
 @jwt_required()
 def serve_profile_picture(filename):
-    """Provides a secure endpoint to access uploaded profile pictures."""
     return send_from_directory(current_app.config['PROFILE_PIC_FOLDER'], filename)
 
 # --- Core API Routes ---
@@ -290,24 +284,43 @@ def delete_item_permanently_route(item_type, item_id):
         return jsonify({'success': True}), 200
     return jsonify({'error': 'An unexpected error occurred.'}), 500
 
-# --- START OF MODIFICATION: New API endpoints for viewing ARCHIVED item details ---
+# --- START OF FIX: Add the missing routes ---
+@main.route('/archive/view/transaction/<transaction_id>')
+@jwt_required()
+def view_archived_transaction_folder(transaction_id):
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+
+    if not folder or not folder.get('isArchived'):
+        flash('Archived transaction not found.', 'error')
+        return redirect(url_for('main.archive'))
+
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+
+    return render_template(
+        'view_archived_folder.html',
+        folder=folder,
+        child_checks=child_checks,
+        total_countered_check=total_countered_check,
+        show_sidebar=True
+    )
+
 @main.route('/api/archive/details/transaction/<item_id>', methods=['GET'])
 @jwt_required()
 def get_archived_transaction_details(item_id):
     username = get_jwt_identity()
-    # We can reuse the existing get_transaction_by_id as it doesn't filter by `isArchived`
     transaction_data = get_transaction_by_id(username, item_id)
     if transaction_data:
         return jsonify(transaction_data)
     return jsonify({'error': 'Archived transaction not found'}), 404
+# --- END OF FIX ---
 
 @main.route('/api/archive/details/invoice/<item_id>', methods=['GET'])
 @jwt_required()
 def get_archived_invoice_details(item_id):
     username = get_jwt_identity()
-    # We can reuse the existing get_invoice_by_id
     invoice_data = get_invoice_by_id(username, item_id)
     if invoice_data:
         return jsonify(invoice_data)
     return jsonify({'error': 'Archived invoice not found'}), 404
-# --- END OF MODIFICATION ---

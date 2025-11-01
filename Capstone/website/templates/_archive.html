@@ -85,8 +85,7 @@
 
     <div id="confirm-modal">
         <div class="bg-white rounded-lg shadow-xl p-6 text-center w-full max-w-sm m-4">
-            <div id="confirm-icon-container" class="mb-3">
-                </div>
+            <div id="confirm-icon-container" class="mb-3"></div>
             <h2 class="text-lg font-bold text-gray-800 mb-2" id="confirm-title">Are you sure?</h2>
             <p class="text-gray-600 text-sm mb-6" id="confirm-message">
                 This action cannot be undone.
@@ -144,11 +143,20 @@
 
         <div id="archive-list" class="flex-1 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
             {% for item in archived_items %}
-            <div class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50 cursor-pointer" 
-                data-id="{{ item.id }}" 
-                data-type="{{ item.type }}"
-                data-name="{{ item.name | escape }}">
-            <div class="col-span-1">
+            
+            {% if item.display_category == 'Folder' %}
+                <a href="{{ url_for('main.view_archived_transaction_folder', transaction_id=item.id) }}" class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50" 
+                   data-id="{{ item.id }}" 
+                   data-type="{{ item.type }}"
+                   data-name="{{ item.name | escape }}">
+            {% else %}
+                <div class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50 cursor-pointer" 
+                     data-id="{{ item.id }}" 
+                     data-type="{{ item.type }}"
+                     data-name="{{ item.name | escape }}">
+            {% endif %}
+                
+                <div class="col-span-1">
                     <input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 hidden">
                 </div>
 
@@ -171,7 +179,13 @@
                         <i class="fas fa-history text-lg"></i>
                     </button>
                 </div>
-            </div>
+
+            {% if item.display_category == 'Folder' %}
+                </a>
+            {% else %}
+                </div>
+            {% endif %}
+
             {% else %}
             <div class="flex items-center justify-center h-40">
                 <p class="text-gray-500">The archive is empty.</p>
@@ -186,7 +200,7 @@
             <i class="fas fa-history text-lg"></i>
             <span>Recover</span>
         </button>
-        <button id="bulk-delete-btn" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:bg-red-700 flex items-center gap-3 text-sm">
+        <button id="bulk-delete-btn" class="px-6 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-lg hover:bg-opacity-90 flex items-center gap-3 text-sm">
             <i class="fas fa-trash-alt text-lg"></i>
             <span>Delete</span>
         </button>
@@ -196,6 +210,7 @@
 
 {% include "_transaction_details_modal.html" %}
 {% include "_invoice_details_modal.html" %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -208,11 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const bulkActionsFooter = document.getElementById('bulk-actions-footer');
     const toastSuccess = document.getElementById('toast-success');
     const individualActions = document.querySelectorAll('.individual-action');
-    const searchInput = document.getElementById('search-input');
-    const archiveItems = document.querySelectorAll('.archive-item');
-    const noResultsMessage = document.getElementById('no-results-message');
 
-    // Custom Modal elements (Confirm Modal)
     const confirmModal = document.getElementById('confirm-modal');
     const confirmTitle = document.getElementById('confirm-title');
     const confirmMessage = document.getElementById('confirm-message');
@@ -222,13 +233,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let confirmCallback = null;
     let isSelectionMode = false;
-
-    // --- START OF MODIFICATION: Add Modal variables and Logic ---
+    
     const transactionModal = document.getElementById('transaction-details-modal');
     const invoiceModal = document.getElementById('invoice-details-modal');
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-    // Custom Confirmation Modal Logic
     function showConfirm({ title, message, iconHTML, onConfirm }) {
         confirmTitle.textContent = title;
         confirmMessage.textContent = message;
@@ -244,8 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
     confirmModal.onclick = (e) => {
         if (e.target === confirmModal) confirmModal.classList.remove('active');
     };
-    
-    // --- Selection Mode Logic ---
+
     function updateFooterVisibility() {
         const anyChecked = itemCheckboxes.some(cb => cb.checked);
         bulkActionsFooter.classList.toggle('visible', isSelectionMode && anyChecked);
@@ -278,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     itemCheckboxes.forEach(cb => cb.addEventListener('change', updateFooterVisibility));
 
-    // --- Action Handlers (Restore/Delete) ---
     async function performAction(action, items) {
         if (items.length === 0) return;
         try {
@@ -299,10 +306,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Individual Restore Action
-    document.querySelectorAll('.restore-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            if (isSelectionMode) return;
+    document.getElementById('archive-list').addEventListener('click', function(e) {
+        const restoreButton = e.target.closest('.restore-btn');
+        if (restoreButton) {
+            e.preventDefault();
             const itemElement = e.target.closest('.archive-item');
             const itemData = itemElement.dataset;
             showConfirm({
@@ -311,10 +318,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 iconHTML: '<i class="fas fa-history text-3xl text-green-500"></i>',
                 onConfirm: () => performAction('restore', [itemData])
             });
-        });
+        }
     });
 
-    // Bulk Actions
     document.getElementById('bulk-recover-btn').addEventListener('click', () => {
         const selectedItems = itemCheckboxes.filter(cb => cb.checked).map(cb => cb.closest('.archive-item').dataset);
         if (selectedItems.length > 0) {
@@ -339,89 +345,101 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- View Details Logic (The main new feature) ---
     document.querySelectorAll('.archive-item').forEach(item => {
         item.addEventListener('click', async (e) => {
-            // Do not open modal if in selection mode or clicking a button/checkbox
-            if (isSelectionMode || e.target.closest('button, input')) {
+            if (item.tagName === 'A' && !e.target.closest('button, input')) {
+                return;
+            }
+            e.preventDefault();
+
+            if (isSelectionMode) {
+                const checkbox = item.querySelector('.item-checkbox');
+                if (checkbox && !e.target.closest('button')) {
+                    checkbox.checked = !checkbox.checked;
+                    updateFooterVisibility();
+                }
                 return;
             }
 
-            const itemData = item.dataset;
-            
-            if (itemData.type === 'Transaction') {
-                const modal = transactionModal;
-                const recipientEl = modal.querySelector('#modal-recipient');
-                
-                modal.classList.remove('hidden');
-                recipientEl.textContent = 'Loading...';
-
-                try {
-                    const response = await fetch(`/api/archive/details/transaction/${itemData.id}`);
-                    const data = await response.json();
+            if (item.tagName !== 'A') {
+                const itemData = item.dataset;
+                if (itemData.type === 'Invoice') {
+                    const modal = invoiceModal;
+                    const titleEl = modal.querySelector('#modal-invoice-title');
                     
-                    recipientEl.textContent = data.name || 'N/A';
-                    modal.querySelector('#modal-check-date').textContent = data.check_date || 'N/A';
-                    modal.querySelector('#modal-ewt').textContent = currencyFormatter.format(data.ewt || 0);
-                    modal.querySelector('#modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
-                    modal.querySelector('#modal-notes').textContent = data.notes || 'No notes provided.';
-                    // Assuming a Transaction detail modal has a status text field
-                    modal.querySelector('#modal-status-text').textContent = data.status || 'Archived'; 
+                    modal.classList.remove('hidden');
+                    titleEl.textContent = 'Loading...';
 
-                } catch (error) {
-                    recipientEl.textContent = 'Failed to load details.';
-                    console.error("Error loading transaction details:", error);
-                }
+                    try {
+                        const response = await fetch(`/api/archive/details/invoice/${itemData.id}`);
+                        const data = await response.json();
 
-            } else if (itemData.type === 'Invoice') {
-                const modal = invoiceModal;
-                const titleEl = modal.querySelector('#modal-invoice-title');
-                
-                modal.classList.remove('hidden');
-                titleEl.textContent = 'Loading...';
+                        titleEl.textContent = data.folder_name || 'Archived Invoice';
+                        modal.querySelector('#detail-folder-name').textContent = data.folder_name || 'N/A';
+                        modal.querySelector('#detail-category').textContent = data.category || 'N/A';
+                        modal.querySelector('#detail-date').textContent = data.date ? new Date(data.date).toLocaleDateString() : 'N/A';
+                        
+                        const mainImage = modal.querySelector('#modal-invoice-image');
+                        const thumbContainer = modal.querySelector('#thumbnail-container');
+                        thumbContainer.innerHTML = '';
 
-                try {
-                    const response = await fetch(`/api/archive/details/invoice/${itemData.id}`);
-                    const data = await response.json();
-
-                    titleEl.textContent = data.folder_name || 'Archived Invoice';
-                    modal.querySelector('#detail-folder-name').textContent = data.folder_name || 'N/A';
-                    modal.querySelector('#detail-category').textContent = data.category || 'N/A';
-                    modal.querySelector('#detail-date').textContent = data.date ? new Date(data.date).toLocaleDateString() : 'N/A';
-                    
-                    const mainImage = modal.querySelector('#modal-invoice-image');
-                    const thumbContainer = modal.querySelector('#thumbnail-container');
-                    // Logic for image display/thumbnails (implementation details omitted here)
-                    thumbContainer.innerHTML = '';
-
-                    if (data.files && data.files.length > 0) {
-                        mainImage.src = `/invoices/uploads/${data.files[0].filename}`;
-                        data.files.forEach(file => { /* logic to build thumbnails */ });
-                    } else {
-                        mainImage.src = '';
+                        if (data.files && data.files.length > 0) {
+                            mainImage.src = `/invoices/uploads/${data.files[0].filename}`;
+                            data.files.forEach((file, index) => {
+                                const thumb = document.createElement('img');
+                                thumb.src = `/invoices/uploads/${file.filename}`;
+                                thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39]';
+                                if (index === 0) { thumb.classList.add('border-[#3a4d39]'); }
+                                thumb.addEventListener('click', () => {
+                                    mainImage.src = thumb.src;
+                                    thumbContainer.querySelectorAll('img').forEach(t => t.classList.remove('border-[#3a4d39]'));
+                                    thumb.classList.add('border-[#3a4d39]');
+                                });
+                                thumbContainer.appendChild(thumb);
+                            });
+                        } else {
+                            mainImage.src = '';
+                        }
+                    } catch (error) {
+                        titleEl.textContent = 'Failed to load details.';
                     }
-                } catch (error) {
-                    titleEl.textContent = 'Failed to load details.';
-                    console.error("Error loading invoice details:", error);
+                } else if (itemData.type === 'Transaction') {
+                    const modal = transactionModal;
+                    const recipientEl = modal.querySelector('#modal-recipient');
+                    
+                    modal.classList.remove('hidden');
+                    recipientEl.textContent = 'Loading...';
+
+                    try {
+                        const response = await fetch(`/api/archive/details/transaction/${itemData.id}`);
+                        const data = await response.json();
+                        
+                        recipientEl.textContent = data.name || 'N/A';
+                        modal.querySelector('#modal-check-date').textContent = data.check_date || 'N/A';
+                        modal.querySelector('#modal-ewt').textContent = currencyFormatter.format(data.ewt || 0);
+                        modal.querySelector('#modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
+                        modal.querySelector('#modal-notes').textContent = data.notes || 'No notes provided.';
+                        modal.querySelector('#modal-status-text').textContent = data.status || 'Archived';
+                    } catch (error) {
+                        recipientEl.textContent = 'Failed to load details.';
+                    }
                 }
             }
         });
     });
 
-    // Add close logic for both details modals
     [transactionModal, invoiceModal].forEach(modal => {
         if (modal) {
-            // Close button inside the modal
             modal.querySelector('#close-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
-            // Click outside the modal content to close
             modal.addEventListener('click', (e) => {
                 if(e.target === modal) modal.classList.add('hidden');
             });
         }
     });
-    // --- END OF MODIFICATION ---
 
-    // --- Search Logic ---
+    const searchInput = document.getElementById('search-input');
+    const archiveItems = document.querySelectorAll('.archive-item');
+    const noResultsMessage = document.getElementById('no-results-message');
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         let visibleCount = 0;
