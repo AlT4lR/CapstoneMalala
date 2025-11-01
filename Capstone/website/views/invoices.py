@@ -90,14 +90,24 @@ def upload_invoice():
     if not files or files[0].filename == '':
         return jsonify({'success': False, 'error': 'No selected file'}), 400
 
+    # --- START OF MERGE: Safe date handling (from original code) ---
+    try:
+        date_obj = None
+        date_str = request.form.get('date')
+        if date_str:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD.'}), 400
+    # --- END OF MERGE ---
+
     invoice_data = {
         'folder_name': request.form.get('folder-name'),
         'category': request.form.get('categories'),
-        'date': datetime.strptime(request.form.get('date'), '%Y-%m-%d') if request.form.get('date') else None,
+        'date': date_obj, # Use the safely parsed date_obj
     }
     
     processed_files_info = []
-    extracted_text_all = [] # List to hold OCR text from all uploaded files
+    extracted_text_all = [] # List to hold OCR text from all uploaded files (from incoming change)
 
     for file in files:
         if file:
@@ -105,10 +115,10 @@ def upload_invoice():
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # Perform OCR on the saved file
+            # Perform OCR on the saved file (from incoming change)
             extracted_text = perform_ocr_on_image(filepath)
-            
             extracted_text_all.append(extracted_text)
+            
             processed_files_info.append({
                 'filename': filename, 'content_type': file.content_type,
                 'size': os.path.getsize(filepath)
@@ -116,7 +126,7 @@ def upload_invoice():
 
     if add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
         log_user_activity(username, 'Uploaded an invoice')
-        # Original behavior: Redirect on successful upload
+        # Use the redirect response from the incoming change, which is typical for AJAX file uploads
         return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
     else:
         # Ensure cleanup of uploaded files if the database operation fails, though not strictly required by the prompt
