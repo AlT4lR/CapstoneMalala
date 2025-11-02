@@ -42,11 +42,11 @@ class Config:
     JWT_COOKIE_SECURE = False
     JWT_COOKIE_CSRF_PROTECT = False
     
-    # --- START OF MODIFICATION: Change token expiration (Merged) ---
+    # --- START OF MODIFICATION: Change token expiration ---
     # The original value was timedelta(hours=1)
     # This new value sets the session to last for 30 days.
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
-    # --- END OF MODIFICATION (Merged) ---
+    # --- END OF MODIFICATION ---
 
 class DevelopmentConfig(Config):
     DEBUG = True

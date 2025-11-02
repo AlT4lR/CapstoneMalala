@@ -1,108 +1,105 @@
-<!-- website/templates/transaction_folder_detail.html -->
 {% extends "base.html" %}
 {% block title %}DecoOffice - {{ folder.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .check-item.selected {
+        background-color: #eef2e9;
+        border-right: 4px solid #3a4d39;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
     
     <header class="flex flex-wrap justify-between items-center gap-y-4 mb-4">
-      <h2 class="text-2xl font-bold uppercase w-full sm:w-auto">Transactions</h2>
-      <div class="flex items-center gap-4 w-full sm:w-auto">
-        <div class="relative flex-grow">
-          <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <h2 class="text-2xl font-bold uppercase w-full sm:w-auto">TRANSACTIONS</h2>
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="relative flex-grow">
+                <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
+            {% include "_notification_button.html" %}
         </div>
-        <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
-        {% include "_notification_button.html" %}
-      </div>
     </header>
 
     <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
-      <i class="fa-solid fa-arrow-left"></i>
-      Go Back...
+        <i class="fa-solid fa-arrow-left"></i>
+        Go Back...
     </a>
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow">
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
 
-      <div class="lg:col-span-2 flex flex-col">
-        <div class="bg-white rounded-md border border-gray-200 shadow-sm flex flex-col p-4 flex-grow overflow-hidden">
-          <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-sm font-semibold text-gray-500 border-b">
-            <span class="col-span-3">Name of issued Checked</span>
-            <span class="col-span-2">Check No.</span>
-            <span class="col-span-2">Check Date</span>
-            <span class="col-span-2">EWT</span>
-            <span class="col-span-3">Countered Check</span>
-          </div>
+        <!-- Left Column: List of Issued Checks -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+            <div id="checks-list-container" class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-2 overflow-y-auto custom-scrollbar">
+                
+                <!-- --- START OF FINAL FIX: Revert to the clean list design --- -->
+                {% for check in child_checks %}
+                <div class="check-item p-3 border-b hover:bg-gray-50 cursor-pointer" 
+                     data-id="{{ check._id }}"
+                     data-name="{{ check.name }}"
+                     data-check-no="{{ check.check_no or '' }}"
+                     data-check-amount="{{ check.check_amount or 0.0 }}"
+                     data-countered-check="{{ check.countered_check or 0.0 }}"
+                     data-ewt="{{ check.ewt or 0.0 }}"
+                     data-notes="{{ check.notes or '' }}"
+                     data-deductions='{{ (check.deductions or []) | tojson }}'>
+                    <p class="font-semibold truncate">{{ check.name }}</p>
+                    <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
+                </div>
+                {% else %}
+                <p class="text-center text-gray-400 p-10">No checks have been issued yet.</p>
+                {% endfor %}
+                <!-- --- END OF FINAL FIX --- -->
 
-          <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
-              {% for check in child_checks %}
-              <div class="check-row border-b hover:bg-gray-50 transition-colors" data-name="{{ check.name | lower }}">
-                  <div class="p-3 md:hidden">
-                      <div class="flex justify-between items-start mb-2 gap-2">
-                          <p class="font-semibold text-gray-800 break-words">{{ check.name }}</p>
-                          <div class="flex gap-4 text-gray-400 flex-shrink-0">
-                              <button title="Edit" class="edit-check-btn hover:text-green-600" data-id="{{ check._id }}"><i class="fa-solid fa-pen"></i></button>
-                              <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
-                                  <i class="fa-solid fa-trash"></i>
-                              </button>
-                          </div>
-                      </div>
-                      <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                          <div><p class="text-gray-500">Check No.</p><p class="text-gray-700">{{ check.check_no }}</p></div>
-                          <div><p class="text-gray-500">Check Date</p><p class="text-gray-700">{{ check.check_date.strftime('%m/%d/%Y') }}</p></div>
-                          <div><p class="text-gray-500">EWT</p><p class="text-gray-700">₱{{ "{:,.2f}".format(check.ewt) }}</p></div>
-                          <div><p class="text-gray-500">Countered Check</p><p class="text-gray-700">₱{{ "{:,.2f}".format(check.countered_check) }}</p></div>
-                      </div>
-                  </div>
-
-                  <div class="hidden md:grid grid-cols-12 gap-4 px-3 py-3 items-center">
-                      <span class="col-span-3 font-medium truncate">{{ check.name }}</span>
-                      <span class="col-span-2">{{ check.check_no }}</span>
-                      <span class="col-span-2">{{ check.check_date.strftime('%m/%d/%Y') }}</span>
-                      <span class="col-span-2">₱{{ "{:,.2f}".format(check.ewt) }}</span>
-                      <div class="col-span-3 flex justify-between items-center">
-                        <span>₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
-                        <div class="flex gap-3 text-gray-400">
-                          <button title="Edit" class="edit-check-btn hover:text-green-600" data-id="{{ check._id }}"><i class="fa-solid fa-pen"></i></button>
-                          <button title="Delete" class="delete-btn hover:text-red-600" data-id="{{ check._id }}" data-name="{{ check.name }}">
-                              <i class="fa-solid fa-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                  </div>
-              </div>
-              {% else %}
-              <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued for this transaction yet.</p>
-              {% endfor %}
-              <p id="no-results-message" class="hidden text-center text-gray-500 p-8">No results found.</p>
-          </div>
-        </div>
-        
-        <div class="mt-4">
-            <button id="create-issued-check-btn" class="px-5 py-2 border border-gray-300 rounded-md font-semibold hover:bg-gray-50 transition">
+            </div>
+            <button id="create-issued-check-btn" class="w-full px-5 py-3 bg-[#3a4d39] text-white font-semibold rounded-md shadow hover:bg-opacity-90 transition">
               Create Issued Checked
             </button>
         </div>
-      </div>
 
-      <div class="flex flex-col space-y-4">
-        <div class="flex-grow bg-white rounded-md border border-gray-200 shadow-sm p-4 flex flex-col space-y-3">
-          <label class="font-medium text-sm">Notes</label>
-          <textarea id="notes-textarea" class="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none">{{ folder.notes or '' }}</textarea>
-          
-          <label for="check-amount-display" class="font-medium text-sm">Total Check Amount (Debt)</label>
-          <input type="text" id="check-amount-display" value="₱ {{ "{:,.2f}".format(folder.amount) if folder.amount else '0.00' }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
-          
-          <label class="font-medium text-sm">Total of Issued Checks</label>
-          <input type="text" id="total-countered-checks-display" value="₱ {{ "{:,.2f}".format(total_countered_check) }}" class="p-2 bg-gray-100 border border-gray-300 rounded-md font-mono" readonly>
+        <!-- Middle Column: Selected Check Details -->
+        <div id="check-details-panel" class="lg:col-span-6 bg-white rounded-md border border-gray-200 shadow-sm p-6 flex flex-col">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h4 id="detail-name" class="text-xl font-bold">Select a Check</h4>
+                <div id="detail-actions" class="flex gap-4 text-gray-400 hidden">
+                    <button title="Edit" id="detail-edit-btn" class="hover:text-green-600"><i class="fa-solid fa-pen"></i></button>
+                    <button title="Delete" id="detail-delete-btn" class="hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            <div id="check-details-content" class="text-gray-600 overflow-y-auto custom-scrollbar pr-2">
+                <p class="text-center p-8">Select a check from the list to see its details.</p>
+            </div>
         </div>
 
-        <div class="flex justify-end">
-            <button id="pay-btn" class="px-16 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-              Pay
+        <!-- Right Column: Folder Summary -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+            <div class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">EWT</label>
+                    <input type="text" value="₱ {{ '{:,.2f}'.format(total_ewt) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Total Check Amount To Pay</label>
+                    <input type="text" value="₱ {{ '{:,.2f}'.format(folder.amount) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Total Countered Check</label>
+                    <input type="text" value="₱ {{ '{:,.2f}'.format(total_countered_check) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Remaining Balance Check</label>
+                    <input type="text" value="₱ {{ '{:,.2f}'.format(remaining_balance) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly>
+                </div>
+            </div>
+            <button id="pay-btn" class="w-full px-5 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+              Paid
             </button>
         </div>
-      </div>
     </div>
 </main>
 
@@ -114,53 +111,172 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Create Check Modal Logic ---
-    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y", });
+    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+
+    function setupDeductionHandlers(modalId, containerId, addBtnId) {
+        const addDeductionBtn = document.getElementById(addBtnId);
+        const deductionsContainer = document.getElementById(containerId);
+
+        const createDeductionField = (name = '', amount = '') => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 deduction-field';
+            div.innerHTML = `
+                <input type="text" name="deduction_name[]" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Name of Deduction" value="${name}">
+                <input type="number" step="0.01" name="deduction_amount[]" class="w-1/2 px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Amount" value="${amount}">
+                <button type="button" class="remove-deduction-btn text-red-500 hover:text-red-700">&times;</button>
+            `;
+            deductionsContainer.appendChild(div);
+        };
+
+        addDeductionBtn.addEventListener('click', () => createDeductionField());
+        deductionsContainer.addEventListener('click', e => {
+            if (e.target.classList.contains('remove-deduction-btn')) {
+                e.target.parentElement.remove();
+            }
+        });
+        
+        window[`populateDeductions_${modalId}`] = (deductions) => {
+            deductionsContainer.innerHTML = '';
+            if (deductions && deductions.length > 0) {
+                deductions.forEach(d => {
+                    if (d.name.toUpperCase() !== 'EWT') {
+                        createDeductionField(d.name, d.amount);
+                    }
+                });
+            }
+        };
+    }
+    setupDeductionHandlers('add_check', 'deductions-container', 'add-deduction-btn');
+    setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
+    
+    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
+    flatpickr("#edit-check-date-field", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
+
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const closeCreateBtn = document.getElementById('close-add-check-modal-btn');
-    if (createCheckModal) {
-        const openModal = () => { createCheckModal.classList.remove('hidden'); setTimeout(() => createCheckModal.classList.add('active'), 10); };
-        const closeModal = () => { createCheckModal.classList.remove('active'); createCheckModal.addEventListener('transitionend', () => { createCheckModal.classList.add('hidden'); }, { once: true }); };
-        openCreateBtn.addEventListener('click', openModal);
-        closeCreateBtn.addEventListener('click', closeModal);
-        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(); });
-    }
-
-    // --- Edit Check Modal Logic ---
+    
     const editCheckModal = document.getElementById('edit-check-modal');
     const closeEditCheckBtn = document.getElementById('close-edit-check-modal-btn');
     const cancelEditCheckBtn = document.getElementById('cancel-edit-check-btn');
     const editCheckForm = document.getElementById('edit-check-form');
-    flatpickr("#edit-check-date-field", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-    if(editCheckModal) {
-        const openEditCheckModal = () => { editCheckModal.classList.remove('hidden'); setTimeout(() => editCheckModal.classList.add('active'), 10); };
-        const closeEditCheckModal = () => { editCheckModal.classList.remove('active'); editCheckModal.addEventListener('transitionend', () => editCheckModal.classList.add('hidden'), { once: true }); };
-        closeEditCheckBtn.addEventListener('click', closeEditCheckModal);
-        cancelEditCheckBtn.addEventListener('click', closeEditCheckModal);
-        editCheckModal.addEventListener('click', e => { if (e.target === editCheckModal) closeEditCheckModal(); });
+    
+    const openModal = (modal) => { modal.classList.remove('hidden'); setTimeout(() => modal.classList.add('active'), 10); };
+    const closeModal = (modal) => { modal.classList.remove('active'); modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true }); };
+    
+    if (createCheckModal) {
+        openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
+        closeCreateBtn.addEventListener('click', () => closeModal(createCheckModal));
+        createCheckModal.addEventListener('click', e => { if (e.target === createCheckModal) closeModal(createCheckModal); });
     }
-    document.querySelectorAll('.edit-check-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const checkId = this.dataset.id;
+
+    if(editCheckModal) {
+        closeEditCheckBtn.addEventListener('click', () => closeModal(editCheckModal));
+        cancelEditCheckBtn.addEventListener('click', () => closeModal(editCheckModal));
+        editCheckModal.addEventListener('click', e => { if (e.target === editCheckModal) closeModal(editCheckModal); });
+    }
+
+    const checkItems = document.querySelectorAll('.check-item');
+    const detailName = document.getElementById('detail-name');
+    const detailActions = document.getElementById('detail-actions');
+    const detailEditBtn = document.getElementById('detail-edit-btn');
+    const detailDeleteBtn = document.getElementById('detail-delete-btn');
+    const checkDetailsContent = document.getElementById('check-details-content');
+    
+    checkItems.forEach(item => {
+        item.addEventListener('click', function() {
+            checkItems.forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+
+            const data = this.dataset;
+            const deductions = JSON.parse(data.deductions || '[]');
+            
+            detailName.textContent = data.name;
+
+            let deductionsHTML = '';
+            if (deductions && deductions.length > 0) {
+                deductions.forEach(d => {
+                    deductionsHTML += `<div class="flex justify-between"><p>${d.name}:</p><p>${currencyFormatter.format(d.amount)}</p></div>`;
+                });
+            } else {
+                deductionsHTML = '<p class="text-gray-500">No deductions for this check.</p>';
+            }
+
+            checkDetailsContent.innerHTML = `
+                <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div><p class="font-semibold">Check No.:</p><p>${data.checkNo || 'N/A'}</p></div>
+                    <div><p class="font-semibold">Check Date:</p><p>${new Date(item.querySelector('.text-xs').textContent).toLocaleDateString()}</p></div>
+                    <div class="col-span-2 border-t pt-4 mt-2">
+                        <div class="flex justify-between font-bold text-base border-b pb-1 mb-2">
+                            <p>Check Amount:</p>
+                            <p>${currencyFormatter.format(parseFloat(data.checkAmount))}</p>
+                        </div>
+                        <p class="font-semibold mb-2">Deductions:</p>
+                        <div class="space-y-1 pl-2">${deductionsHTML}</div>
+                        <div class="flex justify-between font-bold text-base border-t pt-2 mt-2">
+                            <p>Countered Check (Net):</p>
+                            <p>${currencyFormatter.format(parseFloat(data.counteredCheck))}</p>
+                        </div>
+                    </div>
+                    <div class="col-span-2 border-t pt-4 mt-2">
+                        <p class="font-semibold">Notes:</p>
+                        <pre class="w-full p-2 bg-gray-50 rounded-md whitespace-pre-wrap font-sans">${data.notes || 'No notes for this check.'}</pre>
+                    </div>
+                </div>
+            `;
+            
+            detailActions.classList.remove('hidden');
+            detailEditBtn.dataset.id = data.id;
+            detailDeleteBtn.dataset.id = data.id;
+            detailDeleteBtn.dataset.name = data.name;
+        });
+    });
+
+    detailEditBtn.addEventListener('click', async function() {
+        const checkId = this.dataset.id;
+        try {
+            const response = await fetch(`/api/transactions/details/${checkId}`);
+            if (!response.ok) throw new Error('Failed to fetch details');
+            const data = await response.json();
+            
+            document.getElementById('edit-check-id').value = checkId;
+            document.getElementById('edit-check-name').value = data.name || '';
+            document.getElementById('edit-check-no').value = data.check_no || '';
+            document.getElementById('edit-check-amount').value = data.check_amount || '0.00';
+            document.getElementById('edit-check-notes').value = data.notes || '';
+
+            const deductions = data.deductions || [];
+            const ewtDeduction = deductions.find(d => d.name.toUpperCase() === 'EWT');
+            document.getElementById('edit-check-ewt').value = ewtDeduction ? ewtDeduction.amount : '0.00';
+            
+            window.populateDeductions_edit_check(deductions);
+            flatpickr("#edit-check-date-field").setDate(data.check_date);
+            
+            openModal(document.getElementById('edit-check-modal'));
+        } catch (error) {
+            console.error('Error populating edit form:', error);
+            alert('Could not load check details.');
+        }
+    });
+
+    detailDeleteBtn.addEventListener('click', function() {
+        const checkId = this.dataset.id;
+        const checkName = this.dataset.name;
+        window.showCustomConfirm(`Are you sure you want to archive "${checkName}"?`, async () => {
             try {
-                const response = await fetch(`/api/transactions/details/${checkId}`);
-                if (!response.ok) throw new Error('Failed to fetch check details');
-                const data = await response.json();
-                document.getElementById('edit-check-id').value = checkId;
-                document.getElementById('edit-check-name').value = data.name || '';
-                document.getElementById('edit-check-no').value = data.check_no || '';
-                document.getElementById('edit-check-date-field').value = data.check_date || '';
-                document.getElementById('edit-check-ewt').value = data.ewt || '0.00';
-                document.getElementById('edit-check-countered').value = data.countered_check || '0.00';
-                editCheckModal.classList.remove('hidden');
-                setTimeout(() => editCheckModal.classList.add('active'), 10);
+                const response = await fetch(`/api/transactions/${checkId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
+                });
+                if (response.ok) { window.location.reload(); }
+                else { alert('Failed to archive check.'); }
             } catch (error) {
-                console.error('Error populating edit check form:', error);
-                alert('Could not load check details for editing.');
+                console.error('Archive error:', error);
+                alert('An error occurred.');
             }
         });
     });
+
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -168,11 +284,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitButton = this.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
-            const editFormData = new FormData(this);
+            
+            const formData = new FormData(this);
             try {
-                const response = await fetch(`/api/transactions/update/${checkId}`, {
+                const response = await fetch(`/api/transactions/child/update/${checkId}`, {
                     method: 'POST',
-                    body: new URLSearchParams(editFormData),
+                    body: new URLSearchParams(formData), 
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
                 });
                 if (response.ok) { window.location.reload(); }
@@ -191,55 +308,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- Pay and Delete Button Logic ---
     const payBtn = document.getElementById('pay-btn');
-    const notesTextarea = document.getElementById('notes-textarea');
-    
-    // --- START OF FINAL FIX: Robust validation and debugging for Pay button ---
+    const remainingBalance = parseFloat("{{ remaining_balance or 1 }}"); 
     function validateForPayment() {
-        // Round both numbers to 2 decimal places to avoid floating point errors
-        const folderTotalAmount = Math.round(parseFloat("{{ folder.amount or 0 }}") * 100) / 100;
-        const totalCounteredChecks = Math.round(parseFloat("{{ total_countered_check }}") * 100) / 100;
-
-        // DEBUGGING: Open the browser console (F12) to see these values
-        console.log("--- Pay Button Validation ---");
-        console.log("Debt (Folder Amount):", folderTotalAmount);
-        console.log("Paid (Issued Checks):", totalCounteredChecks);
-
-        const canPay = folderTotalAmount > 0 && folderTotalAmount === totalCounteredChecks;
+        const canPay = Math.abs(remainingBalance) < 0.001; 
+        if (payBtn) payBtn.disabled = !canPay;
         
-        console.log("Is button enabled?", canPay);
-        console.log("---------------------------");
-
-        if (payBtn) {
-            payBtn.disabled = !canPay;
+        if (!canPay && payBtn) {
+            payBtn.title = 'Remaining Balance must be zero to mark as Paid.';
+        } else if (payBtn) {
+            payBtn.title = 'Mark folder as Paid';
         }
     }
-    
-    // Run the check when the page loads
     validateForPayment();
-
+    
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
+            const finalNotes = "";
             const folderId = "{{ folder._id }}";
-            const finalNotes = notesTextarea.value;
-
             payBtn.disabled = true;
             payBtn.textContent = 'Processing...';
 
             try {
                 const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' },
                     body: JSON.stringify({ notes: finalNotes })
                 });
-
-                if (response.ok) {
-                     window.location.href = "{{ url_for('main.transactions_paid') }}";
-                } else {
+                if (response.ok) { window.location.href = "{{ url_for('main.transactions_paid') }}"; }
+                else {
                     alert('Failed to process payment. Please try again.');
                     window.location.reload();
                 }
@@ -250,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // --- END OF FINAL FIX ---
 });
 </script>
 {% endblock %}
