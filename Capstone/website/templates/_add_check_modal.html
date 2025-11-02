@@ -1,41 +1,46 @@
 <!-- website/templates/_add_check_modal.html -->
 <div id="add-check-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-2xl p-8 relative text-gray-700">
-        <button id="close-add-check-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-md p-6 relative text-gray-700">
+        <button id="close-add-check-modal-btn" class="absolute top-4 left-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-lg"></i></button>
         
-        <h2 class="text-xl font-bold text-[#3a4d39] mb-6">Create Issued Check</h2>
+        <h2 class="text-xl font-bold text-center text-[#3a4d39] mb-4">Fill Up Issued Check</h2>
         
-        <form action="{{ url_for('main.add_transaction_route') }}" method="POST" class="space-y-6" novalidate>
+        <form action="{{ url_for('main.add_transaction_route') }}" method="POST" class="space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar pr-2" novalidate>
             {{ form.hidden_tag() }}
-            <!-- This hidden input will carry the ID of the parent folder -->
             <input type="hidden" name="parent_id" value="{{ folder._id }}">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div>
-                    {{ form.name_of_issued_check.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.name_of_issued_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
-                </div>
-                <div>
-                    {{ form.countered_check.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.countered_check(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
-                </div>
-                <div>
-                    {{ form.check_no.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.check_no(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
-                </div>
-                <div>
-                    {{ form.ewt.label(class="block text-sm font-semibold mb-2") }}
-                    {{ form.ewt(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
-                </div>
-                <div class="md:col-span-2">
-                    {{ form.check_date.label(class="block text-sm font-semibold mb-2") }}
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
-                    {{ form.check_date(class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
-                </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Name Of Issued Checked</label>
+                <input type="text" name="name_of_issued_check" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg">
             </div>
-            <div class="flex justify-end mt-8 space-x-6">
-                <button type="reset" class="px-12 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg">Reset</button>
-                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg">Add</button>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Check No.</label>
+                <input type="text" name="check_no" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg">
+            </div>
+             <div>
+                <label class="block text-sm font-semibold mb-1">Check Amount</label>
+                <input type="number" step="0.01" name="check_amount" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="0.00">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">EWT</label>
+                <input type="number" step="0.01" name="ewt" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="0.00">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">Notes</label>
+                <textarea name="notes" rows="3" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg"></textarea>
+            </div>
+            
+            <div class="p-4 border border-gray-300 rounded-lg">
+                <h3 class="font-semibold mb-2">Deduction</h3>
+                <div id="deductions-container" class="space-y-2">
+                    <!-- Dynamic deduction fields will be added here -->
+                </div>
+                <button type="button" id="add-deduction-btn" class="mt-3 text-sm font-semibold text-[#3a4d39] hover:underline">+ Add Deduction</button>
+            </div>
+
+            <div class="flex justify-center pt-4 gap-4">
+                <button type="reset" class="px-8 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg">Reset</button>
+                <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg">Add</button>
             </div>
         </form>
     </div>

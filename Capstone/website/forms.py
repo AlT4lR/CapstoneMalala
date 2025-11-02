@@ -87,7 +87,7 @@ class ChangePasswordForm(FlaskForm):
 # -------------------------
 
 class TransactionForm(FlaskForm):
-    """Form for creating transactions (both folders and issued checks)."""
+    """Form for creating/editing transactions (both folders and issued checks)."""
     name_of_issued_check = StringField('Name Of Issued Checked', validators=[DataRequired(), Length(max=100)])
     check_no = StringField('Check No.', validators=[Optional(), Length(max=50)])
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
@@ -95,6 +95,8 @@ class TransactionForm(FlaskForm):
     countered_check = DecimalField('Countered Check', validators=[Optional()])
     ewt = DecimalField('EWT', validators=[Optional()])
     amount = DecimalField('Total Check Amount (Debt)', validators=[Optional()])
+    # Merged modification: Add notes field for individual checks
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Add')
 
 
@@ -104,6 +106,7 @@ class EditTransactionForm(FlaskForm):
     check_date = DateField('Date Created', format='%Y-%m-%d', validators=[DataRequired()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[Optional()])
     amount = DecimalField('Total Check Amount (Debt)', validators=[Optional()])
+    # Note: The 'notes' field is intentionally removed from the folder edit form.
     submit = SubmitField('Save Changes')
 
 

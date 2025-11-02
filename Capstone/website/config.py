@@ -9,14 +9,11 @@ load_dotenv(os.path.join(basedir, '..', '.env'))
 
 class Config:
     """Base configuration class."""
-    # Note: Default values are added to SECRET_KEY and JWT_SECRET_KEY in the second snippet.
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'a_very_secret_key_that_should_be_changed')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'a_super_secret_jwt_key_to_change')
     
-    # --- START OF MERGED MODIFICATIONS (File Paths) ---
     UPLOAD_FOLDER = os.path.join(basedir, '..', 'uploads', 'invoices')
     PROFILE_PIC_FOLDER = os.path.join(basedir, '..', 'uploads', 'profile_pics')
-    # --- END OF MERGED MODIFICATIONS (File Paths) ---
 
     # VAPID Keys
     VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY')
@@ -27,7 +24,6 @@ class Config:
     MONGO_URI = os.environ.get('MONGO_URI', "mongodb://localhost:2717/")
     MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', "deco_db")
     
-    # --- START OF MERGED MODIFICATIONS (Email/SMTP) ---
     # Brevo API Key for sending emails via HTTP
     BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
     
@@ -40,13 +36,17 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER_NAME = os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'DecoOffice')
     MAIL_DEFAULT_SENDER_EMAIL = os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'no-reply@decooffice.com')
-    # --- END OF MERGED MODIFICATIONS (Email/SMTP) ---
 
     # JWT Settings
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = False
     JWT_COOKIE_CSRF_PROTECT = False
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    
+    # --- START OF MODIFICATION: Change token expiration ---
+    # The original value was timedelta(hours=1)
+    # This new value sets the session to last for 30 days.
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
+    # --- END OF MODIFICATION ---
 
 class DevelopmentConfig(Config):
     DEBUG = True
