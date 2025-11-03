@@ -25,7 +25,7 @@
 
     <div class="flex-1 flex flex-col overflow-hidden">
         
-        <h3 class="text-xl font-bold text-[#3a4d39] mb-4">October 2025</h3>
+        <h3 class="text-xl font-bold text-[#3a4d39] mb-4">Pending Transactions</h3>
 
         <div class="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-gray-500">
             <span class="col-span-5">Name</span>
@@ -47,10 +47,8 @@
                                     <span class="font-semibold text-gray-800 transaction-name-display break-words selectable-text">{{ t.name }}</span>
                                 </a>
                                 <div class="flex gap-4 text-gray-500 flex-shrink-0">
-                                    <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <div class="delete-btn-wrapper hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </div>
+                                    <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button title="Archive" class="delete-btn hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>
                             <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="block text-sm text-gray-600 mt-2 space-y-1">
@@ -66,7 +64,7 @@
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.check_date }}</a>
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.due_date }}</a>
                         <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
-                            <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
@@ -82,7 +80,6 @@
     </div>
 </main>
 
-<!-- This line correctly includes the modal without causing a recursion loop -->
 {% include "_edit_transaction_modal.html" %}
 
 {% endblock %}
@@ -91,8 +88,8 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
-    flatpickr("#edit-due-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    flatpickr("input[name='check_date']", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    flatpickr("input[name='due_date']", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
 
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
@@ -117,40 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const editModal = document.getElementById('edit-transaction-modal');
-    const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-    const cancelEditBtn = document.getElementById('cancel-edit-btn');
     const editForm = document.getElementById('edit-transaction-form');
-
-    const openEditModal = () => { editModal.classList.remove('hidden'); setTimeout(() => editModal.classList.add('active'), 10); };
-    const closeEditModal = () => { editModal.classList.remove('active'); editModal.addEventListener('transitionend', () => editModal.classList.add('hidden'), { once: true }); };
-
-    if(closeEditModalBtn) closeEditModalBtn.addEventListener('click', closeEditModal);
-    if(cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
-    if(editModal) editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
-
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const transactionId = this.dataset.id;
-            try {
-                const response = await fetch(`/api/transactions/details/${transactionId}`);
-                if (!response.ok) throw new Error('Failed to fetch transaction details');
-                const data = await response.json();
-
-                document.getElementById('edit-transaction-id').value = transactionId;
-                document.getElementById('edit-name').value = data.name || '';
-                document.getElementById('edit-check-date').value = data.check_date || '';
-                document.getElementById('edit-due-date').value = data.due_date || '';
-                document.getElementById('edit-amount').value = data.amount || '0.00';
-
-                openEditModal();
-            } catch (error) {
-                console.error('Error populating edit form:', error);
-                alert('Could not load transaction details for editing.');
-            }
-        });
-    });
-
     if (editForm) {
         editForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -166,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: new URLSearchParams(formData).toString(),
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                        'X-CSRF-Token': window.getCSRFToken()
                     }
                 });
                 if (response.ok) {
@@ -185,29 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    document.querySelectorAll('.delete-btn, .delete-btn-wrapper').forEach(button => {
-        button.addEventListener('click', function(event) {
-            event.preventDefault();
-            window.showCustomConfirm(`Are you sure you want to archive "${this.dataset.name}"?`, async () => {
-                const transactionId = this.dataset.id;
-                try {
-                    const response = await fetch(`/api/transactions/${transactionId}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
-                    });
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        alert('Failed to archive transaction.');
-                    }
-                } catch (error) {
-                    console.error('Archive error:', error);
-                    alert('An error occurred.');
-                }
-            });
-        });
-    });
 });
 </script>
 {% endblock %}
