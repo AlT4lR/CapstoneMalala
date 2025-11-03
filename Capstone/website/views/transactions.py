@@ -1,6 +1,6 @@
 # website/views/transactions.py
 
-from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort, current_app
+from flask import render_template, request, redirect, url_for, session, flash, jsonify, send_file, abort, current_app, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -8,7 +8,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.platypus import Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.platypus.tables import Table, TableStyle
 import io
 import os
@@ -20,12 +20,12 @@ from ..models import (
     log_user_activity, add_transaction, get_transactions_by_status, 
     get_transaction_by_id, get_child_transactions_by_parent_id,
     mark_folder_as_paid, archive_transaction, update_transaction,
-    update_child_transaction
+    update_child_transaction, get_user_by_username
 )
 
 logger = logging.getLogger(__name__)
 
-# --- Routes before transaction_folder_details are unchanged ---
+# --- All routes before download_transaction_pdf are unchanged ---
 
 @main.route('/transactions')
 @jwt_required()
@@ -73,15 +73,12 @@ def transaction_folder_details(transaction_id):
     
     remaining_balance = folder_amount - total_countered_check
     
-    # --- START OF CHANGE: Add completion status flag to each check ---
     for check in child_checks:
         check['is_incomplete'] = (
             not check.get('check_no') or
             not check.get('check_amount') or
-            # A countered check value of 0 is considered incomplete
             check.get('countered_check') is None or float(check.get('countered_check')) == 0.0
         )
-    # --- END OF CHANGE ---
     
     return render_template(
         'transaction_folder_detail.html',
@@ -161,7 +158,6 @@ def add_transaction_route():
     redirect_url = url_for('main.transaction_folder_details', transaction_id=parent_id) if parent_id else url_for('main.transactions')
     return redirect(redirect_url)
 
-# --- The rest of the file remains unchanged ---
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
@@ -200,25 +196,38 @@ def pay_transaction_folder(folder_id):
 @jwt_required()
 def download_transaction_pdf(transaction_id):
     username = get_jwt_identity()
+    user = get_user_by_username(username)
+    user_name = user.get('name', username).title() if user else username.title()
+    
     folder = get_transaction_by_id(username, transaction_id, full_document=True)
     if not folder or folder.get('status') != 'Paid':
         abort(404)
 
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    
+    total_check_amount = sum(check.get('check_amount', 0) for check in child_checks)
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+    total_ewt = sum(check.get('ewt', 0) for check in child_checks)
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
     
     styles = getSampleStyleSheet()
-    
+    styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT, fontSize=8))
+    styles.add(ParagraphStyle(name='NormalLeft', parent=styles['Normal'], fontSize=8))
+    styles.add(ParagraphStyle(name='HeaderWhite', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, textColor=colors.whitesmoke, alignment=TA_CENTER))
+
+    # --- Header Section ---
     p.setFont("Helvetica-Bold", 16)
     p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
+
     try:
         logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
         if os.path.exists(logo_path):
-            p.drawImage(logo_path, width - 2.0 * inch, height - 1.2 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
+            # --- START OF CHANGE: Lowered the Y-coordinate for the logo ---
+            p.drawImage(logo_path, width - 2.0 * inch, height - 1.7 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
+            # --- END OF CHANGE ---
     except Exception as e:
         logger.error(f"Could not draw logo on PDF: {e}")
 
@@ -231,77 +240,118 @@ def download_transaction_pdf(transaction_id):
     p.line(0.75 * inch, height - 1.67 * inch, 0.75 * inch + name_width, height - 1.67 * inch)
     paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
     p.drawString(0.75 * inch, height - 1.85 * inch, paid_date)
+
     p.line(0.75 * inch, height - 2.1 * inch, width - 0.75 * inch, height - 2.1 * inch)
     
-    headers = ["Name Issued Check", "Check No.", "Date", "Check Amt", "EWT", "Other Ded.", "Countered Check"]
-    col_widths = [1.8*inch, 1.0*inch, 0.8*inch, 1.0*inch, 0.8*inch, 0.8*inch, 1.0*inch]
+    # --- Table Data Preparation ---
+    header1 = ['Name Issued Check', 'Check No.', 'EWT', 'Check Amount', 'Countered Check', 'Notes', Paragraph('Deduction', styles['HeaderWhite'])]
+    header2 = ['', '', '', '', '', '', 'Name', 'Amount']
     
-    table_data = [headers]
+    table_data = [header1, header2]
+
     for check in child_checks:
-        other_deductions = sum(d['amount'] for d in check.get('deductions', []))
-        row_data = [
-            check.get('name', ''),
-            check.get('check_no', ''),
-            check.get('check_date').strftime('%m/%d/%y') if check.get('check_date') else '',
-            f"{check.get('check_amount', 0):,.2f}",
-            f"{check.get('ewt', 0):,.2f}",
-            f"{other_deductions:,.2f}",
-            f"{check.get('countered_check', 0):,.2f}"
-        ]
-        table_data.append(row_data)
-        if check.get('notes'):
-            note_style = ParagraphStyle(name='NoteStyle', parent=styles['Normal'], fontSize=8, leading=10)
-            note_paragraph = Paragraph(f"Notes: {check.get('notes')}", note_style)
-            table_data.append([note_paragraph, "", "", "", "", "", ""])
+        deductions = check.get('deductions', [])
+        notes_paragraph = Paragraph(check.get('notes', '').replace('\n', '<br/>'), styles['NormalLeft'])
 
-    while len(table_data) < 13:
-        table_data.append(["", "", "", "", "", "", ""])
+        if not deductions:
+            row_data = [
+                Paragraph(check.get('name', ''), styles['NormalLeft']), check.get('check_no', ''),
+                Paragraph(f"{check.get('ewt', 0):,.2f}", styles['RightAlign']),
+                Paragraph(f"{check.get('check_amount', 0):,.2f}", styles['RightAlign']),
+                Paragraph(f"{check.get('countered_check', 0):,.2f}", styles['RightAlign']),
+                notes_paragraph, '', ''
+            ]
+            table_data.append(row_data)
+        else:
+            for i, deduction in enumerate(deductions):
+                if i == 0:
+                    row_data = [
+                        Paragraph(check.get('name', ''), styles['NormalLeft']), check.get('check_no', ''),
+                        Paragraph(f"{check.get('ewt', 0):,.2f}", styles['RightAlign']),
+                        Paragraph(f"{check.get('check_amount', 0):,.2f}", styles['RightAlign']),
+                        Paragraph(f"{check.get('countered_check', 0):,.2f}", styles['RightAlign']),
+                        notes_paragraph,
+                        Paragraph(deduction.get('name', ''), styles['NormalLeft']),
+                        Paragraph(f"{deduction.get('amount', 0):,.2f}", styles['RightAlign'])
+                    ]
+                else:
+                    row_data = ['', '', '', '', '', '', Paragraph(deduction.get('name', ''), styles['NormalLeft']), Paragraph(f"{deduction.get('amount', 0):,.2f}", styles['RightAlign'])]
+                table_data.append(row_data)
 
-    tbl = Table(table_data, colWidths=col_widths)
+    while len(table_data) < 15:
+        table_data.append(["", "", "", "", "", "", "", ""])
+
+    # --- Table Creation and Styling ---
+    col_widths = [1.5*inch, 0.8*inch, 0.7*inch, 0.8*inch, 1.0*inch, 1.0*inch, 0.8*inch, 0.6*inch]
+    tbl = Table(table_data, colWidths=col_widths, repeatRows=2)
     style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#3a4d39")),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('BACKGROUND', (0,0), (-1,1), colors.HexColor("#3a4d39")),
+        ('TEXTCOLOR', (0,0), (-1,1), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTNAME', (0,0), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
         ('GRID', (0,0), (-1,-1), 1, colors.black),
-        ('ALIGN', (0,1), (0,-1), 'LEFT'),
-        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),
-        ('PADDING', (0,0), (-1,-1), 5),
+        ('SPAN', (6,0), (7,0)),
+        ('SPAN', (0,0), (0,1)), ('SPAN', (1,0), (1,1)), ('SPAN', (2,0), (2,1)),
+        ('SPAN', (3,0), (3,1)), ('SPAN', (4,0), (4,1)), ('SPAN', (5,0), (5,1)),
+        ('ALIGN', (0,2), (0,-1), 'LEFT'),
+        ('ALIGN', (5,2), (5,-1), 'LEFT'),
+        ('ALIGN', (6,2), (6,-1), 'LEFT'),
     ])
-    for i, row in enumerate(table_data):
-        if isinstance(row[0], Paragraph):
-            style.add('SPAN', (0, i), (-1, i))
-            style.add('ALIGN', (0, i), (0, i), 'LEFT')
     tbl.setStyle(style)
 
-    table_width, table_height = tbl.wrap(width, height)
-    y_pos = height - 2.5 * inch - table_height
-    tbl.drawOn(p, 0.75 * inch, y_pos)
+    table_width, table_height = tbl.wrapOn(p, width, height)
+    y_pos = height - 2.3 * inch - table_height
+    tbl.drawOn(p, 0.5 * inch, y_pos)
 
+    # --- Summary Section ---
+    summary_y_start = y_pos - 0.5 * inch
     p.setFont("Helvetica", 10)
-    summary_label_x = width - 3.5 * inch
-    summary_box_x = width - 2.5 * inch
-    summary_y = y_pos - 0.3 * inch
     
-    p.drawRightString(summary_label_x, summary_y + 0.35 * inch, "Countered Checks")
-    p.rect(summary_box_x, summary_y + 0.25 * inch, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.35 * inch, f"₱ {total_countered_check:,.2f}")
+    p.drawRightString(width - 2.5 * inch, summary_y_start, "EWT")
+    p.rect(width - 2.3 * inch, summary_y_start - 0.15*inch, 1.5*inch, 0.25*inch)
+    p.drawRightString(width - 0.9 * inch, summary_y_start, f"■ {total_ewt:,.2f}")
+
+    summary_y_start -= 0.35 * inch
+    p.drawRightString(width - 2.5 * inch, summary_y_start, "Check Amount")
+    p.rect(width - 2.3 * inch, summary_y_start - 0.15*inch, 1.5*inch, 0.25*inch)
+    p.drawRightString(width - 0.9 * inch, summary_y_start, f"■ {total_check_amount:,.2f}")
+
+    summary_y_start -= 0.35 * inch
+    p.drawRightString(width - 2.5 * inch, summary_y_start, "Countered Checks")
+    p.rect(width - 2.3 * inch, summary_y_start - 0.15*inch, 1.5*inch, 0.25*inch)
+    p.drawRightString(width - 0.9 * inch, summary_y_start, f"■ {total_countered_check:,.2f}")
+
+    # --- Signature Line ---
+    p.line(0.75 * inch, 1.25 * inch, width - 4.0 * inch, 1.25 * inch)
+    
+    x_start = 0.75 * inch
+    y_level = 1.1 * inch
     
     p.setFont("Helvetica-Bold", 10)
-    p.drawRightString(summary_label_x, summary_y + 0.1 * inch, "Check Amount")
-    p.rect(summary_box_x, summary_y, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
-
-    p.setFont("Helvetica-Bold", 11)
-    notes_y_start = summary_y - 0.5 * inch
-    p.drawString(0.75 * inch, notes_y_start, "Notes")
-    p.rect(0.75 * inch, 1 * inch, width - 1.5 * inch, notes_y_start - 1.1 * inch, stroke=1, fill=0)
+    label_text = "Prepared by: "
+    p.drawString(x_start, y_level, label_text)
+    
+    label_width = p.stringWidth(label_text, "Helvetica-Bold", 10)
+    
+    p.setFont("Helvetica", 10)
+    p.drawString(x_start + label_width, y_level, user_name)
 
     p.showPage()
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"cleared_checks_{transaction_id}.pdf", mimetype='application/pdf')
+    
+    response = make_response(send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"cleared_checks_{transaction_id}.pdf",
+        mimetype='application/pdf'
+    ))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @main.route('/api/transactions/child/update/<transaction_id>', methods=['POST'])
 @jwt_required()

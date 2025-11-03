@@ -105,6 +105,13 @@ document.addEventListener('DOMContentLoaded', function() {
         row.addEventListener('click', async () => {
             const invoiceId = row.dataset.id;
             if (!invoiceId) return;
+            
+            // --- START OF MODIFICATION ---
+            // Ensure buttons are visible for the normal, editable view
+            modal.querySelector('#modal-edit-btn').style.display = 'block';
+            modal.querySelector('#modal-delete-btn').style.display = 'block';
+            // --- END OF MODIFICATION ---
+
             try {
                 const response = await fetch(`/api/invoices/details/${invoiceId}`);
                 if (!response.ok) throw new Error('Failed to fetch invoice details.');

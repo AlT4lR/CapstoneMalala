@@ -1,12 +1,11 @@
 from flask import (
     render_template, request, jsonify, url_for, current_app, 
-    send_from_directory, send_file, abort, session
+    send_from_directory, send_file, abort, session, make_response
 )
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
-# --- START OF CONSOLIDATED IMPORTS (Includes Full OCR Support) ---
 import pytesseract
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -17,7 +16,6 @@ from reportlab.platypus import Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import io
 import logging
-# --- END OF CONSOLIDATED IMPORTS ---
 
 from . import main # Import the blueprint
 from ..models import (
@@ -27,41 +25,21 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
-# --- Tesseract Configuration (Kept for context, but commented out for PATH reliance) ---
-# The hardcoded Windows path for Tesseract has been REMOVED to rely on the 
-# system's PATH environment variable, making it compatible with Linux/Docker.
-
-# try:
-#     # For Windows development environments, uncomment and modify this line:
-#     # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-#     pass
-# except Exception as e:
-#     logger.warning(f"Could not set the Tesseract path (if applicable). OCR will search system PATH. Error: {e}")
-
-# --- START OF FULL OCR FUNCTION WITH ROBUST ERROR HANDLING ---
 def perform_ocr_on_image(image_path):
     """
     Performs Optical Character Recognition (OCR) on an image file using Tesseract.
-    Includes robust error handling for common Tesseract issues like not found or timeouts.
     """
-    # --- More detailed error handling for cross-platform stability ---
     try:
-        # Use a timeout to prevent the process from hanging on difficult images
         return pytesseract.image_to_string(Image.open(image_path), timeout=15)
     except pytesseract.TesseractNotFoundError:
-        # This error is specific: the tesseract executable was not found in the system's PATH.
         logger.error("TESSERACT NOT FOUND: The Tesseract executable was not found in the system's PATH.")
         return "OCR Error: Tesseract executable not found. Please check the server configuration."
     except RuntimeError as timeout_error:
-        # This catches the timeout error specifically (e.g., Tesseract process hanging)
         logger.error(f"OCR timed out for image {image_path}: {timeout_error}")
         return "OCR failed: Processing timed out. The image may be too complex."
     except Exception as e:
-        # This catches all other errors (e.g., bad installation, missing language files)
         logger.error(f"An unexpected OCR error occurred for image {image_path}: {e}")
         return f"OCR failed: An unexpected error occurred. Check server logs for details. (Error: {str(e)[:100]})"
-# --- END OF FULL OCR FUNCTION ---
-
 
 @main.route('/invoice')
 @jwt_required()
@@ -90,7 +68,6 @@ def upload_invoice():
     if not files or files[0].filename == '':
         return jsonify({'success': False, 'error': 'No selected file'}), 400
 
-    # --- START OF MERGE: Safe date handling (from original code) ---
     try:
         date_obj = None
         date_str = request.form.get('date')
@@ -98,16 +75,15 @@ def upload_invoice():
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
     except ValueError:
         return jsonify({'success': False, 'error': 'Invalid date format. Please use YYYY-MM-DD.'}), 400
-    # --- END OF MERGE ---
 
     invoice_data = {
         'folder_name': request.form.get('folder-name'),
         'category': request.form.get('categories'),
-        'date': date_obj, # Use the safely parsed date_obj
+        'date': date_obj,
     }
     
     processed_files_info = []
-    extracted_text_all = [] # List to hold OCR text from all uploaded files (from incoming change)
+    extracted_text_all = []
 
     for file in files:
         if file:
@@ -115,7 +91,6 @@ def upload_invoice():
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # Perform OCR on the saved file (from incoming change)
             extracted_text = perform_ocr_on_image(filepath)
             extracted_text_all.append(extracted_text)
             
@@ -126,10 +101,8 @@ def upload_invoice():
 
     if add_invoice(username, selected_branch, invoice_data, processed_files_info, "\n\n".join(extracted_text_all)):
         log_user_activity(username, 'Uploaded an invoice')
-        # Use the redirect response from the incoming change, which is typical for AJAX file uploads
         return jsonify({'success': True, 'redirect_url': url_for('main.all_invoices')})
     else:
-        # Ensure cleanup of uploaded files if the database operation fails, though not strictly required by the prompt
         return jsonify({'success': False, 'error': 'Database error'}), 500
 
 @main.route('/api/invoices/<invoice_id>', methods=['DELETE'])
@@ -161,66 +134,138 @@ def download_invoice_as_pdf(invoice_id):
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-    styles = getSampleStyleSheet()
+    
+    # --- PAGE 1: OFFICIAL RECEIPT DETAILS ---
     
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(inch, height - inch, f"Invoice: {invoice.get('folder_name', 'N/A')}")
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(inch, height - 1.5 * inch, "Extracted Text (OCR)")
-    # Replace newlines with <br/> for ReportLab's Paragraph to handle multiline text
-    ocr_text = invoice.get('extracted_text', 'No text was extracted.').replace('\n', '<br/>')
-    ocr_paragraph = Paragraph(ocr_text, styles['Normal'])
-    # Calculate wrapped size
-    w, h = ocr_paragraph.wrapOn(p, width - 2 * inch, height)
-    p.saveState()
-    # Adjust position calculation for the paragraph drawing
-    paragraph_start_y = height - 1.6 * inch - h
-    ocr_paragraph.drawOn(p, inch, paragraph_start_y)
-    p.restoreState()
-    
-    y_pos = paragraph_start_y - 0.5 * inch # Start drawing files below the paragraph
+    p.drawCentredString(width / 2.0, height - 0.75 * inch, "OFFICIAL RECEIPT")
 
-    if invoice.get('files'):
-        # Check if there is enough room for the file title and margin
-        if y_pos < height - (height - 1.5 * inch):
-             p.showPage()
-             y_pos = height - inch
-        
-        p.setFont("Helvetica-Bold", 16)
-        p.drawString(inch, y_pos, "Attached Images")
-        y_pos -= 0.5 * inch # Move down after the new title
+    # --- Logo ---
+    try:
+        logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
+        if os.path.exists(logo_path):
+            # --- START OF CHANGE: Lowered the Y-coordinate for the logo ---
+            p.drawImage(logo_path, width - 2.0 * inch, height - 1.7 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
+            # --- END OF CHANGE ---
+    except Exception as e:
+        logger.error(f"Could not draw logo on PDF: {e}")
 
-        for file_info in invoice['files']:
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file_info['filename'])
-            if os.path.exists(filepath):
-                try:
-                    img_reader = ImageReader(filepath)
-                    img_width, img_height = img_reader.getSize()
+    # --- Corporation and Invoice Details ---
+    p.setFont("Helvetica", 11)
+    y_pos = height - 1.25 * inch
+    p.drawString(0.75 * inch, y_pos, "DECOLORES RETAIL CORPORATION")
+    y_pos -= 0.4 * inch
+
+    label_x = 0.75 * inch
+    value_x = 1.75 * inch
+
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(label_x, y_pos, "Folder Name")
+    p.setFont("Helvetica", 10)
+    p.drawString(value_x, y_pos, invoice.get('folder_name', 'N/A'))
+    y_pos -= 0.25 * inch
+
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(label_x, y_pos, "Category")
+    p.setFont("Helvetica", 10)
+    p.drawString(value_x, y_pos, invoice.get('category', 'N/A'))
+    y_pos -= 0.25 * inch
+    
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(label_x, y_pos, "Date")
+    p.setFont("Helvetica", 10)
+    invoice_date = invoice.get('date')
+    date_str = invoice_date.strftime('%B %d, %Y') if isinstance(invoice_date, datetime) else 'N/A'
+    p.drawString(value_x, y_pos, date_str)
+    y_pos -= 0.2 * inch 
+
+    top_line_y = y_pos
+    p.line(0.75 * inch, top_line_y, width - 0.75 * inch, top_line_y)
+    
+    bottom_line_y = 1.5 * inch
+    p.line(0.75 * inch, bottom_line_y, width - 0.75 * inch, bottom_line_y)
+
+    # --- IMAGE PLACEMENT LOGIC ---
+    files = invoice.get('files', [])
+    if files:
+        # --- Draw the FIRST image on the first page ---
+        first_file = files[0]
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], first_file['filename'])
+        if os.path.exists(filepath):
+            try:
+                margin = 0.85 * inch 
+                available_width = width - 2 * margin
+                available_height = top_line_y - bottom_line_y - (0.2 * inch) 
+                
+                img_reader = ImageReader(filepath)
+                img_width, img_height = img_reader.getSize()
+                
+                img_aspect = img_height / float(img_width) if img_width else 0
+                frame_aspect = available_height / float(available_width) if available_width else 0
+                
+                if img_aspect > frame_aspect:
+                    new_height = available_height
+                    new_width = new_height / img_aspect
+                else:
+                    new_width = available_width
+                    new_height = new_width * img_aspect
                     
-                    max_width = width - 2 * inch
-                    if img_width > max_width:
-                        # Scale the image down if it's too wide
-                        ratio = max_width / img_width
-                        img_width = max_width
-                        img_height *= ratio
-                    
-                    # Check if the image will fit on the current page
-                    if y_pos - img_height < inch: 
+                x_centered = (width - new_width) / 2
+                y_centered = bottom_line_y + (available_height - new_height) / 2 + (0.1 * inch)
+                
+                p.drawImage(img_reader, x_centered, y_centered, width=new_width, height=new_height, preserveAspectRatio=True, mask='auto')
+
+            except Exception as e:
+                logger.error(f"Could not process first image for PDF: {filepath}, Error: {e}")
+                p.drawCentredString(width / 2.0, (top_line_y + bottom_line_y) / 2, f"[Could not load image]")
+
+        # --- Draw SUBSEQUENT images on new pages ---
+        if len(files) > 1:
+            page_margin = 1 * inch
+            page_available_width = width - 2 * page_margin
+            page_available_height = height - 2 * page_margin
+
+            for file_info in files[1:]:
+                filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], file_info['filename'])
+                if os.path.exists(filepath):
+                    try:
                         p.showPage()
-                        y_pos = height - inch
+                        img_reader = ImageReader(filepath)
+                        img_width, img_height = img_reader.getSize()
+                        
+                        img_aspect = img_height / float(img_width)
+                        frame_aspect = page_available_height / float(page_available_width)
+                        
+                        if img_aspect > frame_aspect:
+                            new_height = page_available_height
+                            new_width = new_height / img_aspect
+                        else:
+                            new_width = page_available_width
+                            new_height = new_width * img_aspect
+                            
+                        x_centered = (width - new_width) / 2
+                        y_centered = (height - new_height) / 2
+                        
+                        p.drawImage(img_reader, x_centered, y_centered, width=new_width, height=new_height, preserveAspectRatio=True, mask='auto')
 
-                    # Draw the image
-                    p.drawImage(img_reader, inch, y_pos - img_height, width=img_width, height=img_height)
-                    y_pos -= (img_height + 0.5 * inch)
-                except Exception as e:
-                    logger.error(f"Could not process image for PDF: {filepath}, Error: {e}")
-                    p.drawString(inch, y_pos, f"[Could not load image: {file_info['filename']}]")
-                    y_pos -= 0.5 * inch
+                    except Exception as e:
+                        logger.error(f"Could not process subsequent image for PDF: {filepath}, Error: {e}")
+                        p.showPage()
+                        p.drawCentredString(width / 2.0, height / 2.0, f"[Could not load image: {file_info['filename']}]")
 
     p.save()
     buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"invoice_{invoice_id}.pdf", mimetype='application/pdf')
+    
+    response = make_response(send_file(
+        buffer, 
+        as_attachment=True, 
+        download_name=f"official_receipt_{invoice_id}.pdf", 
+        mimetype='application/pdf'
+    ))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @main.route('/invoices/uploads/<path:filename>')
 @jwt_required()
