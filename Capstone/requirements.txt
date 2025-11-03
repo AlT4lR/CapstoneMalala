@@ -33,3 +33,4 @@ Werkzeug
 Pillow
 pywebpush
 reportlab
+pytesseract
