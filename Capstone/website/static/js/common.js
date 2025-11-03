@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const data = await response.json();
 
-                // Populate modal fields
+                // Populate common modal fields
                 modalElement.querySelector('input[name="transaction_id"]').value = transactionId;
                 if(modalElement.querySelector('input[name="name"]')) modalElement.querySelector('input[name="name"]').value = data.name || '';
                 if(modalElement.querySelector('input[name="name_of_issued_check"]')) modalElement.querySelector('input[name="name_of_issued_check"]').value = data.name || '';
@@ -138,15 +138,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(modalElement.querySelector('input[name="check_amount"]')) modalElement.querySelector('input[name="check_amount"]').value = data.check_amount || '0.00';
                 if(modalElement.querySelector('textarea[name="notes"]')) modalElement.querySelector('textarea[name="notes"]').value = data.notes || '';
                 
-                // Handle deductions for the check edit modal
+                // --- START OF CHANGE: Handle EWT and other deductions separately ---
                 if (modalElement.id === 'edit-check-modal') {
-                    const deductions = data.deductions || [];
-                    const ewtDeduction = deductions.find(d => d.name.toUpperCase() === 'EWT');
-                    modalElement.querySelector('input[name="ewt"]').value = ewtDeduction ? ewtDeduction.amount : '0.00';
-                    if (window.populateDeductions_edit_check) {
-                        window.populateDeductions_edit_check(deductions);
+                    // Manually set the countered_check value
+                    if(modalElement.querySelector('input[name="countered_check"]')) {
+                        modalElement.querySelector('input[name="countered_check"]').value = data.countered_check || '0.00';
+                    }
+
+                    // Set the dedicated EWT field
+                    if(modalElement.querySelector('input[name="ewt"]')) {
+                        modalElement.querySelector('input[name="ewt"]').value = data.ewt || '0.00';
+                    }
+                    
+                    const populateFuncName = 'populateDeductions_' + modalElement.id.replace(/-/g, '_');
+                    if (window[populateFuncName]) {
+                        // Pass the original deductions array to the populator function
+                        window[populateFuncName](data.deductions || []);
                     }
                 }
+                // --- END OF CHANGE ---
                 
                 openModal(modalElement);
 

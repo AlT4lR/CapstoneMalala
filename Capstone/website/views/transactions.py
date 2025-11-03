@@ -25,7 +25,7 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
-# --- All routes before download_transaction_pdf are unchanged and correct ---
+# --- Routes before transaction_folder_details are unchanged ---
 
 @main.route('/transactions')
 @jwt_required()
@@ -67,8 +67,21 @@ def transaction_folder_details(transaction_id):
 
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     total_ewt = sum(check.get('ewt', 0) for check in child_checks)
-    folder_amount = folder.get('amount', 0)
+    
+    folder_amount = sum(check.get('check_amount', 0) for check in child_checks)
+    folder['amount'] = folder_amount 
+    
     remaining_balance = folder_amount - total_countered_check
+    
+    # --- START OF CHANGE: Add completion status flag to each check ---
+    for check in child_checks:
+        check['is_incomplete'] = (
+            not check.get('check_no') or
+            not check.get('check_amount') or
+            # A countered check value of 0 is considered incomplete
+            check.get('countered_check') is None or float(check.get('countered_check')) == 0.0
+        )
+    # --- END OF CHANGE ---
     
     return render_template(
         'transaction_folder_detail.html',
@@ -115,18 +128,14 @@ def add_transaction_route():
         deductions = []
         deduction_names = request.form.getlist('deduction_name[]')
         deduction_amounts = request.form.getlist('deduction_amount[]')
+
         for name, amount_str in zip(deduction_names, deduction_amounts):
             if name and amount_str:
                 try:
                     deductions.append({'name': name, 'amount': float(amount_str)})
-                except ValueError: continue
+                except ValueError:
+                    continue
         
-        if form_data.get('ewt'):
-            try:
-                ewt_amount = float(form_data.get('ewt'))
-                if ewt_amount > 0: deductions.append({'name': 'EWT', 'amount': ewt_amount})
-            except ValueError: pass
-                
         form_data['deductions'] = deductions
         
         if add_transaction(username, selected_branch, form_data, parent_id=parent_id):
@@ -152,7 +161,7 @@ def add_transaction_route():
     redirect_url = url_for('main.transaction_folder_details', transaction_id=parent_id) if parent_id else url_for('main.transactions')
     return redirect(redirect_url)
 
-# --- Transaction API Routes ---
+# --- The rest of the file remains unchanged ---
 @main.route('/api/transactions/<transaction_id>', methods=['DELETE'])
 @jwt_required()
 def delete_transaction_route(transaction_id):
@@ -187,7 +196,6 @@ def pay_transaction_folder(folder_id):
     else:
         return jsonify({'success': False, 'error': 'Failed to process payment.'}), 400
 
-# --- START OF FINAL FIX: Complete redesign of PDF generation ---
 @main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])
 @jwt_required()
 def download_transaction_pdf(transaction_id):
@@ -205,10 +213,8 @@ def download_transaction_pdf(transaction_id):
     
     styles = getSampleStyleSheet()
     
-    # Header
     p.setFont("Helvetica-Bold", 16)
     p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
-
     try:
         logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
         if os.path.exists(logo_path):
@@ -225,17 +231,14 @@ def download_transaction_pdf(transaction_id):
     p.line(0.75 * inch, height - 1.67 * inch, 0.75 * inch + name_width, height - 1.67 * inch)
     paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
     p.drawString(0.75 * inch, height - 1.85 * inch, paid_date)
-
     p.line(0.75 * inch, height - 2.1 * inch, width - 0.75 * inch, height - 2.1 * inch)
     
-    # Table Data Preparation
     headers = ["Name Issued Check", "Check No.", "Date", "Check Amt", "EWT", "Other Ded.", "Countered Check"]
     col_widths = [1.8*inch, 1.0*inch, 0.8*inch, 1.0*inch, 0.8*inch, 0.8*inch, 1.0*inch]
     
     table_data = [headers]
     for check in child_checks:
-        other_deductions = sum(d['amount'] for d in check.get('deductions', []) if d['name'].upper() != 'EWT')
-        
+        other_deductions = sum(d['amount'] for d in check.get('deductions', []))
         row_data = [
             check.get('name', ''),
             check.get('check_no', ''),
@@ -246,19 +249,14 @@ def download_transaction_pdf(transaction_id):
             f"{check.get('countered_check', 0):,.2f}"
         ]
         table_data.append(row_data)
-        
-        # Add a row for notes if they exist
         if check.get('notes'):
-            # Create a Paragraph for word wrapping
             note_style = ParagraphStyle(name='NoteStyle', parent=styles['Normal'], fontSize=8, leading=10)
             note_paragraph = Paragraph(f"Notes: {check.get('notes')}", note_style)
             table_data.append([note_paragraph, "", "", "", "", "", ""])
 
-    # Add empty rows to fill the table
-    while len(table_data) < 13: # 1 header row + 12 data rows
+    while len(table_data) < 13:
         table_data.append(["", "", "", "", "", "", ""])
 
-    # Create and style the table
     tbl = Table(table_data, colWidths=col_widths)
     style = TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#3a4d39")),
@@ -267,25 +265,20 @@ def download_transaction_pdf(transaction_id):
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('GRID', (0,0), (-1,-1), 1, colors.black),
-        ('ALIGN', (0,1), (0,-1), 'LEFT'), # Left-align the Name column
-        ('ALIGN', (3,1), (-1,-1), 'RIGHT'), # Right-align all number columns
+        ('ALIGN', (0,1), (0,-1), 'LEFT'),
+        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),
         ('PADDING', (0,0), (-1,-1), 5),
     ])
-    
-    # Apply special style for note rows
     for i, row in enumerate(table_data):
         if isinstance(row[0], Paragraph):
-            style.add('SPAN', (0, i), (-1, i)) # Span the note across all columns
+            style.add('SPAN', (0, i), (-1, i))
             style.add('ALIGN', (0, i), (0, i), 'LEFT')
-
     tbl.setStyle(style)
 
-    # Draw the table on the canvas
     table_width, table_height = tbl.wrap(width, height)
     y_pos = height - 2.5 * inch - table_height
     tbl.drawOn(p, 0.75 * inch, y_pos)
 
-    # Summary Section
     p.setFont("Helvetica", 10)
     summary_label_x = width - 3.5 * inch
     summary_box_x = width - 2.5 * inch
@@ -300,7 +293,6 @@ def download_transaction_pdf(transaction_id):
     p.rect(summary_box_x, summary_y, 1.75 * inch, 0.25 * inch)
     p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
 
-    # Notes Box
     p.setFont("Helvetica-Bold", 11)
     notes_y_start = summary_y - 0.5 * inch
     p.drawString(0.75 * inch, notes_y_start, "Notes")
@@ -310,7 +302,6 @@ def download_transaction_pdf(transaction_id):
     p.save()
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"cleared_checks_{transaction_id}.pdf", mimetype='application/pdf')
-# --- END OF FINAL FIX ---
 
 @main.route('/api/transactions/child/update/<transaction_id>', methods=['POST'])
 @jwt_required()
@@ -320,17 +311,14 @@ def update_child_transaction_route(transaction_id):
     deductions = []
     deduction_names = request.form.getlist('deduction_name[]')
     deduction_amounts = request.form.getlist('deduction_amount[]')
+    
     for name, amount_str in zip(deduction_names, deduction_amounts):
         if name and amount_str:
             try:
                 deductions.append({'name': name, 'amount': float(amount_str)})
-            except ValueError: continue
+            except ValueError:
+                continue
     
-    if form_data.get('ewt'):
-        try:
-            ewt_amount = float(form_data.get('ewt'))
-            if ewt_amount > 0: deductions.append({'name': 'EWT', 'amount': ewt_amount})
-        except ValueError: pass
     form_data['deductions'] = deductions
     
     if update_child_transaction(username, transaction_id, form_data):

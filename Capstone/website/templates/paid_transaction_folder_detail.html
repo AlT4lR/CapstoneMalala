@@ -39,7 +39,6 @@
 
           <div id="checks-list-container" class="flex-1 overflow-y-auto custom-scrollbar">
               {% for check in child_checks %}
-              <!-- --- START OF MODIFICATION: Responsive row --- -->
               <div class="check-row border-b hover:bg-gray-50 transition-colors cursor-pointer" data-id="{{ check._id }}" data-name="{{ check.name | lower }}">
                 <!-- Mobile Card View -->
                 <div class="p-3 md:hidden">
@@ -73,7 +72,6 @@
                     <span class="col-span-2">₱ {{ "{:,.2f}".format(check.countered_check) }}</span>
                 </div>
               </div>
-              <!-- --- END OF MODIFICATION --- -->
               {% else %}
               <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks were found for this paid transaction.</p>
               {% endfor %}

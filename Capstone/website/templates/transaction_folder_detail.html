@@ -12,7 +12,7 @@
 
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
-    
+    <!-- The HTML content of this main block is unchanged -->
     <header class="flex flex-wrap justify-between items-center gap-y-4 mb-4">
         <h2 class="text-2xl font-bold uppercase w-full sm:w-auto">TRANSACTIONS</h2>
         <div class="flex items-center gap-4 w-full sm:w-auto">
@@ -24,50 +24,39 @@
             {% include "_notification_button.html" %}
         </div>
     </header>
-
-    <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
-        <i class="fa-solid fa-arrow-left"></i>
-        Go Back...
-    </a>
+    <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2"><i class="fa-solid fa-arrow-left"></i> Go Back...</a>
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
-
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-
         <div class="lg:col-span-3 flex flex-col gap-4">
             <div id="checks-list-container" class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-2 overflow-y-auto custom-scrollbar">
+                
                 {% for check in child_checks %}
-                <div class="check-item p-3 border-b hover:bg-gray-50 cursor-pointer" 
-                     data-id="{{ check._id }}"
-                     data-name="{{ check.name }}"
-                     data-check-no="{{ check.check_no or '' }}"
-                     data-check-amount="{{ check.check_amount or 0.0 }}"
-                     data-countered-check="{{ check.countered_check or 0.0 }}"
-                     data-ewt="{{ check.ewt or 0.0 }}"
-                     data-notes="{{ check.notes or '' }}"
-                     data-deductions='{{ (check.deductions or []) | tojson }}'>
+                <div class="check-item relative p-3 border-b hover:bg-gray-50 cursor-pointer" data-id="{{ check._id }}" data-name="{{ check.name }}" data-check-no="{{ check.check_no or '' }}" data-check-amount="{{ check.check_amount or 0.0 }}" data-countered-check="{{ check.countered_check or 0.0 }}" data-ewt="{{ check.ewt or 0.0 }}" data-notes="{{ check.notes or '' }}" data-deductions='{{ (check.deductions or []) | tojson }}'>
                     <p class="font-semibold truncate">{{ check.name }}</p>
                     <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
+                    
+                    {% if check.is_incomplete %}
+                        <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-yellow-400" title="This check has incomplete details."></div>
+                    {% endif %}
                 </div>
                 {% else %}
-                <p class="text-center text-gray-400 p-10">No checks have been issued yet.</p>
+                <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued yet.</p>
                 {% endfor %}
+                
+                <!-- --- START OF CHANGE: Added "No results" message --- -->
+                <p id="no-results-message" class="hidden text-center text-gray-400 p-10">No results found.</p>
+                <!-- --- END OF CHANGE --- -->
+
             </div>
             <button id="create-issued-check-btn" class="w-full px-5 py-3 bg-[#3a4d39] text-white font-semibold rounded-md shadow hover:bg-opacity-90 transition">Create Issued Checked</button>
         </div>
-
         <div id="check-details-panel" class="lg:col-span-6 bg-white rounded-md border border-gray-200 shadow-sm p-6 flex flex-col">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h4 id="detail-name" class="text-xl font-bold">Select a Check</h4>
-                <div id="detail-actions" class="flex gap-4 text-gray-400">
-                    <button title="Edit" id="detail-edit-btn" class="edit-btn hover:text-green-600" data-modal-target="#edit-check-modal"><i class="fa-solid fa-pen"></i></button>
-                    <button title="Delete" id="detail-delete-btn" class="delete-btn hover:text-red-600"><i class="fa-solid fa-trash"></i></button>
-                </div>
+                <div id="detail-actions" class="flex gap-4 text-gray-400"><button title="Edit" id="detail-edit-btn" class="edit-btn hover:text-green-600" data-modal-target="#edit-check-modal"><i class="fa-solid fa-pen"></i></button><button title="Delete" id="detail-delete-btn" class="delete-btn hover:text-red-600"><i class="fa-solid fa-trash"></i></button></div>
             </div>
-            <div id="check-details-content" class="text-gray-600 overflow-y-auto custom-scrollbar pr-2">
-                <p class="text-center p-8">Select a check from the list to see its details.</p>
-            </div>
+            <div id="check-details-content" class="text-gray-600 overflow-y-auto custom-scrollbar pr-2"><p class="text-center p-8">Select a check from the list to see its details.</p></div>
         </div>
-
         <div class="lg:col-span-3 flex flex-col gap-4">
             <div class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-4 space-y-4">
                 <div><label class="block text-sm font-medium text-gray-500">EWT</label><input type="text" value="₱ {{ '{:,.2f}'.format(total_ewt) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly></div>
@@ -90,126 +79,112 @@
 document.addEventListener('DOMContentLoaded', function() {
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-    function setupAutoCalculation(modalId) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        const checkAmountInput = modal.querySelector('input[name="check_amount"]');
-        const ewtInput = modal.querySelector('input[name="ewt"]');
-        const counteredCheckDisplay = modal.querySelector('input[id*="countered-check-display"]');
-        const deductionsContainer = modal.querySelector('[id*="deductions-container"]');
-        const updateCalculation = () => {
-            if (!checkAmountInput || !ewtInput || !counteredCheckDisplay) return;
-            const checkAmount = parseFloat(checkAmountInput.value) || 0;
-            const ewtAmount = parseFloat(ewtInput.value) || 0;
-            let otherDeductionsTotal = 0;
-            const otherDeductionInputs = deductionsContainer.querySelectorAll('input[name="deduction_amount[]"]');
-            otherDeductionInputs.forEach(input => { otherDeductionsTotal += parseFloat(input.value) || 0; });
-            const counteredCheck = checkAmount - ewtAmount - otherDeductionsTotal;
-            counteredCheckDisplay.value = counteredCheck.toFixed(2);
-        };
-        modal.addEventListener('input', (e) => {
-            if (e.target.matches('input[name="check_amount"], input[name="ewt"], input[name="deduction_amount[]"]')) {
-                updateCalculation();
-            }
-        });
-        window[`updateCalculationFor_${modalId}`] = updateCalculation;
-    }
-
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
+
         const createDeductionField = (name = '', amount = '') => {
             const div = document.createElement('div');
             div.className = 'space-y-2 deduction-field pt-2 mt-2 border-t';
-            div.innerHTML = `<div class="flex justify-between items-center"><input type="text" name="deduction_name[]" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Name of Deduction" value="${name}"><button type="button" class="remove-deduction-btn text-red-500 hover:text-red-700 text-2xl pl-2">&times;</button></div><input type="number" step="0.01" name="deduction_amount[]" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Amount" value="${amount}">`;
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <input type="text" name="deduction_name[]" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Name of Deduction" value="${name}">
+                    <button type="button" class="remove-deduction-btn text-red-500 hover:text-red-700 text-2xl pl-2">&times;</button>
+                </div>
+                <input type="number" step="0.01" name="deduction_amount[]" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="Amount" value="${amount}">
+            `;
             deductionsContainer.appendChild(div);
         };
+
         addDeductionBtn.addEventListener('click', () => createDeductionField());
+
         deductionsContainer.addEventListener('click', e => {
             if (e.target.classList.contains('remove-deduction-btn')) {
                 e.target.closest('.deduction-field').remove();
-                window[`updateCalculationFor_${modalId}`]();
             }
         });
-        window[`populateDeductions_${modalId}`] = (deductions) => {
+        
+        const funcName = 'populateDeductions_' + modalId.replace(/-/g, '_');
+        window[funcName] = (deductions) => {
             deductionsContainer.innerHTML = '';
-            const otherDeductions = deductions.filter(d => d.name.toUpperCase() !== 'EWT');
-            if (otherDeductions.length > 0) {
-                 otherDeductions.forEach(d => createDeductionField(d.name, d.amount));
+            if (deductions && deductions.length > 0) {
+                 deductions.forEach(d => createDeductionField(d.name, d.amount));
             } else {
                  createDeductionField();
             }
         };
+
         const form = document.getElementById(modalId).querySelector('form');
         form.addEventListener('reset', () => {
             setTimeout(() => { 
                 deductionsContainer.innerHTML = '';
                 createDeductionField();
-                window[`updateCalculationFor_${modalId}`]();
             }, 0);
         });
     }
     
     setupDeductionHandlers('add-check-modal', 'deductions-container', 'add-deduction-btn');
     setupDeductionHandlers('edit-check-modal', 'edit-deductions-container', 'edit-add-deduction-btn');
-    setupAutoCalculation('add-check-modal');
-    setupAutoCalculation('edit-check-modal');
     
-    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
-    flatpickr("#edit-check-date-field", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const editCheckForm = document.getElementById('edit-check-form');
-    
     if (createCheckModal) {
         openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
         createCheckModal.addEventListener('click', e => { if (e.target.id === 'add-check-modal') closeModal(createCheckModal); });
     }
-
     const checkItems = document.querySelectorAll('.check-item');
     const detailName = document.getElementById('detail-name');
     const detailActions = document.getElementById('detail-actions');
     const detailEditBtn = document.getElementById('detail-edit-btn');
     const detailDeleteBtn = document.getElementById('detail-delete-btn');
     const checkDetailsContent = document.getElementById('check-details-content');
-    
     if(detailActions) detailActions.classList.add('hidden');
-
+    
     checkItems.forEach(item => {
         item.addEventListener('click', function() {
             checkItems.forEach(i => i.classList.remove('selected'));
             this.classList.add('selected');
             const data = this.dataset;
             const deductions = JSON.parse(data.deductions || '[]');
-            detailName.textContent = data.name;
-            let deductionsHTML = deductions.length > 0 ? deductions.map(d => `<div class="flex justify-between"><p>${d.name}:</p><p>${currencyFormatter.format(d.amount)}</p></div>`).join('') : '<p class="text-gray-500">No deductions for this check.</p>';
             
-            // --- START OF MODIFICATION ---
+            const ewtAmount = parseFloat(data.ewt) || 0;
+            const otherDeductions = deductions.filter(d => d.name.toUpperCase() !== 'EWT');
+
+            let otherDeductionsHTML = otherDeductions.length > 0 
+                ? otherDeductions.map(d => `
+                    <div class="flex justify-between items-center py-1 text-sm">
+                        <span class="text-gray-600">${d.name}</span>
+                        <span class="font-mono">${currencyFormatter.format(d.amount)}</span>
+                    </div>`).join('') 
+                : '<p class="text-center text-gray-400 py-4">No other deductions</p>';
+            
+            detailName.textContent = data.name;
+
             checkDetailsContent.innerHTML = `
-                <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                    <div><p class="font-semibold">Check No.:</p><p>${data.checkNo||'N/A'}</p></div>
-                    <div><p class="font-semibold">Check Date:</p><p>${new Date(item.querySelector('.text-xs').textContent).toLocaleDateString()}</p></div>
-                    <div class="col-span-2 border-t pt-4 mt-2">
-                        <div class="flex justify-between font-bold text-base border-b pb-1 mb-2">
-                            <p>Check Amount:</p>
-                            <p>${currencyFormatter.format(parseFloat(data.checkAmount))}</p>
+                <div class="bg-[#fafaf5] p-4 rounded-lg border">
+                    <div class="space-y-2 text-gray-800 text-sm">
+                        <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
+                        <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
+                        <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
+                        <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
+                        <div class="flex justify-start items-start gap-2">
+                            <span>Notes</span>
+                            <span class="text-right font-mono">: <pre class="inline font-sans whitespace-pre-wrap pl-1">${data.notes || 'N/A'}</pre></span>
                         </div>
-                        <p class="font-semibold mb-2">Deductions:</p>
-                        <div class="space-y-1 pl-2">${deductionsHTML}</div>
-                        <div class="flex justify-between font-bold text-base border-t pt-2 mt-2">
-                            <p>Countered Check:</p>
-                            <p>${currencyFormatter.format(parseFloat(data.counteredCheck))}</p>
-                        </div>
-                    </div>
-                    <div class="col-span-2 border-t pt-4 mt-2">
-                        <p class="font-semibold">Notes:</p>
-                        <pre class="w-full p-2 bg-gray-50 rounded-md whitespace-pre-wrap font-sans">${data.notes||'No notes for this check.'}</pre>
                     </div>
                 </div>
-            `;
-            // --- END OF MODIFICATION ---
-            
+
+                <div class="mt-4 bg-[#fafaf5] p-4 rounded-lg border">
+                    <div class="flex justify-between items-center font-bold text-[#3a4d39] border-b pb-2 mb-2">
+                        <span>List of Deduction</span>
+                        <span>Amount</span>
+                    </div>
+                    <div class="space-y-1">
+                        ${otherDeductionsHTML}
+                    </div>
+                </div>`;
+
             detailActions.classList.remove('hidden');
             detailEditBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.id = data.id;
@@ -226,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.textContent = 'Saving...';
             const formData = new FormData(this);
             try {
-                const response = await fetch('/api/transactions/child/update/' + checkId, {
+                const response = await fetch(`/api/transactions/child/update/${checkId}`, {
                     method: 'POST',
                     body: new URLSearchParams(formData), 
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken() }
@@ -259,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     validateForPayment();
-    
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             const finalNotes = "";
@@ -267,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             payBtn.disabled = true;
             payBtn.textContent = 'Processing...';
             try {
-                const response = await fetch('/api/transactions/folder/' + folderId + '/pay', {
+                const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.getCSRFToken() },
                     body: JSON.stringify({ notes: finalNotes })
@@ -284,6 +258,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // --- START OF CHANGE: Added search functionality ---
+    const searchInput = document.getElementById('search-input');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const noChecksMessage = document.getElementById('no-checks-message');
+
+    if (searchInput && checkItems.length > 0) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            checkItems.forEach(item => {
+                const name = item.dataset.name.toLowerCase();
+                if (name.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (noResultsMessage) {
+                noResultsMessage.style.display = (visibleCount === 0) ? 'block' : 'none';
+            }
+            if (noChecksMessage) {
+                noChecksMessage.style.display = (visibleCount > 0 || searchTerm !== '') ? 'none' : 'block';
+            }
+        });
+    }
+    // --- END OF CHANGE ---
 });
 </script>
 {% endblock %}
