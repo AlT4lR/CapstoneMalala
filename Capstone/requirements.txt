@@ -9,6 +9,7 @@ Flask-WTF
 Jinja2
 PyJWT
 pywebpush
+pytesseract
 WTForms
 bcrypt
 blinker
