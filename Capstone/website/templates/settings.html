@@ -77,3 +77,81 @@
     </div>
 </main>
 {% endblock %}
+
+{% block scripts %}
+<!-- --- START OF MODIFICATION: Added script to handle push notification button --- -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const enableNotificationsBtn = document.getElementById('enable-notifications-btn');
+
+    // Helper function to convert VAPID key
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    async function subscribeUserToPush() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Push Notifications are not supported by your browser.');
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Notification permission was not granted.');
+                return;
+            }
+
+            const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+            const vapidPublicKey = document.body.dataset.vapidPublicKey;
+
+            if (!vapidPublicKey) {
+                console.error('VAPID public key not found.');
+                alert('Client-side configuration error for push notifications.');
+                return;
+            }
+
+            const subscription = await serviceWorkerRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+
+            // Send the subscription to the backend
+            const response = await fetch('/api/save-subscription', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
+                },
+                body: JSON.stringify(subscription)
+            });
+
+            if (response.ok) {
+                alert('Successfully subscribed to push notifications!');
+                enableNotificationsBtn.textContent = 'Enabled';
+                enableNotificationsBtn.disabled = true;
+            } else {
+                const errorData = await response.json();
+                alert('Failed to save subscription on server: ' + (errorData.error || 'Unknown error'));
+            }
+
+        } catch (error) {
+            console.error('Failed to subscribe to push notifications:', error);
+            alert('An error occurred while trying to subscribe to notifications.');
+        }
+    }
+
+    if (enableNotificationsBtn) {
+        enableNotificationsBtn.addEventListener('click', subscribeUserToPush);
+    }
+});
+</script>
+<!-- --- END OF MODIFICATION --- -->
+{% endblock %}
