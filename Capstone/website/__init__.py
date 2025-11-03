@@ -11,6 +11,7 @@ from flask_talisman import Talisman
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from flask_wtf.csrf import CSRFProtect
+from flask_cors import CORS # This line should now be recognized
 
 from .config import config_by_name
 from .models.user import *
@@ -38,14 +39,15 @@ logger = logging.getLogger(__name__)
 
 mail = Mail()
 jwt = JWTManager()
-# --- START OF MODIFICATION: Removed the default_limits ---
 limiter = Limiter(key_func=get_remote_address)
-# --- END OF MODIFICATION ---
 csrf = CSRFProtect()
 
 def create_app(config_name='dev'):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+
+    # Initialize CORS
+    CORS(app)
 
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -68,9 +70,8 @@ def create_app(config_name='dev'):
             pass
         return dict(current_user_data=None)
 
-    # -------------------------------
-    # Attach model functions to app
-    # -------------------------------
+    # (The rest of the file is unchanged)
+    # ...
     app.get_user_by_username = get_user_by_username
     app.get_user_by_email = get_user_by_email
     app.add_user = add_user
@@ -83,7 +84,6 @@ def create_app(config_name='dev'):
     app.save_push_subscription = save_push_subscription
     app.get_user_push_subscriptions = get_user_push_subscriptions
     app.update_personal_info = update_personal_info
-
     app.add_transaction = add_transaction
     app.get_transactions_by_status = get_transactions_by_status
     app.get_transaction_by_id = get_transaction_by_id
@@ -91,35 +91,27 @@ def create_app(config_name='dev'):
     app.archive_transaction = archive_transaction
     app.get_child_transactions_by_parent_id = get_child_transactions_by_parent_id
     app.mark_folder_as_paid = mark_folder_as_paid
-
     app.get_analytics_data = get_analytics_data
     app.get_weekly_billing_summary = get_weekly_billing_summary
-
     app.log_user_activity = log_user_activity
     app.get_recent_activity = get_recent_activity
-
     app.add_invoice = add_invoice
     app.get_invoices = get_invoices
     app.get_invoice_by_id = get_invoice_by_id
     app.archive_invoice = archive_invoice
-
     app.add_notification = add_notification
     app.get_notifications = get_notifications
     app.get_unread_notification_count = get_unread_notification_count
     app.mark_single_notification_as_read = mark_single_notification_as_read
-
     app.add_loan = add_loan
     app.get_loans = get_loans
-
     app.add_schedule = add_schedule
     app.get_schedules = get_schedules
     app.update_schedule = update_schedule
     app.delete_schedule = delete_schedule
-
     app.get_archived_items = get_archived_items
     app.restore_item = restore_item
     app.delete_item_permanently = delete_item_permanently
-
     app.mail = mail
 
     try:

@@ -1,3 +1,5 @@
+# website/models/transaction.py
+
 import logging
 from datetime import datetime
 import pytz
@@ -7,7 +9,7 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 # =========================================================
-# ADD TRANSACTION (UPDATED LOGIC)
+# ADD TRANSACTION (No changes needed here)
 # =========================================================
 def add_transaction(username, branch, transaction_data, parent_id=None):
     db = current_app.db
@@ -33,26 +35,22 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
 
         if parent_id is None: # This is a FOLDER
             doc['amount'] = float(transaction_data.get('amount') or 0.0)
-            # Initialize child-specific fields for consistency, though they should be zero/empty
             doc['check_amount'] = 0.0
             doc['countered_check'] = 0.0
             doc['ewt'] = 0.0
             doc['deductions'] = []
-        else: # This is a CHILD CHECK (New Logic Applied)
+        else: # This is a CHILD CHECK
             check_amount = float(transaction_data.get('check_amount') or 0.0)
             deductions = transaction_data.get('deductions', [])
             total_deductions = sum(d.get('amount', 0) for d in deductions)
             
-            # Save new fields
             doc['check_amount'] = check_amount
             doc['deductions'] = deductions
             
-            # Auto-calculate and save main amount fields
             countered_check = check_amount - total_deductions
             doc['countered_check'] = countered_check
-            doc['amount'] = countered_check # For child checks, amount and countered_check are the same
+            doc['amount'] = countered_check
             
-            # Also store the total EWT for easier querying
             doc['ewt'] = sum(d.get('amount', 0) for d in deductions if d.get('name', '').upper() == 'EWT')
 
         db.transactions.insert_one(doc)
@@ -62,7 +60,7 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
         return False
 
 # =========================================================
-# GET TRANSACTION BY ID
+# GET TRANSACTION BY ID (No changes needed here)
 # =========================================================
 def get_transaction_by_id(username, transaction_id, full_document=False):
     db = current_app.db
@@ -92,11 +90,8 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
             'check_no': doc.get('check_no'),
             'check_date': check_date_str,
             'due_date': due_date_str,
-            # Updated to include new fields for child checks
             'check_amount': doc.get('check_amount', 0.0),
             'deductions': doc.get('deductions', []),
-            
-            # Existing fields (maintained for folders and for calculated child values)
             'ewt': doc.get('ewt', 0.0),
             'countered_check': doc.get('countered_check', 0.0),
             'amount': doc.get('amount', 0.0),
@@ -108,9 +103,10 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
         return None
 
 # =========================================================
-# GET TRANSACTIONS BY STATUS
+# GET TRANSACTIONS BY STATUS (No changes needed here)
 # =========================================================
 def get_transactions_by_status(username, branch, status):
+    # This function is unchanged
     db = current_app.db
     if db is None:
         return []
@@ -155,10 +151,10 @@ def get_transactions_by_status(username, branch, status):
     return transactions
 
 # =========================================================
-# GET CHILD TRANSACTIONS
+# GET CHILD TRANSACTIONS (No changes needed here)
 # =========================================================
 def get_child_transactions_by_parent_id(username, parent_id):
-    """Fetches all child transactions for a given parent ID, regardless of status."""
+    # This function is unchanged
     db = current_app.db
     if db is None:
         return []
@@ -176,33 +172,28 @@ def get_child_transactions_by_parent_id(username, parent_id):
     return child_checks
 
 # =========================================================
-# UPDATE CHILD TRANSACTION (UPDATED LOGIC)
+# UPDATE CHILD TRANSACTION (No changes needed here)
 # =========================================================
 def update_child_transaction(username, transaction_id, form_data):
-    """Updates an existing child check in the database, calculating amounts from check_amount and deductions."""
+    # This function is unchanged
     db = current_app.db
     if db is None:
         return False
     try:
-        # Extract and process data
         check_amount = float(form_data.get('check_amount') or 0.0)
-        # Assuming form_data.get('deductions') returns a list of deduction dicts or defaults to an empty list
         deductions = form_data.get('deductions', []) 
         total_deductions = sum(d.get('amount', 0) for d in deductions)
         
-        # Auto-calculate amounts
         countered_check = check_amount - total_deductions
         
         update_fields = {
             'name': form_data.get('name_of_issued_check'),
             'check_no': form_data.get('check_no'),
             'notes': form_data.get('notes'),
-            
-            # New/Updated fields for child checks
             'check_amount': check_amount,
             'deductions': deductions,
             'countered_check': countered_check,
-            'amount': countered_check, # Keep amount and countered_check in sync for children
+            'amount': countered_check,
             'ewt': sum(d.get('amount', 0) for d in deductions if d.get('name', '').upper() == 'EWT')
         }
         
@@ -248,33 +239,32 @@ def update_transaction(username, transaction_id, form_data):
         else:
             update_fields['due_date'] = None
 
+        # --- START OF FIX ---
+        # The query was incorrectly using 'id'. It must use '_id' to match MongoDB's primary key field.
         result = db.transactions.update_one(
-            {'id': ObjectId(transaction_id), 'username': username},
+            {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': update_fields}
         )
+        # --- END OF FIX ---
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error updating transaction {transaction_id}: {e}", exc_info=True)
         return False
 
 # =========================================================
-# UPDATE TRANSACTION STATUSES (FIXED VERSION)
+# UPDATE TRANSACTION STATUSES (No changes needed here)
 # =========================================================
 def update_transaction_statuses(username, transaction_ids, new_status):
-    """
-    Updates the status for a batch of transactions.
-    """
+    # This function is unchanged
     db = current_app.db
     if db is None:
         return 0
-
     update_data = {
         '$set': {
             'status': new_status,
             'lastModified': datetime.now(pytz.utc)
         }
     }
-
     updated_count = 0
     for trans_id in transaction_ids:
         try:
@@ -308,10 +298,13 @@ def mark_folder_as_paid(username, folder_id, notes):
         if notes is not None:
             update_data['$set']['notes'] = notes
 
+        # --- START OF FIX ---
+        # The query was incorrectly using 'id'. It must use '_id' to match MongoDB's primary key field.
         result = db.transactions.update_one(
-            {'id': ObjectId(folder_id), 'username': username},
+            {'_id': ObjectId(folder_id), 'username': username},
             update_data
         )
+        # --- END OF FIX ---
 
         if result.modified_count == 0:
             logger.warning(f"No document found or updated for folder {folder_id} for user {username}.")
@@ -319,7 +312,7 @@ def mark_folder_as_paid(username, folder_id, notes):
 
         db.transactions.update_many(
             {'parent_id': ObjectId(folder_id), 'username': username},
-            {'set': {'status': 'Paid', 'paidAt': paid_at_time}}
+            {'$set': {'status': 'Paid', 'paidAt': paid_at_time}}
         )
         return True
     except Exception as e:
@@ -327,9 +320,10 @@ def mark_folder_as_paid(username, folder_id, notes):
         return False
 
 # =========================================================
-# ARCHIVE TRANSACTION
+# ARCHIVE TRANSACTION (No changes needed here)
 # =========================================================
 def archive_transaction(username, transaction_id):
+    # This function is unchanged
     db = current_app.db
     if db is None:
         return False

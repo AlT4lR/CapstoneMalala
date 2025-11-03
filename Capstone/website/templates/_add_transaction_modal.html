@@ -1,6 +1,5 @@
 <!-- website/templates/_add_transaction_modal.html -->
 <div id="create-transaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <!-- --- START OF MODIFICATION: Updated modal styling --- -->
     <div class="modal-content bg-[#f8f6f2] rounded-lg shadow-xl w-full max-w-lg p-8 relative text-[#3a4d39]">
         
         <button id="close-create-modal-btn" class="absolute top-4 left-5 text-gray-500 hover:text-red-600 text-3xl font-light">&times;</button>
@@ -8,7 +7,9 @@
         <!-- Success Message: Initially hidden -->
         <div id="success-message-container" class="hidden text-center mb-6">
             <div class="inline-block px-6 py-2 border border-gray-300 rounded-lg bg-white">
-                <span class="text-sm font-medium text-[#3a4d39] underline">Successfully added a new transaction!</span>
+                <!-- --- START OF MODIFICATION: Updated success message text --- -->
+                <span class="text-sm font-medium text-[#3a4d39] underline">Successfully added a new transactions!</span>
+                <!-- --- END OF MODIFICATION --- -->
             </div>
         </div>
 
@@ -16,16 +17,16 @@
             
             {{ form.hidden_tag() }}
 
-            <!-- Form Fields updated to match new design -->
             <div class="space-y-4">
                 <div>
                     <label for="name_of_issued_check" class="block text-sm font-medium mb-2">Name</label>
                     {{ form.name_of_issued_check(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
-                <div>
-                    <label for="amount" class="block text-sm font-medium mb-2">Total Check Amount (Debt)</label>
-                    {{ form.amount(class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]", placeholder="0.00") }}
-                </div>
+
+                <!-- --- START OF MODIFICATION: Removed the "Total Check Amount" field --- -->
+                <!-- The div containing the form.amount field has been deleted from here. -->
+                <!-- --- END OF MODIFICATION --- -->
+
                 <div>
                     <label for="check_date" class="block text-sm font-medium mb-2">Date Created</label>
                     <!-- Using type="text" allows flatpickr to attach correctly -->
@@ -44,5 +45,4 @@
             </div>
         </form>
     </div>
-    <!-- --- END OF MODIFICATION --- -->
 </div>
