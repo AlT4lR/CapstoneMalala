@@ -8,6 +8,7 @@ Flask-Cors
 Flask-WTF
 Jinja2
 PyJWT
+pywebpush
 WTForms
 bcrypt
 blinker
@@ -25,6 +26,7 @@ pymongo
 pyotp
 pytz
 qrcode
+reportlab
 requests
 sib-api-v3-sdk
 six
