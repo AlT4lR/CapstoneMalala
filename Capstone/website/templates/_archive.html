@@ -367,6 +367,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const modal = invoiceModal;
                     const titleEl = modal.querySelector('#modal-invoice-title');
                     
+                    modal.querySelector('#modal-edit-btn').style.display = 'none';
+                    modal.querySelector('#modal-delete-btn').style.display = 'none';
+                    modal.querySelector('#modal-download-btn').style.display = 'none';
+                    
                     modal.classList.remove('hidden');
                     titleEl.textContent = 'Loading...';
 

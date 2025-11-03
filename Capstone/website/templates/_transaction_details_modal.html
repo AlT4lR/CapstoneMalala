@@ -1,55 +1,50 @@
 <!-- website/templates/_transaction_details_modal.html -->
-<div id="transaction-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+<div id="transaction-details-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+    
     <!-- Modal Content -->
-    <div id="modal-content" class="bg-[#fafaf5] rounded-2xl shadow-xl w-full max-w-md p-6 relative text-gray-700">
+    <div id="modal-content" class="bg-[#fafaf5] rounded-2xl shadow-xl w-full max-w-sm p-6 relative text-gray-800">
+        
         <!-- Header -->
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-5">
             <h2 class="text-xl font-bold text-[#3a4d39]">Transaction Details</h2>
-            <button id="close-modal-btn" class="text-gray-400 hover:text-red-500 transition-colors">
-                <i class="fas fa-times-circle fa-2x"></i>
+            <button id="close-modal-btn" class="text-gray-400 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <!-- Status & Amount Header -->
-        <div id="modal-status-box" class="flex justify-between items-center bg-green-100 border border-green-300 text-green-800 rounded-lg px-4 py-3 mb-4">
-            <div class="flex items-center gap-3 font-semibold">
-                <i id="modal-status-icon" class="fas fa-check-circle fa-lg"></i>
-                <span id="modal-status-text">Paid</span>
-            </div>
-            <span id="modal-amount-header" class="font-bold text-lg"></span>
+        <!-- Status Box -->
+        <div id="modal-status-box" class="flex items-center justify-center gap-2 bg-green-100 border border-green-200 text-green-800 rounded-lg px-4 py-2 mb-5 font-semibold">
+            <i id="modal-status-icon" class="fas fa-check-circle"></i>
+            <span id="modal-status-text">Paid</span>
         </div>
 
-        <hr class="border-t border-gray-300 my-4">
-
         <!-- Details Section -->
-        <div class="mb-4">
-            <h3 class="font-bold text-[#3a4d39] mb-3">Details</h3>
-            <div class="space-y-2 text-sm">
+        <div class="mb-5">
+            <h3 class="font-bold text-gray-700 mb-2">Details</h3>
+            <div class="space-y-2 text-sm border-t border-gray-200 pt-3">
                 <div class="flex justify-between">
                     <span class="text-gray-500">Recipient</span>
-                    <span id="modal-recipient" class="font-semibold text-right"></span>
+                    <span id="modal-recipient" class="font-semibold text-right text-gray-700"></span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">Check Date</span>
-                    <span id="modal-check-date" class="font-semibold"></span>
+                    <span id="modal-check-date" class="font-semibold text-gray-700"></span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">EWT</span>
-                    <span id="modal-ewt" class="font-semibold"></span>
+                    <span id="modal-ewt" class="font-semibold text-gray-700"></span>
                 </div>
                  <div class="flex justify-between">
                     <span class="text-gray-500">Countered Check</span>
-                    <span id="modal-countered-check" class="font-semibold"></span>
+                    <span id="modal-countered-check" class="font-semibold text-gray-700"></span>
                 </div>
             </div>
         </div>
-
-        <hr class="border-t border-gray-300 my-4">
         
         <!-- Notes Section -->
         <div class="mb-6">
-            <h3 class="font-bold text-[#3a4d39] mb-2">Notes</h3>
-            <div id="modal-notes" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm min-h-[80px] whitespace-pre-wrap"></div>
+            <h3 class="font-bold text-gray-700 mb-2">Notes</h3>
+            <div id="modal-notes" class="w-full p-3 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-600 min-h-[80px] whitespace-pre-wrap"></div>
         </div>
 
         <!-- Download Button -->
