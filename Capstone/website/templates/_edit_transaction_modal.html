@@ -1,35 +1,33 @@
 <!-- website/templates/_edit_transaction_modal.html -->
-<div id="edit-transaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <div class="modal-content bg-[#fafaf5] rounded-xl shadow-2xl w-full max-w-lg p-8 relative text-gray-700">
-        <button id="close-edit-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times fa-2x"></i></button>
+<div id="edit-transaction-modal" class="modal-backdrop fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-[#f8f6f2] rounded-lg shadow-xl w-full max-w-lg p-8 relative text-[#3a4d39]">
         
-        <h2 class="text-xl font-bold text-[#3a4d39] mb-6">Edit Folder</h2>
+        <button class="close-modal-btn absolute top-4 left-5 text-gray-500 hover:text-red-600 text-3xl font-light">&times;</button>
         
-        <form id="edit-transaction-form" method="POST" class="space-y-4" novalidate>
+        <h2 class="text-xl font-bold text-center text-[#3a4d39] mb-6">Edit Folder</h2>
+        
+        <form id="edit-transaction-form" method="POST" class="space-y-6" novalidate>
             <input type="hidden" id="edit-transaction-id" name="transaction_id">
             {{ edit_form.hidden_tag() }}
 
             <div class="space-y-4">
                 <div>
-                    {{ edit_form.name.label(class="block text-sm font-semibold mb-2") }}
-                    {{ edit_form.name(id="edit-name", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg") }}
+                    {{ edit_form.name.label(class="block text-sm font-medium mb-2") }}
+                    {{ edit_form.name(id="edit-name", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]") }}
                 </div>
                 <div>
-                    {{ edit_form.check_date.label(class="block text-sm font-semibold mb-2") }}
-                    {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
+                    {{ edit_form.check_date.label(class="block text-sm font-medium mb-2") }}
+                    {{ edit_form.check_date(id="edit-check-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
                 </div>
                 <div>
-                    {{ edit_form.due_date.label(class="block text-sm font-semibold mb-2") }}
-                    {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", type="text") }}
-                </div>
-                 <div>
-                    {{ edit_form.amount.label(class="block text-sm font-semibold mb-2") }}
-                    {{ edit_form.amount(id="edit-amount", class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg", placeholder="0.00") }}
+                    {{ edit_form.due_date.label(class="block text-sm font-medium mb-2") }}
+                    {{ edit_form.due_date(id="edit-due-date", class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md", type="text") }}
                 </div>
             </div>
-            <div class="flex justify-end mt-6 space-x-4">
-                <button type="button" id="cancel-edit-btn" class="px-8 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg">Cancel</button>
-                <button type="submit" class="px-8 py-2.5 bg-[#3a4d39] text-white font-semibold rounded-lg">Save Changes</button>
+
+            <div class="flex justify-center pt-6 gap-4">
+                <button type="button" class="close-modal-btn px-12 py-3 bg-[#6f8a6e] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90">Cancel</button>
+                <button type="submit" class="px-12 py-3 bg-[#3a4d39] text-white font-semibold rounded-lg shadow-sm hover:bg-opacity-90">Save Changes</button>
             </div>
         </form>
     </div>
