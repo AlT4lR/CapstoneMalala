@@ -31,3 +31,4 @@ urllib3
 waitress
 Werkzeug
 Pillow
+pywebpush
