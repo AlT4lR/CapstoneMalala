@@ -47,7 +47,9 @@
                                     <span class="font-semibold text-gray-800 transaction-name-display break-words selectable-text">{{ t.name }}</span>
                                 </a>
                                 <div class="flex gap-4 text-gray-500 flex-shrink-0">
+                                    <!-- --- START OF FIX: Added data-modal-target to mobile button --- -->
                                     <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <!-- --- END OF FIX --- -->
                                     <button title="Archive" class="delete-btn hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>
@@ -64,7 +66,9 @@
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.check_date }}</a>
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.due_date }}</a>
                         <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
+                            <!-- --- START OF FIX: Added data-modal-target to desktop button --- -->
                             <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <!-- --- END OF FIX --- -->
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
@@ -80,6 +84,7 @@
     </div>
 </main>
 
+<!-- This line correctly includes the modal without causing a recursion loop -->
 {% include "_edit_transaction_modal.html" %}
 
 {% endblock %}
@@ -88,9 +93,11 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    flatpickr("input[name='check_date']", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
-    flatpickr("input[name='due_date']", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    // Initialize date pickers for the edit modal
+    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    flatpickr("#edit-due-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
 
+    // Search functionality remains the same
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
     const noResultsMessage = document.getElementById('no-results-message');
@@ -114,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Edit form submission logic remains the same
     const editForm = document.getElementById('edit-transaction-form');
     if (editForm) {
         editForm.addEventListener('submit', async function(event) {
@@ -130,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: new URLSearchParams(formData).toString(),
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': window.getCSRFToken()
+                        'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
                     }
                 });
                 if (response.ok) {
@@ -149,6 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Note: The global .edit-btn and .delete-btn listeners in common.js will handle
+    // opening the modal and showing the confirmation dialog. No specific code is needed here for that.
 });
 </script>
 {% endblock %}
