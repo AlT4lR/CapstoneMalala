@@ -43,8 +43,7 @@
                     data-countered-check="{{ check.countered_check or 0.0 }}"
                     data-ewt="{{ check.ewt or 0.0 }}"
                     data-notes="{{ check.notes or '' }}"
-                    data-deductions='{{ (check.deductions or []) | tojson }}'
-                    data-check-date="{{ check.check_date.strftime('%m/%d/%Y') }}">
+                    data-deductions='{{ (check.deductions or []) | tojson }}'>
                     <p class="font-semibold truncate">{{ check.name }}</p>
                     <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
                     {% if check.is_incomplete %}
@@ -113,6 +112,127 @@
 document.addEventListener('DOMContentLoaded', function() {
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
+    const checkItems = document.querySelectorAll('.check-item');
+    const detailName = document.getElementById('detail-name');
+    const detailActions = document.getElementById('detail-actions');
+    const detailEditBtn = document.getElementById('detail-edit-btn');
+    const detailDeleteBtn = document.getElementById('detail-delete-btn');
+    const checkDetailsContent = document.getElementById('check-details-content');
+
+    checkItems.forEach(item => {
+        item.addEventListener('click', function() {
+            checkItems.forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+            const data = this.dataset;
+            const deductions = JSON.parse(data.deductions || '[]');
+            const ewtAmount = parseFloat(data.ewt) || 0;
+            const otherDeductions = deductions.filter(d => d.name.toUpperCase() !== 'EWT');
+
+            const otherDeductionsHTML = otherDeductions.length > 0 
+                ? otherDeductions.map(d => `
+                    <div class="flex justify-between items-center py-1 text-sm">
+                        <span>${d.name}</span>
+                        <span class="font-mono">${currencyFormatter.format(d.amount)}</span>
+                    </div>`).join('')
+                : '<p class="text-center text-gray-400 py-4">No other deductions</p>';
+
+            detailName.textContent = data.name;
+            
+            // --- START OF FIX: Removed the "Check Date" line ---
+            checkDetailsContent.innerHTML = `
+                <div class="bg-[#fafaf5] p-4 rounded-lg border">
+                    <div class="space-y-2 text-gray-800 text-sm">
+                        <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
+                        <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
+                        <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
+                        <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
+                        <div class="flex items-start gap-2">
+                            <span>Notes</span>
+                            <pre class="inline font-sans whitespace-pre-wrap pl-1">: ${data.notes || 'N/A'}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 bg-[#fafaf5] p-4 rounded-lg border">
+                    <div class="flex justify-between font-bold text-[#3a4d39] border-b pb-2 mb-2">
+                        <span>List of Deduction</span><span>Amount</span>
+                    </div>
+                    ${otherDeductionsHTML}
+                </div>`;
+            // --- END OF FIX ---
+                
+            detailActions.classList.remove('hidden');
+            detailEditBtn.dataset.id = data.id;
+            detailDeleteBtn.dataset.id = data.id;
+            detailDeleteBtn.dataset.name = data.name;
+        });
+    });
+
+    // All other JavaScript for modals, payment, and search remains unchanged...
+    const payBtn = document.getElementById('pay-btn');
+    function validateForPayment() {
+        if (!payBtn) return;
+        const folderAmount = parseFloat(payBtn.dataset.folderAmount) || 0;
+        let totalCounteredCheck = 0;
+        document.querySelectorAll('.check-item').forEach(item => {
+            totalCounteredCheck += parseFloat(item.dataset.counteredCheck) || 0;
+        });
+        const remainingBalance = folderAmount - totalCounteredCheck;
+
+        document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
+        document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
+
+        const canPay = Math.abs(remainingBalance) < 0.01;
+        payBtn.disabled = !canPay;
+        payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
+    }
+    validateForPayment();
+
+    if (payBtn) {
+        payBtn.addEventListener('click', async () => {
+            const folderId = "{{ folder._id }}";
+            payBtn.disabled = true;
+            payBtn.textContent = 'Processing...';
+            try {
+                const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.getCSRFToken() },
+                    body: JSON.stringify({ notes: "" })
+                });
+                if (response.ok) {
+                    window.location.href = "{{ url_for('main.transactions_paid') }}";
+                } else {
+                    alert('Failed to process payment. Please try again.');
+                    payBtn.disabled = false;
+                    payBtn.textContent = 'Pay';
+                }
+            } catch(error) {
+                console.error('Payment error:', error);
+                alert('A network error occurred during payment.');
+                payBtn.disabled = false;
+                payBtn.textContent = 'Pay';
+            }
+        });
+    }
+
+    const searchInput = document.getElementById('search-input');
+    const noResultsMessage = document.getElementById('no-results-message');
+    const noChecksMessage = document.getElementById('no-checks-message');
+    if (searchInput && checkItems.length > 0) {
+        searchInput.addEventListener('input', function() {
+            const term = this.value.toLowerCase().trim();
+            let visible = 0;
+            checkItems.forEach(item => {
+                const match = item.dataset.name.toLowerCase().includes(term);
+                item.style.display = match ? 'block' : 'none';
+                if (match) visible++;
+            });
+            noResultsMessage.classList.toggle('hidden', visible > 0);
+            if (noChecksMessage) noChecksMessage.style.display = (checkItems.length > 0 && visible > 0) ? 'none' : 'block';
+        });
+    }
+
+    // Modal and form handling logic remains the same...
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
@@ -148,17 +268,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     setupDeductionHandlers('add_check', 'deductions-container', 'add-deduction-btn');
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
-    
-    // --- START OF FIX: Added initialization for the new date field in the edit modal ---
     flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
     flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-    // --- END OF FIX ---
-
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     const editCheckModal = document.getElementById('edit-check-modal');
     const editCheckForm = document.getElementById('edit-check-form');
-    
     const openModal = (modal) => { 
         if (!modal) return;
         modal.classList.remove('hidden'); 
@@ -169,7 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.remove('active'); 
         modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true }); 
     };
-
     if (createCheckModal && openCreateBtn) {
         openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
     }
@@ -184,61 +298,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target === modal) closeModal(modal); 
         });
     });
-
-    const checkItems = document.querySelectorAll('.check-item');
-    const detailName = document.getElementById('detail-name');
-    const detailActions = document.getElementById('detail-actions');
-    const detailEditBtn = document.getElementById('detail-edit-btn');
-    const detailDeleteBtn = document.getElementById('detail-delete-btn');
-    const checkDetailsContent = document.getElementById('check-details-content');
-
-    if(detailActions) detailActions.classList.add('hidden');
-
-    checkItems.forEach(item => {
-        item.addEventListener('click', function() {
-            checkItems.forEach(i => i.classList.remove('selected'));
-            this.classList.add('selected');
-            const data = this.dataset;
-            const deductions = JSON.parse(data.deductions || '[]');
-            const ewtAmount = parseFloat(data.ewt) || 0;
-            const otherDeductions = deductions.filter(d => d.name.toUpperCase() !== 'EWT');
-
-            const otherDeductionsHTML = otherDeductions.length > 0 
-                ? otherDeductions.map(d => `
-                    <div class="flex justify-between items-center py-1 text-sm">
-                        <span>${d.name}</span>
-                        <span class="font-mono">${currencyFormatter.format(d.amount)}</span>
-                    </div>`).join('')
-                : '<p class="text-center text-gray-400 py-4">No other deductions</p>';
-
-            detailName.textContent = data.name;
-            checkDetailsContent.innerHTML = `
-                <div class="bg-[#fafaf5] p-4 rounded-lg border">
-                    <div class="space-y-2 text-gray-800 text-sm">
-                        <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
-                        <div class="flex justify-between"><span>Check Date</span><span class="font-mono">: ${data.checkDate}</span></div>
-                        <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
-                        <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
-                        <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
-                        <div class="flex items-start gap-2">
-                            <span>Notes</span>
-                            <pre class="inline font-sans whitespace-pre-wrap pl-1">: ${data.notes || 'N/A'}</pre>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4 bg-[#fafaf5] p-4 rounded-lg border">
-                    <div class="flex justify-between font-bold text-[#3a4d39] border-b pb-2 mb-2">
-                        <span>List of Deduction</span><span>Amount</span>
-                    </div>
-                    ${otherDeductionsHTML}
-                </div>`;
-            detailActions.classList.remove('hidden');
-            detailEditBtn.dataset.id = data.id;
-            detailDeleteBtn.dataset.id = data.id;
-            detailDeleteBtn.dataset.name = data.name;
-        });
-    });
-
     if (detailEditBtn) {
         detailEditBtn.addEventListener('click', async function() {
             const checkId = this.dataset.id;
@@ -251,12 +310,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 editCheckModal.querySelector('input[name="name_of_issued_check"]').value = data.name || '';
                 editCheckModal.querySelector('input[name="check_no"]').value = data.check_no || '';
                 
-                // --- START OF FIX: Correctly select and set the date ---
                 const dateInput = editCheckModal.querySelector('#edit-check-date');
                 if (dateInput) {
                     flatpickr(dateInput).setDate(data.check_date);
                 }
-                // --- END OF FIX ---
                 
                 editCheckModal.querySelector('input[name="check_amount"]').value = data.check_amount || '0.00';
                 editCheckModal.querySelector('textarea[name="notes"]').value = data.notes || '';
@@ -271,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
     if (detailDeleteBtn) {
         detailDeleteBtn.addEventListener('click', function() {
             const checkId = this.dataset.id;
@@ -291,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -322,69 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    const payBtn = document.getElementById('pay-btn');
-    function validateForPayment() {
-        if (!payBtn) return;
-        const folderAmount = parseFloat(payBtn.dataset.folderAmount) || 0;
-        let totalCounteredCheck = 0;
-        document.querySelectorAll('.check-item').forEach(item => {
-            totalCounteredCheck += parseFloat(item.dataset.counteredCheck) || 0;
-        });
-        const remainingBalance = folderAmount - totalCounteredCheck;
 
-        document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
-        document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
-
-        const canPay = Math.abs(remainingBalance) < 0.01;
-        payBtn.disabled = !canPay;
-        payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
-    }
-    validateForPayment();
-
-    if (payBtn) {
-        payBtn.addEventListener('click', async () => {
-            const folderId = "{{ folder._id }}";
-            payBtn.disabled = true;
-            payBtn.textContent = 'Processing...';
-            try {
-                const response = await fetch(`/api/transactions/folder/${folderId}/pay`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' },
-                    body: JSON.stringify({ notes: "" })
-                });
-                if (response.ok) {
-                    window.location.href = "{{ url_for('main.transactions_paid') }}";
-                } else {
-                    alert('Failed to process payment. Please try again.');
-                    payBtn.disabled = false;
-                    payBtn.textContent = 'Pay';
-                }
-            } catch(error) {
-                console.error('Payment error:', error);
-                alert('A network error occurred during payment.');
-                payBtn.disabled = false;
-                payBtn.textContent = 'Pay';
-            }
-        });
-    }
-
-    const searchInput = document.getElementById('search-input');
-    const noResultsMessage = document.getElementById('no-results-message');
-    const noChecksMessage = document.getElementById('no-checks-message');
-    if (searchInput && checkItems.length > 0) {
-        searchInput.addEventListener('input', function() {
-            const term = this.value.toLowerCase().trim();
-            let visible = 0;
-            checkItems.forEach(item => {
-                const match = item.dataset.name.toLowerCase().includes(term);
-                item.style.display = match ? 'block' : 'none';
-                if (match) visible++;
-            });
-            noResultsMessage.classList.toggle('hidden', visible > 0);
-            if (noChecksMessage) noChecksMessage.style.display = (checkItems.length > 0 && visible > 0) ? 'none' : 'block';
-        });
-    }
 });
 </script>
 {% endblock %}
