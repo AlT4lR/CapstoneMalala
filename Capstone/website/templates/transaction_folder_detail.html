@@ -43,7 +43,8 @@
                     data-countered-check="{{ check.countered_check or 0.0 }}"
                     data-ewt="{{ check.ewt or 0.0 }}"
                     data-notes="{{ check.notes or '' }}"
-                    data-deductions='{{ (check.deductions or []) | tojson }}'>
+                    data-deductions='{{ (check.deductions or []) | tojson }}'
+                    data-check-date="{{ check.check_date.strftime('%m/%d/%Y') }}">
                     <p class="font-semibold truncate">{{ check.name }}</p>
                     <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
                     {% if check.is_incomplete %}
@@ -65,9 +66,11 @@
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h4 id="detail-name" class="text-xl font-bold">Select a Check</h4>
                 <div id="detail-actions" class="flex gap-4 text-gray-400 hidden">
+                    <!-- --- START OF FIX: Added data-modal-target attribute --- -->
                     <button title="Edit" id="detail-edit-btn" class="edit-btn hover:text-green-600" data-modal-target="#edit-check-modal">
                         <i class="fa-solid fa-pen"></i>
                     </button>
+                    <!-- --- END OF FIX --- -->
                     <button title="Delete" id="detail-delete-btn" class="delete-btn hover:text-red-600">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -112,12 +115,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
+    // --- START OF FIX: Removed all page-specific JavaScript for edit/delete ---
+    // All of that logic is now handled universally by common.js
+    // --- END OF FIX ---
+
+    // The rest of this script handles functionality unique to this page
     const checkItems = document.querySelectorAll('.check-item');
     const detailName = document.getElementById('detail-name');
     const detailActions = document.getElementById('detail-actions');
     const detailEditBtn = document.getElementById('detail-edit-btn');
     const detailDeleteBtn = document.getElementById('detail-delete-btn');
     const checkDetailsContent = document.getElementById('check-details-content');
+
+    if(detailActions) detailActions.classList.add('hidden');
 
     checkItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -137,12 +147,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 : '<p class="text-center text-gray-400 py-4">No other deductions</p>';
 
             detailName.textContent = data.name;
-            
-            // --- START OF FIX: Removed the "Check Date" line ---
             checkDetailsContent.innerHTML = `
                 <div class="bg-[#fafaf5] p-4 rounded-lg border">
                     <div class="space-y-2 text-gray-800 text-sm">
                         <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
+                        <div class="flex justify-between"><span>Check Date</span><span class="font-mono">: ${data.checkDate}</span></div>
                         <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
                         <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
                         <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
@@ -152,15 +161,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-
                 <div class="mt-4 bg-[#fafaf5] p-4 rounded-lg border">
                     <div class="flex justify-between font-bold text-[#3a4d39] border-b pb-2 mb-2">
                         <span>List of Deduction</span><span>Amount</span>
                     </div>
                     ${otherDeductionsHTML}
                 </div>`;
-            // --- END OF FIX ---
-                
             detailActions.classList.remove('hidden');
             detailEditBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.id = data.id;
@@ -168,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // All other JavaScript for modals, payment, and search remains unchanged...
+    // Pay button logic remains the same
     const payBtn = document.getElementById('pay-btn');
     function validateForPayment() {
         if (!payBtn) return;
@@ -215,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Search logic remains the same
     const searchInput = document.getElementById('search-input');
     const noResultsMessage = document.getElementById('no-results-message');
     const noChecksMessage = document.getElementById('no-checks-message');
@@ -232,11 +239,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Modal and form handling logic remains the same...
+    // Modal and form handling logic remains the same
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
-
         const createDeductionField = (name = '', amount = '') => {
             const div = document.createElement('div');
             div.className = 'flex items-center gap-2 deduction-field';
@@ -247,106 +253,20 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             deductionsContainer.appendChild(div);
         };
-
         addDeductionBtn.addEventListener('click', () => createDeductionField());
         deductionsContainer.addEventListener('click', e => {
-            if (e.target.classList.contains('remove-deduction-btn')) {
-                e.target.parentElement.remove();
-            }
+            if (e.target.classList.contains('remove-deduction-btn')) e.target.parentElement.remove();
         });
-        
         window[`populateDeductions_${modalId}`] = (deductions) => {
             deductionsContainer.innerHTML = '';
             if (deductions && deductions.length > 0) {
-                deductions.forEach(d => {
-                    if (d.name.toUpperCase() !== 'EWT') {
-                        createDeductionField(d.name, d.amount);
-                    }
-                });
+                deductions.forEach(d => { if (d.name.toUpperCase() !== 'EWT') createDeductionField(d.name, d.amount); });
             }
         };
     }
     setupDeductionHandlers('add_check', 'deductions-container', 'add-deduction-btn');
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
-    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
-    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-    const createCheckModal = document.getElementById('add-check-modal');
-    const openCreateBtn = document.getElementById('create-issued-check-btn');
-    const editCheckModal = document.getElementById('edit-check-modal');
     const editCheckForm = document.getElementById('edit-check-form');
-    const openModal = (modal) => { 
-        if (!modal) return;
-        modal.classList.remove('hidden'); 
-        setTimeout(() => modal.classList.add('active'), 10); 
-    };
-    const closeModal = (modal) => { 
-        if (!modal) return;
-        modal.classList.remove('active'); 
-        modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true }); 
-    };
-    if (createCheckModal && openCreateBtn) {
-        openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
-    }
-    document.querySelectorAll('.close-modal-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const modal = btn.closest('.modal-backdrop');
-            if (modal) closeModal(modal);
-        });
-    });
-    document.querySelectorAll('.modal-backdrop').forEach(modal => {
-        modal.addEventListener('click', e => { 
-            if (e.target === modal) closeModal(modal); 
-        });
-    });
-    if (detailEditBtn) {
-        detailEditBtn.addEventListener('click', async function() {
-            const checkId = this.dataset.id;
-            try {
-                const response = await fetch(`/api/transactions/details/${checkId}`);
-                if (!response.ok) throw new Error('Failed to fetch details');
-                const data = await response.json();
-                
-                editCheckModal.querySelector('#edit-check-id').value = checkId;
-                editCheckModal.querySelector('input[name="name_of_issued_check"]').value = data.name || '';
-                editCheckModal.querySelector('input[name="check_no"]').value = data.check_no || '';
-                
-                const dateInput = editCheckModal.querySelector('#edit-check-date');
-                if (dateInput) {
-                    flatpickr(dateInput).setDate(data.check_date);
-                }
-                
-                editCheckModal.querySelector('input[name="check_amount"]').value = data.check_amount || '0.00';
-                editCheckModal.querySelector('textarea[name="notes"]').value = data.notes || '';
-                editCheckModal.querySelector('input[name="ewt"]').value = data.ewt || '0.00';
-
-                window.populateDeductions_edit_check(data.deductions || []);
-                
-                openModal(editCheckModal);
-            } catch (error) {
-                console.error('Error populating edit form:', error);
-                alert('Could not load check details.');
-            }
-        });
-    }
-    if (detailDeleteBtn) {
-        detailDeleteBtn.addEventListener('click', function() {
-            const checkId = this.dataset.id;
-            const checkName = this.dataset.name;
-            window.showCustomConfirm(`Are you sure you want to archive "${checkName}"?`, async () => {
-                try {
-                    const response = await fetch(`/api/transactions/${checkId}`, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
-                    });
-                    if (response.ok) { window.location.reload(); }
-                    else { alert('Failed to archive check.'); }
-                } catch (error) {
-                    console.error('Archive error:', error);
-                    alert('An error occurred.');
-                }
-            });
-        });
-    }
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -354,13 +274,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitButton = this.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
-            
             const formData = new FormData(this);
             try {
                 const response = await fetch(`/api/transactions/child/update/${checkId}`, {
                     method: 'POST',
                     body: new URLSearchParams(formData), 
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken() }
                 });
                 if (response.ok) { window.location.reload(); }
                 else {
@@ -377,7 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
 });
 </script>
 {% endblock %}
