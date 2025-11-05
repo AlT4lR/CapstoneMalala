@@ -1,6 +1,6 @@
 // website/static/js/sw.js
-const STATIC_CACHE_NAME = 'decooffice-static-v8'; // Increment version number
-const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v8'; // Increment version number
+const STATIC_CACHE_NAME = 'decooffice-static-v8';
+const DYNAMIC_CACHE_NAME = 'decooffice-dynamic-v8';
 
 const urlsToCache = [
     '/',
@@ -10,11 +10,9 @@ const urlsToCache = [
     '/static/js/db.js',
     'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
-    // --- START OF MODIFICATION: Add all app icon paths to the cache ---
     '/static/imgs/icons/logo192.png',
     '/static/imgs/icons/logo512.png',
     '/static/imgs/icons/icon-maskable-512.png'
-    // --- END OF MODIFICATION ---
 ];
 
 importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/umd.js');
@@ -34,31 +32,58 @@ self.addEventListener('activate', event => {
     );
 });
 
+// --- START OF MODIFICATION: Updated Fetch Event Listener ---
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        fetch(event.request)
-            .then(response => {
-                if (response && response.status === 200 && response.type === 'basic') {
-                    const clonedResponse = response.clone();
-                    caches.open(DYNAMIC_CACHE_NAME).then(cache => {
-                        cache.put(event.request.url, clonedResponse);
-                    });
-                }
-                
-                return response;
+    const url = new URL(event.request.url);
+
+    // --- Special Strategy for Calendar API ---
+    if (url.pathname.startsWith('/api/schedules')) {
+        event.respondWith(
+            // 1. Try to fetch from the network first
+            fetch(event.request).then(networkResponse => {
+                // If successful, cache the response and return it
+                return caches.open(DYNAMIC_CACHE_NAME).then(cache => {
+                    cache.put(event.request.url, networkResponse.clone());
+                    return networkResponse;
+                });
+            }).catch(() => {
+                // If the network request fails (offline), get the data from the cache
+                return caches.match(event.request);
             })
-            .catch(() => {
-                return caches.match(event.request).then(cachedResponse => {
+        );
+    } 
+    // --- General Strategy for other requests ---
+    else {
+        event.respondWith(
+            caches.match(event.request)
+                .then(cachedResponse => {
+                    // Return from cache if found
                     if (cachedResponse) {
                         return cachedResponse;
                     }
-                    if (event.request.mode === 'navigate') {
-                        return caches.match('/offline');
-                    }
-                });
-            })
-    );
+                    // Otherwise, fetch from network
+                    return fetch(event.request)
+                        .then(networkResponse => {
+                            // If we get a valid response, cache it for future offline use
+                            if (networkResponse && networkResponse.status === 200) {
+                                return caches.open(DYNAMIC_CACHE_NAME).then(cache => {
+                                    cache.put(event.request.url, networkResponse.clone());
+                                    return networkResponse;
+                                });
+                            }
+                            return networkResponse;
+                        })
+                        .catch(() => {
+                            // If both cache and network fail, show the offline page for navigation requests
+                            if (event.request.mode === 'navigate') {
+                                return caches.match('/offline');
+                            }
+                        });
+                })
+        );
+    }
 });
+// --- END OF MODIFICATION ---
 
 
 // --- Other Service Worker logic (Push, Sync) ---
