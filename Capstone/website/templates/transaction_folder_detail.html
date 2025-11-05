@@ -33,7 +33,11 @@
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
         <!-- === LEFT PANEL === -->
         <div class="lg:col-span-3 flex flex-col gap-4">
-            <div id="checks-list-container" class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-2 overflow-y-auto custom-scrollbar">
+            
+            <!-- --- START OF FIX: Added max-height and overflow classes for scrolling --- -->
+            <div id="checks-list-container" class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-2 max-h-96 overflow-y-auto custom-scrollbar">
+            <!-- --- END OF FIX --- -->
+
                 {% for check in child_checks %}
                 <div class="check-item relative p-3 border-b hover:bg-gray-50 cursor-pointer"
                     data-id="{{ check._id }}"
@@ -111,27 +115,20 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // This script block remains unchanged as all its functions are still required and correct.
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-
-    // --- START OF FIX: Re-introduced the "Create Issued Check" modal logic ---
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
-
     if (createCheckModal && openCreateBtn) {
-        // The universal `openModal` function is available from common.js
         openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
     }
-    // --- END OF FIX ---
-
     const checkItems = document.querySelectorAll('.check-item');
     const detailName = document.getElementById('detail-name');
     const detailActions = document.getElementById('detail-actions');
     const detailEditBtn = document.getElementById('detail-edit-btn');
     const detailDeleteBtn = document.getElementById('detail-delete-btn');
     const checkDetailsContent = document.getElementById('check-details-content');
-
     if(detailActions) detailActions.classList.add('hidden');
-
     checkItems.forEach(item => {
         item.addEventListener('click', function() {
             checkItems.forEach(i => i.classList.remove('selected'));
@@ -140,15 +137,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const deductions = JSON.parse(data.deductions || '[]');
             const ewtAmount = parseFloat(data.ewt) || 0;
             const otherDeductions = deductions.filter(d => d.name.toUpperCase() !== 'EWT');
-
-            const otherDeductionsHTML = otherDeductions.length > 0 
-                ? otherDeductions.map(d => `
-                    <div class="flex justify-between items-center py-1 text-sm">
-                        <span>${d.name}</span>
-                        <span class="font-mono">${currencyFormatter.format(d.amount)}</span>
-                    </div>`).join('')
+            const otherDeductionsHTML = otherDeductions.length > 0
+                ? otherDeductions.map(d => `<div class="flex justify-between items-center py-1 text-sm"><span>${d.name}</span><span class="font-mono">${currencyFormatter.format(d.amount)}</span></div>`).join('')
                 : '<p class="text-center text-gray-400 py-4">No other deductions</p>';
-
             detailName.textContent = data.name;
             checkDetailsContent.innerHTML = `
                 <div class="bg-[#fafaf5] p-4 rounded-lg border">
@@ -176,8 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
             detailDeleteBtn.dataset.name = data.name;
         });
     });
-    
-    // Pay button logic remains correct
     const payBtn = document.getElementById('pay-btn');
     function validateForPayment() {
         if (!payBtn) return;
@@ -187,16 +176,13 @@ document.addEventListener('DOMContentLoaded', function() {
             totalCounteredCheck += parseFloat(item.dataset.counteredCheck) || 0;
         });
         const remainingBalance = folderAmount - totalCounteredCheck;
-
         document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
         document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
-
         const canPay = Math.abs(remainingBalance) < 0.01;
         payBtn.disabled = !canPay;
         payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
     }
     validateForPayment();
-
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             const folderId = "{{ folder._id }}";
@@ -223,8 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Search logic remains correct
     const searchInput = document.getElementById('search-input');
     const noResultsMessage = document.getElementById('no-results-message');
     const noChecksMessage = document.getElementById('no-checks-message');
@@ -241,8 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (noChecksMessage) noChecksMessage.style.display = (checkItems.length > 0 && visible > 0) ? 'none' : 'block';
         });
     }
-
-    // Deduction handling logic for modals remains correct
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
@@ -271,8 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
     flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
     flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
-    
-    // Edit form submission logic remains correct
     const editCheckForm = document.getElementById('edit-check-form');
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
