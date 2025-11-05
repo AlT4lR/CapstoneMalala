@@ -66,11 +66,9 @@
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h4 id="detail-name" class="text-xl font-bold">Select a Check</h4>
                 <div id="detail-actions" class="flex gap-4 text-gray-400 hidden">
-                    <!-- --- START OF FIX: Added data-modal-target attribute --- -->
                     <button title="Edit" id="detail-edit-btn" class="edit-btn hover:text-green-600" data-modal-target="#edit-check-modal">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <!-- --- END OF FIX --- -->
                     <button title="Delete" id="detail-delete-btn" class="delete-btn hover:text-red-600">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -115,11 +113,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-    // --- START OF FIX: Removed all page-specific JavaScript for edit/delete ---
-    // All of that logic is now handled universally by common.js
+    // --- START OF FIX: Re-introduced the "Create Issued Check" modal logic ---
+    const createCheckModal = document.getElementById('add-check-modal');
+    const openCreateBtn = document.getElementById('create-issued-check-btn');
+
+    if (createCheckModal && openCreateBtn) {
+        // The universal `openModal` function is available from common.js
+        openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
+    }
     // --- END OF FIX ---
 
-    // The rest of this script handles functionality unique to this page
     const checkItems = document.querySelectorAll('.check-item');
     const detailName = document.getElementById('detail-name');
     const detailActions = document.getElementById('detail-actions');
@@ -173,8 +176,8 @@ document.addEventListener('DOMContentLoaded', function() {
             detailDeleteBtn.dataset.name = data.name;
         });
     });
-
-    // Pay button logic remains the same
+    
+    // Pay button logic remains correct
     const payBtn = document.getElementById('pay-btn');
     function validateForPayment() {
         if (!payBtn) return;
@@ -221,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Search logic remains the same
+    // Search logic remains correct
     const searchInput = document.getElementById('search-input');
     const noResultsMessage = document.getElementById('no-results-message');
     const noChecksMessage = document.getElementById('no-checks-message');
@@ -239,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Modal and form handling logic remains the same
+    // Deduction handling logic for modals remains correct
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
@@ -266,6 +269,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     setupDeductionHandlers('add_check', 'deductions-container', 'add-deduction-btn');
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
+    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
+    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
+    
+    // Edit form submission logic remains correct
     const editCheckForm = document.getElementById('edit-check-form');
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
