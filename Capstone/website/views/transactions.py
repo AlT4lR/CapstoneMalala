@@ -25,125 +25,42 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
-# --- START OF FINAL FIX: Complete redesign of PDF generation with pagination ---
-@main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])
+@main.route('/transaction/folder/<transaction_id>')
 @jwt_required()
-def download_transaction_pdf(transaction_id):
+def transaction_folder_details(transaction_id):
     username = get_jwt_identity()
     folder = get_transaction_by_id(username, transaction_id, full_document=True)
-    if not folder or folder.get('status') != 'Paid':
-        abort(404)
-
+    if not folder:
+        flash('Transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_pending'))
+    
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
-    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+    form = TransactionForm()
 
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-    styles = getSampleStyleSheet()
-    
-    # Define constants for layout
-    margin = 0.75 * inch
-    bottom_margin = 1 * inch
-
-    def draw_page_header():
-        p.setFont("Helvetica-Bold", 16)
-        p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
-        try:
-            logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
-            if os.path.exists(logo_path):
-                p.drawImage(logo_path, width - 2.0 * inch, height - 1.2 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
-        except Exception as e:
-            logger.error(f"Could not draw logo on PDF: {e}")
-        p.setFont("Helvetica", 11)
-        p.drawString(margin, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
-        p.drawString(margin, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
-        folder_name = folder.get('name', 'N/A')
-        p.drawString(margin, height - 1.65 * inch, folder_name)
-        name_width = p.stringWidth(folder_name, "Helvetica", 11)
-        p.line(margin, height - 1.67 * inch, margin + name_width, height - 1.67 * inch)
-        paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
-        p.drawString(margin, height - 1.85 * inch, paid_date)
-        p.line(margin, height - 2.1 * inch, width - margin, height - 2.1 * inch)
-
-    def draw_table_header(y_pos):
-        p.setFont("Helvetica-Bold", 8)
-        headers = ["Name Issued Check", "Check No.", "Date", "Check Amt", "EWT", "Other Ded.", "Countered Check"]
-        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
-        for i, header in enumerate(headers):
-            p.drawString(col_x[i], y_pos, header)
-        p.line(margin, y_pos - 5, width - margin, y_pos - 5)
-        return y_pos - 20
-
-    # Draw header on the first page
-    draw_page_header()
-    y_pos = height - 2.5 * inch
-    y_pos = draw_table_header(y_pos)
-
-    # Draw table rows
-    p.setFont("Helvetica", 8)
+    # --- START OF FIX: Re-introduce the logic to check for incomplete data ---
     for check in child_checks:
-        row_height = 20  # Base height for a single line row
-        notes = check.get('notes', '')
-        if notes:
-            row_height += 15 # Add extra space for notes
+        # A check is considered incomplete if it's missing a check number or its amount is zero
+        if not check.get('check_no') or check.get('check_amount', 0) == 0:
+            check['is_incomplete'] = True
+    # --- END OF FIX ---
 
-        # Check if we need a new page
-        if y_pos - row_height < bottom_margin:
-            p.showPage()
-            draw_page_header()
-            y_pos = height - 2.5 * inch
-            y_pos = draw_table_header(y_pos)
-
-        # Draw main row data
-        other_deductions = sum(d['amount'] for d in check.get('deductions', []) if d['name'].upper() != 'EWT')
-        
-        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
-        p.drawString(col_x[0], y_pos, check.get('name', ''))
-        p.drawString(col_x[1], y_pos, check.get('check_no', ''))
-        p.drawString(col_x[2], y_pos, check.get('check_date').strftime('%m/%d/%y') if check.get('check_date') else '')
-        p.drawRightString(col_x[4] - 0.2*inch, y_pos, f"{check.get('check_amount', 0):,.2f}")
-        p.drawRightString(col_x[5] - 0.2*inch, y_pos, f"{check.get('ewt', 0):,.2f}")
-        p.drawRightString(col_x[6] - 0.2*inch, y_pos, f"{other_deductions:,.2f}")
-        p.drawRightString(width - margin, y_pos, f"{check.get('countered_check', 0):,.2f}")
-        y_pos -= 15
-
-        # Draw notes if they exist
-        if notes:
-            p.setFont("Helvetica-Oblique", 7)
-            p.drawString(margin + 5, y_pos, f"Notes: {notes}")
-            y_pos -= 15
-        
-        p.setFont("Helvetica", 8) # Reset font
-
-    # Draw Summary
-    summary_y = y_pos - 0.3 * inch
-    if summary_y < bottom_margin: # Check if summary fits
-        p.showPage()
-        draw_page_header()
-        summary_y = height - 2.5 * inch
-
-    p.setFont("Helvetica", 10)
-    summary_label_x = width - 3.5 * inch
-    summary_box_x = width - 2.5 * inch
+    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+    total_ewt = sum(check.get('ewt', 0) for check in child_checks)
+    folder_amount = folder.get('amount', 0)
+    remaining_balance = folder_amount - total_countered_check
     
-    p.drawRightString(summary_label_x, summary_y + 0.35 * inch, "Countered Checks")
-    p.rect(summary_box_x, summary_y + 0.25 * inch, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.35 * inch, f"₱ {total_countered_check:,.2f}")
-    
-    p.setFont("Helvetica-Bold", 10)
-    p.drawRightString(summary_label_x, summary_y + 0.1 * inch, "Check Amount")
-    p.rect(summary_box_x, summary_y, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
+    return render_template(
+        'transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
+        form=form,
+        total_countered_check=total_countered_check,
+        total_ewt=total_ewt,
+        remaining_balance=remaining_balance,
+        show_sidebar=True
+    )
 
-    p.showPage()
-    p.save()
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name=f"cleared_checks_{transaction_id}.pdf", mimetype='application/pdf')
-# --- END OF FINAL FIX ---
-
-
-# (All other routes in this file are correct and remain unchanged)
+# (The rest of the file remains unchanged as it is correct)
 @main.route('/transactions')
 @jwt_required()
 def transactions():
@@ -169,34 +86,6 @@ def transactions_paid():
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     edit_form = EditTransactionForm()
     return render_template('paid_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
-
-@main.route('/transaction/folder/<transaction_id>')
-@jwt_required()
-def transaction_folder_details(transaction_id):
-    username = get_jwt_identity()
-    folder = get_transaction_by_id(username, transaction_id, full_document=True)
-    if not folder:
-        flash('Transaction folder not found.', 'error')
-        return redirect(url_for('main.transactions_pending'))
-    
-    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
-    form = TransactionForm()
-
-    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
-    total_ewt = sum(check.get('ewt', 0) for check in child_checks)
-    folder_amount = folder.get('amount', 0)
-    remaining_balance = folder_amount - total_countered_check
-    
-    return render_template(
-        'transaction_folder_detail.html',
-        folder=folder,
-        child_checks=child_checks,
-        form=form,
-        total_countered_check=total_countered_check,
-        total_ewt=total_ewt,
-        remaining_balance=remaining_balance,
-        show_sidebar=True
-    )
 
 @main.route('/transaction/paid/folder/<transaction_id>')
 @jwt_required()
@@ -302,6 +191,114 @@ def pay_transaction_folder(folder_id):
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Failed to process payment.'}), 400
+
+@main.route('/api/transactions/<transaction_id>/download_pdf', methods=['GET'])
+@jwt_required()
+def download_transaction_pdf(transaction_id):
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+    if not folder or folder.get('status') != 'Paid':
+        abort(404)
+
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    styles = getSampleStyleSheet()
+    
+    margin = 0.75 * inch
+    bottom_margin = 1 * inch
+
+    def draw_page_header():
+        p.setFont("Helvetica-Bold", 16)
+        p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
+        try:
+            logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
+            if os.path.exists(logo_path):
+                p.drawImage(logo_path, width - 2.0 * inch, height - 1.2 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
+        except Exception as e:
+            logger.error(f"Could not draw logo on PDF: {e}")
+        p.setFont("Helvetica", 11)
+        p.drawString(margin, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
+        p.drawString(margin, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
+        folder_name = folder.get('name', 'N/A')
+        p.drawString(margin, height - 1.65 * inch, folder_name)
+        name_width = p.stringWidth(folder_name, "Helvetica", 11)
+        p.line(margin, height - 1.67 * inch, margin + name_width, height - 1.67 * inch)
+        paid_date = folder.get('paidAt').strftime('%B %d, %Y') if folder.get('paidAt') else 'N/A'
+        p.drawString(margin, height - 1.85 * inch, paid_date)
+        p.line(margin, height - 2.1 * inch, width - margin, height - 2.1 * inch)
+
+    def draw_table_header(y_pos):
+        p.setFont("Helvetica-Bold", 8)
+        headers = ["Name Issued Check", "Check No.", "Date", "Check Amt", "EWT", "Other Ded.", "Countered Check"]
+        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
+        for i, header in enumerate(headers):
+            p.drawString(col_x[i], y_pos, header)
+        p.line(margin, y_pos - 5, width - margin, y_pos - 5)
+        return y_pos - 20
+
+    draw_page_header()
+    y_pos = height - 2.5 * inch
+    y_pos = draw_table_header(y_pos)
+
+    p.setFont("Helvetica", 8)
+    for check in child_checks:
+        row_height = 20
+        notes = check.get('notes', '')
+        if notes:
+            row_height += 15
+
+        if y_pos - row_height < bottom_margin:
+            p.showPage()
+            draw_page_header()
+            y_pos = height - 2.5 * inch
+            y_pos = draw_table_header(y_pos)
+
+        other_deductions = sum(d['amount'] for d in check.get('deductions', []) if d['name'].upper() != 'EWT')
+        
+        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
+        p.drawString(col_x[0], y_pos, check.get('name', ''))
+        p.drawString(col_x[1], y_pos, check.get('check_no', ''))
+        p.drawString(col_x[2], y_pos, check.get('check_date').strftime('%m/%d/%y') if check.get('check_date') else '')
+        p.drawRightString(col_x[4] - 0.2*inch, y_pos, f"{check.get('check_amount', 0):,.2f}")
+        p.drawRightString(col_x[5] - 0.2*inch, y_pos, f"{check.get('ewt', 0):,.2f}")
+        p.drawRightString(col_x[6] - 0.2*inch, y_pos, f"{other_deductions:,.2f}")
+        p.drawRightString(width - margin, y_pos, f"{check.get('countered_check', 0):,.2f}")
+        y_pos -= 15
+
+        if notes:
+            p.setFont("Helvetica-Oblique", 7)
+            p.drawString(margin + 5, y_pos, f"Notes: {notes}")
+            y_pos -= 15
+        
+        p.setFont("Helvetica", 8)
+
+    summary_y = y_pos - 0.3 * inch
+    if summary_y < bottom_margin:
+        p.showPage()
+        draw_page_header()
+        summary_y = height - 2.5 * inch
+
+    p.setFont("Helvetica", 10)
+    summary_label_x = width - 3.5 * inch
+    summary_box_x = width - 2.5 * inch
+    
+    p.drawRightString(summary_label_x, summary_y + 0.35 * inch, "Countered Checks")
+    p.rect(summary_box_x, summary_y + 0.25 * inch, 1.75 * inch, 0.25 * inch)
+    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.35 * inch, f"₱ {total_countered_check:,.2f}")
+    
+    p.setFont("Helvetica-Bold", 10)
+    p.drawRightString(summary_label_x, summary_y + 0.1 * inch, "Check Amount")
+    p.rect(summary_box_x, summary_y, 1.75 * inch, 0.25 * inch)
+    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
+
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"cleared_checks_{transaction_id}.pdf", mimetype='application/pdf')
 
 @main.route('/api/transactions/child/update/<transaction_id>', methods=['POST'])
 @jwt_required()
