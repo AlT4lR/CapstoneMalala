@@ -8,7 +8,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// --- Universal Modal Opening/Closing Functions ---
 function openModal(modal) {
     if (!modal) return;
     modal.classList.remove('hidden');
@@ -21,7 +20,6 @@ function closeModal(modal) {
     modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true });
 }
 
-// --- Universal Custom Confirmation Dialog ---
 function setupCustomDialog() {
     let modal = document.getElementById('custom-dialog-modal');
     if (!modal) {
@@ -61,7 +59,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     window.getCsrfToken = () => csrfToken;
 
-    // --- Flash Message Auto-Hide ---
     const flashContainer = document.getElementById('flash-messages-overlay-container');
     if (flashContainer) {
         setTimeout(() => {
@@ -70,13 +67,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // --- START OF MODIFICATION: Centralized Event Listener for Edit and Delete ---
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
         const editButton = event.target.closest('.edit-btn');
         const closeModalButton = event.target.closest('.close-modal-btn');
 
-        // --- Global Delete Button Handler ---
         if (deleteButton) {
             const itemId = deleteButton.dataset.id;
             const itemName = deleteButton.dataset.name || 'this item';
@@ -100,7 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // --- Global Edit Button Handler ---
         if (editButton) {
             const transactionId = editButton.dataset.id;
             const modalTargetSelector = editButton.dataset.modalTarget;
@@ -117,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const data = await response.json();
 
-                // Populate common modal fields using name attributes
                 modalElement.querySelector('input[name="transaction_id"]').value = transactionId;
                 if(modalElement.querySelector('input[name="name"]')) modalElement.querySelector('input[name="name"]').value = data.name || '';
                 if(modalElement.querySelector('input[name="name_of_issued_check"]')) modalElement.querySelector('input[name="name_of_issued_check"]').value = data.name || '';
@@ -126,14 +119,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(modalElement.querySelector('textarea[name="notes"]')) modalElement.querySelector('textarea[name="notes"]').value = data.notes || '';
                 if(modalElement.querySelector('input[name="ewt"]')) modalElement.querySelector('input[name="ewt"]').value = data.ewt || '0.00';
                 
-                // Handle date fields with flatpickr
+                // --- START OF FIX: Added population for the countered_check field ---
+                if(modalElement.querySelector('input[name="countered_check"]')) {
+                    modalElement.querySelector('input[name="countered_check"]').value = data.countered_check || '0.00';
+                }
+                // --- END OF FIX ---
+
                 const checkDateInput = modalElement.querySelector('input[name="check_date"]');
                 if (checkDateInput) flatpickr(checkDateInput).setDate(data.check_date);
                 
                 const dueDateInput = modalElement.querySelector('input[name="due_date"]');
                 if (dueDateInput) flatpickr(dueDateInput).setDate(data.due_date);
                 
-                // Handle deductions dynamically for check modals
                 if (modalElement.id === 'edit-check-modal') {
                     const populateFuncName = 'populateDeductions_edit_check';
                     if (window[populateFuncName]) {
@@ -149,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // --- Global Modal Close Button Handler ---
         if (closeModalButton) {
             const modalToClose = closeModalButton.closest('.modal-backdrop');
             if (modalToClose) {
@@ -157,5 +153,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    // --- END OF MODIFICATION ---
 });
