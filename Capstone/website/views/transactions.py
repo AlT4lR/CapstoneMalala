@@ -25,42 +25,55 @@ from ..models import (
 
 logger = logging.getLogger(__name__)
 
-@main.route('/transaction/folder/<transaction_id>')
+# --- START OF MODIFICATION: New API endpoint for the overview modal ---
+@main.route('/api/transactions/overview/<transaction_id>', methods=['GET'])
 @jwt_required()
-def transaction_folder_details(transaction_id):
+def get_transaction_overview(transaction_id):
     username = get_jwt_identity()
+    
+    # 1. Fetch the parent folder
     folder = get_transaction_by_id(username, transaction_id, full_document=True)
     if not folder:
-        flash('Transaction folder not found.', 'error')
-        return redirect(url_for('main.transactions_pending'))
-    
+        return jsonify({'error': 'Transaction not found'}), 404
+        
+    # 2. Fetch all child checks
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
-    form = TransactionForm()
-
-    # --- START OF FIX: Re-introduce the logic to check for incomplete data ---
-    for check in child_checks:
-        # A check is considered incomplete if it's missing a check number or its amount is zero
-        if not check.get('check_no') or check.get('check_amount', 0) == 0:
-            check['is_incomplete'] = True
-    # --- END OF FIX ---
-
+    
+    # 3. Calculate summaries
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
     total_ewt = sum(check.get('ewt', 0) for check in child_checks)
     folder_amount = folder.get('amount', 0)
     remaining_balance = folder_amount - total_countered_check
     
-    return render_template(
-        'transaction_folder_detail.html',
-        folder=folder,
-        child_checks=child_checks,
-        form=form,
-        total_countered_check=total_countered_check,
-        total_ewt=total_ewt,
-        remaining_balance=remaining_balance,
-        show_sidebar=True
-    )
+    # 4. Serialize child_checks data for JSON response
+    serialized_children = []
+    for check in child_checks:
+        serialized_children.append({
+            'name': check.get('name', 'N/A'),
+            'check_no': check.get('check_no', 'N/A'),
+            'check_amount': check.get('check_amount', 0),
+            'countered_check': check.get('countered_check', 0),
+            'notes': check.get('notes', 'N/A'),
+            'deductions': check.get('deductions', []),
+            'ewt': check.get('ewt', 0)
+        })
 
-# (The rest of the file remains unchanged as it is correct)
+    # 5. Package and return the final data
+    overview_data = {
+        'folder_name': folder.get('name', 'N/A'),
+        'child_checks': serialized_children,
+        'summaries': {
+            'total_ewt': total_ewt,
+            'total_check_amount_to_pay': folder_amount,
+            'total_countered_check': total_countered_check,
+            'remaining_balance': remaining_balance
+        }
+    }
+    return jsonify(overview_data)
+# --- END OF MODIFICATION ---
+
+
+# (The rest of the file remains unchanged)
 @main.route('/transactions')
 @jwt_required()
 def transactions():
@@ -86,6 +99,38 @@ def transactions_paid():
     transactions = get_transactions_by_status(username, selected_branch, 'Paid')
     edit_form = EditTransactionForm()
     return render_template('paid_transactions.html', transactions=transactions, show_sidebar=True, edit_form=edit_form)
+
+@main.route('/transaction/folder/<transaction_id>')
+@jwt_required()
+def transaction_folder_details(transaction_id):
+    username = get_jwt_identity()
+    folder = get_transaction_by_id(username, transaction_id, full_document=True)
+    if not folder:
+        flash('Transaction folder not found.', 'error')
+        return redirect(url_for('main.transactions_pending'))
+    
+    child_checks = get_child_transactions_by_parent_id(username, transaction_id)
+    form = TransactionForm()
+
+    for check in child_checks:
+        if not check.get('check_no') or check.get('check_amount', 0) == 0:
+            check['is_incomplete'] = True
+
+    total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+    total_ewt = sum(check.get('ewt', 0) for check in child_checks)
+    folder_amount = folder.get('amount', 0)
+    remaining_balance = folder_amount - total_countered_check
+    
+    return render_template(
+        'transaction_folder_detail.html',
+        folder=folder,
+        child_checks=child_checks,
+        form=form,
+        total_countered_check=total_countered_check,
+        total_ewt=total_ewt,
+        remaining_balance=remaining_balance,
+        show_sidebar=True
+    )
 
 @main.route('/transaction/paid/folder/<transaction_id>')
 @jwt_required()
