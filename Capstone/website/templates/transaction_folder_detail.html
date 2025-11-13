@@ -25,17 +25,19 @@
                 <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
-                <i class="fa-solid fa-eye fa-lg"></i>
-            </button>
             <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
             {% include "_notification_button.html" %}
         </div>
     </header>
 
-    <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2 mb-2">
-        <i class="fa-solid fa-arrow-left"></i> Go Back...
-    </a>
+    <div class="flex justify-between items-center mb-2">
+        <a href="{{ url_for('main.transactions_pending') }}" class="text-sm text-gray-600 hover:text-[#3a4d39] flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> Go Back...
+        </a>
+        <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
+            <i class="fa-solid fa-eye fa-lg"></i>
+        </button>
+    </div>
 
     <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
 
@@ -113,9 +115,7 @@
         </div>
         <h3 id="overview-folder-name" class="text-center font-bold text-lg mb-4 flex-shrink-0"></h3>
         
-        <!-- --- START OF FIX: Added min-h-0 to allow the container to shrink and scroll --- -->
         <div class="flex-1 border-2 border-[#3a4d39] overflow-auto custom-scrollbar bg-white min-h-0">
-        <!-- --- END OF FIX --- -->
             <table class="w-full text-sm text-left">
                 <thead id="overview-table-header" class="bg-[#3a4d39] text-white sticky top-0 z-10">
                     <tr>
@@ -137,7 +137,6 @@
                     </tr>
                 </thead>
                 <tbody id="overview-table-body">
-                    <!-- Rows will be injected by JS -->
                 </tbody>
             </table>
         </div>
@@ -171,7 +170,6 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // This entire script block is unchanged as its logic remains correct.
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
     const previewBtn = document.getElementById('preview-transaction-btn');
     const overviewModal = document.getElementById('overview-modal');
