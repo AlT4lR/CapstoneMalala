@@ -1,6 +1,6 @@
 # tests/conftest.py
 import pytest
-from website import create_app # Assuming your app factory is in website/__init__.py
+from website import create_app
 
 @pytest.fixture(scope='module')
 def app():
@@ -8,16 +8,13 @@ def app():
     Provides a Flask application instance for testing.
     The scope='module' means the app is created once per test module.
     """
-    app = create_app('test') # Use the 'test' configuration
+    app = create_app('test') 
     app.config.update({
         "TESTING": True,
-        # You might want to disable rate limiting for tests if it interferes
         "RATELIMIT_ENABLED": False, 
     })
 
     # Optional: Set up test database or mock database interactions here if needed
-    # For example, clearing collections before each test module or run.
-
     # Give the test client a way to access the app
     with app.app_context():
         yield app

@@ -1,43 +1,51 @@
 <!-- website/templates/_create_schedule_modal.html -->
 <div id="create-schedule-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-    <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700">
-        <form id="schedule-form" method="POST" class="space-y-4">
+    <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-lg p-6 relative text-gray-700 max-h-[90vh] overflow-y-auto">
+        <form id="schedule-form" method="POST" class="space-y-5">
             <input type="hidden" id="schedule-id" name="schedule_id" value="">
 
             <!-- Header -->
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center">
                 <h2 id="modal-title" class="text-xl font-bold text-[#3a4d39]">Create Schedule</h2>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Discard</button>
-                </div>
+                <button type="button" id="discard-schedule-btn" class="px-4 py-1.5 text-sm bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">
+                    Discard
+                </button>
             </div>
 
-            <!-- Title -->
+            <!-- Title Input -->
             <input type="text" id="schedule-title" name="title" placeholder="Create title here" class="w-full px-3 py-2 text-lg font-semibold border-b focus:outline-none focus:border-[#6f8a6e]" required>
 
-            <!-- Date & Time -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div>
+            <!-- Date & All Day -->
+            <div class="flex items-center justify-between">
+                <div class="w-2/3">
                     <label for="schedule-date" class="text-sm font-semibold">Date</label>
-                    <!-- MODIFIED: Changed type to text for Flatpickr -->
                     <input type="text" id="schedule-date" name="date" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]" required>
                 </div>
-                <div class="flex items-center justify-end pt-5 gap-2">
-                    <input type="checkbox" id="all-day-toggle" name="all_day" class="h-4 w-4 rounded">
+                <div class="flex items-center gap-2 pt-6">
+                    <input type="checkbox" id="all-day-toggle" name="all_day" class="h-4 w-4 rounded border-gray-300">
                     <label for="all-day-toggle" class="text-sm font-medium">All Day</label>
                 </div>
             </div>
+
+            <!-- Start & End Time -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="schedule-start-time" class="text-sm font-semibold">Start Time</label>
-                    <input type="time" id="schedule-start-time" name="start_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                    <div class="relative mt-1">
+                        <input type="time" id="schedule-start-time" name="start_time" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                        <i class="fa-regular fa-clock absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                    </div>
                 </div>
                 <div>
                     <label for="schedule-end-time" class="text-sm font-semibold">End Time</label>
-                    <input type="time" id="schedule-end-time" name="end_time" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md">
+                    <div class="relative mt-1">
+                        <input type="time" id="schedule-end-time" name="end_time" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                        <i class="fa-regular fa-clock absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                    </div>
                 </div>
             </div>
 
+            <!-- Location & Label -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="schedule-location" class="text-sm font-semibold">Location</label>
@@ -45,7 +53,7 @@
                 </div>
                 <div>
                     <label for="schedule-label" class="text-sm font-semibold">Label</label>
-                    <select id="schedule-label" name="label" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
+                    <select id="schedule-label" name="label" class="mt-1 w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                         <option value="Office">Office</option>
                         <option value="Meetings">Meetings</option>
                         <option value="Events">Events</option>
@@ -58,10 +66,12 @@
             <!-- Description -->
             <textarea id="schedule-description" name="description" placeholder="About schedule..." rows="3" class="w-full px-3 py-2 bg-gray-100 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]"></textarea>
 
-            <!-- Footer -->
-            <div class="flex justify-between items-center pt-4">
+            <!-- Footer Buttons -->
+            <div class="flex justify-between items-center pt-4 bg-white sticky bottom-0 pb-4">
                 <div>
-                    <button type="button" id="delete-schedule-btn" onclick="if(document.getElementById('schedule-id').value){ window.deleteSchedule(document.getElementById('schedule-id').value); }" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
+                    <!-- START OF MODIFICATION: REMOVED onclick attribute -->
+                    <button type="button" id="delete-schedule-btn" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 hidden" title="Delete">Delete</button>
+                    <!-- END OF MODIFICATION -->
                 </div>
                 <div class="flex gap-2">
                     <button type="button" id="cancel-schedule-btn" class="px-6 py-2.5 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>

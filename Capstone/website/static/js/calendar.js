@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         scheduleIdInput.value = data.id || '';
         scheduleTitleInput.value = data.title || '';
-        scheduleDateInput.value = data.date || new Date().toISOString().slice(0, 10);
+        flatpickr(scheduleDateInput).setDate(data.date || new Date());
         startTimeInput.value = data.startTime || '';
         endTimeInput.value = data.endTime || '';
         allDayToggle.checked = data.allDay || false;
@@ -75,19 +75,53 @@ document.addEventListener('DOMContentLoaded', function() {
     if (discardBtn) discardBtn.addEventListener('click', closeModal);
     if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
+    // --- Debounce Helper Function ---
+    const debounce = (callback, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                callback(...args);
+            }, delay);
+        };
+    };
+
+    async function rawHandleEventUpdate(event) {
+        const payload = {
+            start: event.start.toISOString(),
+            end: event.end ? event.end.toISOString() : null,
+            allDay: event.allDay,
+            title: event.title,
+            description: event.extendedProps.description,
+            location: event.extendedProps.location,
+            label: event.extendedProps.label
+        };
+        try {
+            const response = await fetch(`/api/schedules/update/${event.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('Update failed');
+            calendar.refetchEvents(); 
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Could not save changes.');
+        }
+    }
+    
+    // Create the debounced version of the update function
+    const debouncedHandleEventUpdate = debounce(rawHandleEventUpdate, 500); 
 
     // --- FullCalendar Setup ---
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+        initialView: isMobile ? 'dayGridMonth' : 'timeGridWeek',
         headerToolbar: isMobile ? 
             { left: 'prev,next', center: 'title', right: 'today' } : 
             { left: 'prev,next today', center: 'title', right: '' },
         selectable: true,
         editable: true,
-        
-        // --- START OF FIX: Set height back to 100% to fill the container ---
         height: '100%',
-        // --- END OF FIX ---
         
         events: `/api/schedules`,
         eventTimeFormat: {
@@ -129,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
 
-        eventDrop: (info) => handleEventUpdate(info.event),
-        eventResize: (info) => handleEventUpdate(info.event),
+        eventDrop: (info) => debouncedHandleEventUpdate(info.event),
+        eventResize: (info) => debouncedHandleEventUpdate(info.event),
     });
 
     calendar.render();
@@ -151,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             label: scheduleLabelInput.value,
             allDay: allDay,
             date: date,
-            notification_method: 'none',
             start: allDay ? `${date}T00:00:00Z` : `${date}T${startTime}:00Z`
         };
         
@@ -181,32 +214,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    async function handleEventUpdate(event) {
-        const payload = {
-            start: event.start.toISOString(),
-            end: event.end ? event.end.toISOString() : null,
-            allDay: event.allDay,
-            title: event.title,
-            description: event.extendedProps.description,
-            location: event.extendedProps.location,
-            label: event.extendedProps.label
-        };
-        try {
-            const response = await fetch(`/api/schedules/update/${event.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) throw new Error('Update failed');
-        } catch (error) {
-            console.error('Update error:', error);
-            alert('Could not save changes.');
-            info.revert();
-        }
-    }
     
     window.deleteSchedule = async function(id) {
         if (!id) return;
+        
         const event = calendar.getEventById(id);
         const eventTitle = event ? event.title : 'this schedule';
         
@@ -216,19 +227,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'DELETE',
                     headers: { 'X-CSRF-Token': csrfToken }
                 });
-                const result = await response.json();
-                if (result.success) {
+                
+                const result = await response.json(); 
+                
+                if (response.ok) {
                     closeModal();
                     calendar.refetchEvents();
                 } else {
-                    alert('Error: ' + (result.error || 'Could not delete schedule.'));
+                    alert('Error: ' + (result.error || 'The schedule could not be deleted.'));
                 }
             } catch (error) {
                 console.error('Delete error:', error);
-                alert('A network error occurred.');
+                alert('A network error occurred. Please check your connection or server logs.');
             }
         });
     };
+
+    // --- START OF MODIFICATION: Add explicit listener to the delete button ---
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            const id = scheduleIdInput.value;
+            if (id) {
+                window.deleteSchedule(id);
+            }
+        });
+    }
+    // --- END OF MODIFICATION ---
 
     // --- View Controls & Mobile Sidebar Logic ---
     function setActiveView(activeBtn) {
