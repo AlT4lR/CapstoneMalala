@@ -71,8 +71,28 @@ def update_schedule(username, schedule_id, data):
     db = current_app.db
     if db is None: return False
     try:
-        start_dt = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
-        end_dt = datetime.fromisoformat(data['end'].replace('Z', '+00:00')) if data.get('end') else None
+        # --- START OF MODIFICATION ---
+        
+        # Helper to safely parse ISO string to datetime, handling None if key is missing or empty
+        def parse_iso_datetime(iso_string):
+            if not iso_string:
+                return None
+            try:
+                # Replace 'Z' with +00:00 to ensure full ISO 8601 compliance for parsing
+                dt_obj = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
+                return dt_obj
+            except ValueError as e:
+                # Log the specific problematic value and re-raise to be caught by the outer block
+                logger.error(f"ValueError during datetime parsing for string: {iso_string}. Error: {e}", exc_info=True)
+                raise # Re-raise to ensure the API handler returns an error to the client
+
+        start_dt = parse_iso_datetime(data.get('start'))
+        end_dt = parse_iso_datetime(data.get('end'))
+
+        if start_dt is None:
+            # Prevent update if start date is invalid or missing, as it's required.
+            logger.error(f"Schedule update failed: start date is missing or invalid for schedule ID {schedule_id}")
+            return False
         
         update_doc = {
             '$set': {
@@ -85,6 +105,8 @@ def update_schedule(username, schedule_id, data):
                 'end': end_dt,
             }
         }
+        # --- END OF MODIFICATION ---
+        
         result = db.schedules.update_one({'_id': ObjectId(schedule_id), 'username': username}, update_doc)
         return result.modified_count > 0
     except Exception as e:

@@ -8,7 +8,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// --- START OF MODIFICATION: Re-introduce missing global modal helpers ---
+// --- Global Modal Helpers (Crucial for all app modlas) ---
 
 function openModal(modal) {
     if (!modal) return;
@@ -21,8 +21,6 @@ function closeModal(modal) {
     modal.classList.remove('active');
     modal.addEventListener('transitionend', () => modal.classList.add('hidden'), { once: true });
 }
-
-// --- END OF MODIFICATION ---
 
 function setupCustomDialog() {
     let modal = document.getElementById('custom-dialog-modal');
@@ -68,7 +66,7 @@ function setupCustomDialog() {
     };
 }
 
-// --- PWA Helper Functions (Defined globally, executed later) ---
+// --- PWA Helper Functions ---
 
 async function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -106,7 +104,8 @@ async function subscribeToPushNotifications() {
         alert('Successfully subscribed to push notifications!');
     } catch (err) {
         console.error('Failed to subscribe to push notifications:', err);
-        alert('Failed to subscribe. Please ensure notifications are not blocked for this site.');
+        const errorMsg = 'Failed to subscribe. Push notifications require a secure connection (HTTPS) or testing on localhost. Please ensure your VAPID keys are correctly formatted in your environment.';
+        alert(errorMsg);
     }
 }
 
@@ -135,23 +134,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // --- START OF MODIFICATION: PWA/Push Logic moved inside DOMContentLoaded ---
+    // --- PWA/Push Logic (Reliable Implementation) ---
     let deferredPrompt;
     const installButton = document.getElementById('custom-install-button');
     const notificationButton = document.getElementById('enable-notifications-btn');
+    
+    // START OF MODIFICATION: Check Install State for Persistent Button
+    function checkInstallState() {
+        if (!installButton) return;
 
+        // Check if the app is already installed/running in standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            (navigator.standalone === true)) { // for older iOS
+            installButton.style.display = 'none';
+        } else if (deferredPrompt) {
+            // Prompt is ready, make the button clickable
+            installButton.disabled = false;
+        } else {
+            // Keep the button visible but disabled until the prompt event fires
+            installButton.disabled = true;
+        }
+    }
+    
+    // Listen for the browser's install event
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if (installButton) {
-            installButton.style.display = 'block';
-            installButton.disabled = false;
-        }
+        checkInstallState(); // Update state when the prompt is ready
+        console.log('beforeinstallprompt fired.');
     });
 
+    // Listen for when the app is installed
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        checkInstallState(); // Hide the button after installation
+        console.log('PWA was installed.');
+    });
+
+
     if (installButton) {
+        // Run initial check when the page loads
+        checkInstallState(); 
+        
         installButton.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
+            if (!deferredPrompt) {
+                alert("The browser is not currently allowing an install prompt. Try refreshing the page.");
+                return;
+            }
             
             installButton.disabled = true;
             deferredPrompt.prompt();
@@ -159,23 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (outcome === 'accepted') {
                 deferredPrompt = null;
-                installButton.style.display = 'none';
-            } else {
-                installButton.disabled = false;
-            }
+            } 
+            // The checkInstallState function/appinstalled listener handles the rest
         });
     }
-
-    window.addEventListener('appinstalled', () => {
-        if (installButton) installButton.style.display = 'none';
-        deferredPrompt = null;
-        console.log('PWA was installed');
-    });
 
     if (notificationButton) {
         notificationButton.addEventListener('click', askForNotificationPermission);
     }
-    // --- END OF MODIFICATION ---
+    // END OF MODIFICATION
 
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');

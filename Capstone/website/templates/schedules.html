@@ -137,7 +137,9 @@
     <!-- --- END OF MODIFICATION --- -->
 
     <!-- Calendar Layout -->
-    <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
+    <!-- --- START OF FIX: Added h-full to explicitly define vertical space for children --- -->
+    <div class="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden h-full">
+    <!-- --- END OF FIX --- -->
         
         <!-- Sidebar Overlay (for mobile) -->
         <div id="sidebar-overlay" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>

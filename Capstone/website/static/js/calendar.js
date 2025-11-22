@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     };
 
+    // --- START OF MODIFIED FUNCTION: Improved error handling and revert logic ---
     async function rawHandleEventUpdate(event) {
         const payload = {
             start: event.start.toISOString(),
@@ -102,13 +103,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                 body: JSON.stringify(payload)
             });
-            if (!response.ok) throw new Error('Update failed');
+            
+            if (!response.ok) {
+                // Attempt to read server-side error message
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `Server responded with status ${response.status}`);
+            }
+            
             calendar.refetchEvents(); 
         } catch (error) {
-            console.error('Update error:', error);
-            alert('Could not save changes.');
+            console.error('Event Update/Drag Error:', error);
+            // Display a more specific error message if available
+            alert('Error saving schedule changes: ' + (error.message || 'Network request failed.')); 
+            // Revert the event's position/size if update failed
+            event.revert(); 
         }
     }
+    // --- END OF MODIFIED FUNCTION ---
     
     // Create the debounced version of the update function
     const debouncedHandleEventUpdate = debounce(rawHandleEventUpdate, 500); 
@@ -200,17 +211,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                 body: JSON.stringify(payload)
             });
-            if (!response.ok) throw new Error('Server error');
+            
+            // --- START OF MODIFICATION: Robust Error Handling for submit/save ---
+            // 1. Read JSON response regardless of status
             const result = await response.json();
-            if (result.success) {
+            
+            // 2. Check if the response was successful
+            if (response.ok) {
                 closeModal();
                 calendar.refetchEvents();
             } else {
+                // 3. Display the error message returned by the server
                 alert('Error: ' + (result.error || 'Could not save schedule.'));
             }
+            // --- END OF MODIFICATION ---
+
         } catch (error) {
             console.error('Save error:', error);
-            alert('A network error occurred.');
+            alert('A network error occurred. Please check console for details.');
         }
     });
 
@@ -243,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // --- START OF MODIFICATION: Add explicit listener to the delete button ---
+    // --- START OF MODIFICATION: Ensure listener is attached for delete button ---
     if (deleteBtn) {
         deleteBtn.addEventListener('click', () => {
             const id = scheduleIdInput.value;
