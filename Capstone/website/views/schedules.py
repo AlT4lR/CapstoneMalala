@@ -49,17 +49,23 @@ def add_schedule_route():
     if add_schedule(username, selected_branch, data):
         log_user_activity(username, "Created a new schedule")
         
-        if data.get('notification_method') and data.get('notification_method') != 'none':
-            schedule_title = data.get('title', 'a new event')
-            schedule_date = data.get('date', '')
-            try:
-                date_obj = datetime.strptime(schedule_date, '%Y-%m-%d')
-                formatted_date = date_obj.strftime('%B %d, %Y')
-                message = f"Your event '{schedule_title}' is scheduled for {formatted_date}."
-                notification_url = url_for('main.schedules', _external=False)
-                add_notification(username, "New Event Created", message, notification_url)
-            except Exception as e:
-                logger.error(f"Failed to create notification for new schedule: {e}")
+        # Robust Notification Logic
+        schedule_title = data.get('title', 'a new event')
+        schedule_date_str = data.get('date', '')
+        
+        try:
+            date_obj = datetime.strptime(schedule_date_str, '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%B %d, %Y')
+            
+            message = f"Your event '{schedule_title}' is scheduled for {formatted_date}."
+            notification_url = url_for('main.schedules', _external=False)
+            
+            add_notification(username, "New Event Created", message, notification_url)
+            
+        except ValueError:
+            logger.warning(f"Failed to parse date for new schedule notification: {schedule_date_str}. Notification skipped.")
+        except Exception as e:
+            logger.error(f"Failed to create notification for new schedule: {e}")
 
         return jsonify({"success": True})
         
@@ -92,4 +98,7 @@ def delete_schedule_route(schedule_id):
     if delete_schedule(username, schedule_id):
         log_user_activity(username, "Deleted a schedule")
         return jsonify({'success': True})
-    return jsonify({'error': 'Delete failed'}), 500
+    # --- START OF MODIFICATION: Return 404 Not Found on delete failure ---
+ 
+    return jsonify({'error': 'Schedule not found or delete failed.'}), 404
+    # --- END OF MODIFICATION ---

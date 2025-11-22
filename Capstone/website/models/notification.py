@@ -40,8 +40,7 @@ def _send_web_push_notification(subscriptions, payload_data):
                 logger.info(f"Successfully sent web push notification.")
             except WebPushException as ex:
                 # This often happens if a subscription is expired or invalid.
-                # You might want to add logic here to remove the subscription from the database.
-                logger.error(f"WebPushException: {ex}")
+                logger.error(f"WebPushException for subscription {sub.get('endpoint')}: {ex}")
                 if ex.response and ex.response.status_code == 410:
                     logger.warning(f"Subscription has expired or is no longer valid: {sub.get('endpoint')}")
 
@@ -52,12 +51,10 @@ def _send_web_push_notification(subscriptions, payload_data):
 def add_notification(username, title, message, url):
     db = current_app.db
     if db is None: return False
+    
+    # --- START OF MODIFICATION: Explicitly try/except blocks around services ---
     try:
-        # Locally import modules to prevent circular dependencies
-        from website.utils.email_utils import send_notification_email
-        from .user import get_user_by_username, get_user_push_subscriptions
-        
-        # 1. Save the notification to the database
+        # 1. Save the notification to the database (Prioritize this!)
         db.notifications.insert_one({
             'username': username,
             'title': title,
@@ -67,7 +64,11 @@ def add_notification(username, title, message, url):
             'createdAt': datetime.now(pytz.utc)
         })
 
-        # 2. Send Email Notification
+        # Locally import modules to prevent circular dependencies
+        from website.utils.email_utils import send_notification_email
+        from .user import get_user_by_username, get_user_push_subscriptions
+        
+        # 2. Send Email Notification (Fail Gracefully)
         try:
             user = get_user_by_username(username)
             if user and user.get('email'):
@@ -80,29 +81,29 @@ def add_notification(username, title, message, url):
                     url=url
                 )
         except Exception as e:
+            # Log error but DO NOT re-raise, allowing other services to run
             logger.error(f"Failed to trigger email notification for user {username}: {e}")
         
-        # 3. Send Web Push Notification
+        # 3. Send Web Push Notification (Fail Gracefully)
         try:
             subscriptions = get_user_push_subscriptions(username)
             if subscriptions:
                 push_payload = {
                     "title": title,
                     "body": message,
-                    "icon": "/static/imgs/icons/logo.ico", # Optional: path to an icon
-                    "data": {
-                        "url": url
-                    }
+                    "icon": "/static/imgs/icons/logo.ico",
+                    "data": {"url": url}
                 }
                 _send_web_push_notification(subscriptions, push_payload)
         except Exception as e:
+            # Log error but DO NOT re-raise
             logger.error(f"Failed to trigger web push notification for user {username}: {e}")
 
         return True
     except Exception as e:
-        logger.error(f"Error adding notification for {username}: {e}", exc_info=True)
+        # This only catches database save errors now
+        logger.error(f"Error adding notification to database for {username}: {e}", exc_info=True)
         return False
-
 # --- END OF MODIFICATION ---
 
 
