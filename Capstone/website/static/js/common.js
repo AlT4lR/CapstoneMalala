@@ -47,12 +47,7 @@ function setupCustomDialog() {
     const iconContainer = document.getElementById('custom-dialog-icon-container');
     const dialogModal = document.getElementById('custom-dialog-modal');
 
-    const hideDialog = () => {
-        dialogModal.classList.remove('active');
-        dialogModal.addEventListener('transitionend', () => {
-            dialogModal.classList.add('hidden');
-        }, { once: true });
-    };
+    const hideDialog = () => closeModal(dialogModal);
 
     window.showCustomConfirm = (message, onConfirm) => {
         messageEl.textContent = message;
@@ -61,12 +56,11 @@ function setupCustomDialog() {
         okBtn.onclick = () => { hideDialog(); onConfirm(); };
         cancelBtn.onclick = hideDialog;
 
-        dialogModal.classList.remove('hidden');
-        setTimeout(() => dialogModal.classList.add('active'), 10);
+        openModal(dialogModal);
     };
 }
 
-// --- PWA Helper Functions ---
+// --- PWA Helper Functions (Used by the DOMContentLoaded block below) ---
 
 async function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -134,108 +128,165 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // --- PWA/Push Logic (Reliable Implementation) ---
-    let deferredPrompt;
+    // Get Elements
     const installButton = document.getElementById('custom-install-button');
     const notificationButton = document.getElementById('enable-notifications-btn');
+    const notificationBtns = document.querySelectorAll('.notification-btn');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationList = document.getElementById('notification-list');
+    const notificationLoader = document.getElementById('notification-loader');
     
-    // START OF MODIFICATION: Check Install State for Persistent Button
+    // --- PWA Install Logic ---
+    let deferredPrompt;
+
     function checkInstallState() {
         if (!installButton) return;
-
-        // Check if the app is already installed/running in standalone mode
-        if (window.matchMedia('(display-mode: standalone)').matches || 
-            (navigator.standalone === true)) { // for older iOS
+        if (window.matchMedia('(display-mode: standalone)').matches || (navigator.standalone === true)) {
             installButton.style.display = 'none';
         } else if (deferredPrompt) {
-            // Prompt is ready, make the button clickable
             installButton.disabled = false;
         } else {
-            // Keep the button visible but disabled until the prompt event fires
             installButton.disabled = true;
         }
     }
     
-    // Listen for the browser's install event
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        checkInstallState(); // Update state when the prompt is ready
-        console.log('beforeinstallprompt fired.');
+        checkInstallState();
     });
 
-    // Listen for when the app is installed
     window.addEventListener('appinstalled', () => {
         deferredPrompt = null;
-        checkInstallState(); // Hide the button after installation
-        console.log('PWA was installed.');
+        checkInstallState();
     });
 
-
     if (installButton) {
-        // Run initial check when the page loads
-        checkInstallState(); 
-        
+        checkInstallState();
         installButton.addEventListener('click', async () => {
             if (!deferredPrompt) {
                 alert("The browser is not currently allowing an install prompt. Try refreshing the page.");
                 return;
             }
-            
             installButton.disabled = true;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            
             if (outcome === 'accepted') {
                 deferredPrompt = null;
-            } 
-            // The checkInstallState function/appinstalled listener handles the rest
+            }
         });
     }
 
     if (notificationButton) {
         notificationButton.addEventListener('click', askForNotificationPermission);
     }
-    // END OF MODIFICATION
+    // --- End PWA Install Logic ---
 
+    // --- General Action Listeners (Delete, Edit, Close Modal) ---
     document.body.addEventListener('click', async (event) => {
         const deleteButton = event.target.closest('.delete-btn');
-        if (!deleteButton) return;
-    
-        const transactionId = deleteButton.dataset.id;
-        const transactionName = deleteButton.dataset.name || 'this item';
+        const editButton = event.target.closest('.edit-btn');
+        const closeModalButton = event.target.closest('.close-modal-btn');
         
-        if (!transactionId) return;
+        // --- DELETE LOGIC ---
+        if (deleteButton) {
+            // This is the generic delete/archive logic for transactions (used on pending/paid lists and detail pages)
+            const transactionId = deleteButton.dataset.id;
+            const transactionName = deleteButton.dataset.name || 'this item';
+            
+            if (!transactionId) return;
 
-        window.showCustomConfirm(`Are you sure you want to delete ${transactionName}?`, async () => {
-            const deleteUrl = `/api/transactions/${transactionId}`;
-            const csrfToken = window.getCsrfToken();
+            window.showCustomConfirm(`Are you sure you want to archive "${transactionName}"?`, async () => {
+                const deleteUrl = `/api/transactions/${transactionId}`;
+                const csrfToken = window.getCsrfToken();
 
-            if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
-                // ... (offline logic remains the same)
-            } else {
-                try {
-                    await fetch(deleteUrl, {
-                        method: 'DELETE',
-                        headers: { 'X-CSRF-Token': csrfToken }
-                    });
-                    window.location.reload(); 
-                } catch (error) {
-                    console.error("Deletion failed:", error);
-                    window.location.reload();
+                if ('serviceWorker' in navigator && 'SyncManager' in window && !navigator.onLine) {
+                    // ... (offline logic remains the same)
+                } else {
+                    try {
+                        await fetch(deleteUrl, {
+                            method: 'DELETE',
+                            headers: { 'X-CSRF-Token': csrfToken }
+                        });
+                        window.location.reload(); 
+                    } catch (error) {
+                        console.error("Deletion failed:", error);
+                        window.location.reload(); 
+                    }
                 }
+            });
+        }
+        
+        // --- EDIT LOGIC (Consolidated for all Edit Modals: Folder, Check) ---
+        if (editButton) {
+            const transactionId = editButton.dataset.id;
+            const modalTargetSelector = editButton.dataset.modalTarget;
+            const modalElement = document.querySelector(modalTargetSelector);
+
+            if (!transactionId || !modalElement) {
+                console.error('Edit button is missing data-id or data-modal-target');
+                return;
             }
-        });
+            
+            openModal(modalElement);
+            
+            // Get the flatpickr instances if they exist
+            const checkDateInput = modalElement.querySelector('input[name="check_date"]');
+            const dueDateInput = modalElement.querySelector('input[name="due_date"]');
+            
+            // Flatpickr library (must be loaded on the page for this to work)
+            const checkDateFlatpickr = checkDateInput ? window.flatpickr?.getInstance(checkDateInput) : null;
+            const dueDateFlatpickr = dueDateInput ? window.flatpickr?.getInstance(dueDateInput) : null;
+
+
+            try {
+                const response = await fetch(`/api/transactions/details/${transactionId}`);
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                
+                const data = await response.json();
+
+                // Set general fields (Folder & Check)
+                modalElement.querySelector('input[name="transaction_id"]').value = transactionId;
+                if(modalElement.querySelector('input[name="name"]')) modalElement.querySelector('input[name="name"]').value = data.name || '';
+                if(modalElement.querySelector('input[name="name_of_issued_check"]')) modalElement.querySelector('input[name="name_of_issued_check"]').value = data.name || '';
+                if(modalElement.querySelector('input[name="check_no"]')) modalElement.querySelector('input[name="check_no"]').value = data.check_no || '';
+                if(modalElement.querySelector('input[name="check_amount"]')) modalElement.querySelector('input[name="check_amount"]').value = data.check_amount || '0.00';
+                if(modalElement.querySelector('textarea[name="notes"]')) modalElement.querySelector('textarea[name="notes"]').value = data.notes || '';
+                
+                // Set date pickers (Folder & Check)
+                if (checkDateFlatpickr && data.check_date) checkDateFlatpickr.setDate(data.check_date);
+                if (dueDateFlatpickr && data.due_date) dueDateFlatpickr.setDate(data.due_date);
+                
+                // Set Check-specific fields
+                if(modalElement.querySelector('input[name="ewt"]')) modalElement.querySelector('input[name="ewt"]').value = data.ewt || '0.00';
+                if(modalElement.querySelector('input[name="countered_check"]')) modalElement.querySelector('input[name="countered_check"]').value = data.countered_check || '0.00';
+                
+                // Handle deductions for Edit Check Modal
+                if (modalElement.id === 'edit-check-modal') {
+                    const populateFuncName = 'populateDeductions_edit_check';
+                    if (window[populateFuncName]) {
+                        window[populateFuncName](data.deductions || []);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error populating edit form:', error);
+                closeModal(modalElement);
+                alert('Could not load item details. Please try again.');
+            }
+        }
+        
+        // --- CLOSE MODAL LOGIC ---
+        if (closeModalButton) {
+            const modalToClose = closeModalButton.closest('.modal-backdrop');
+            if (modalToClose) {
+                closeModal(modalToClose);
+            }
+        }
     });
 
-    // --- REVISED NOTIFICATION PANEL LOGIC ---
-    const notificationBtns = document.querySelectorAll('.notification-btn');
-    const notificationPanel = document.getElementById('notification-panel');
-    const notificationIndicators = document.querySelectorAll('.notification-indicator');
-    const notificationList = document.getElementById('notification-list');
-    const notificationLoader = document.getElementById('notification-loader');
+    // --- Notification Panel Logic ---
     
-    // State management
     let currentPage = 1;
     let isLoading = false;
     let hasMoreNotifications = true;
@@ -256,14 +307,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) return;
 
             const data = await response.json();
-            notificationIndicators.forEach(indicator => {
-                if (data.unread_count > 0) {
-                    indicator.classList.remove('hidden');
-                } else {
-                    indicator.classList.add('hidden');
-                }
-            });
-
             notificationIndicators.forEach(indicator => {
                 if (data.unread_count > 0) {
                     indicator.classList.remove('hidden');
@@ -316,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const notifications = await response.json();
             
             if (page === 1) {
-                notificationList.innerHTML = ''; // Clear only on the first page load
+                notificationList.innerHTML = '';
             }
             
             if (notifications.length === 0 && page === 1) {

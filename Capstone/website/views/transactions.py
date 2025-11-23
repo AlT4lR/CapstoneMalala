@@ -153,6 +153,26 @@ def paid_transaction_folder_details(transaction_id):
         show_sidebar=True
     )
 
+# --- START OF FIX: Add missing API route for folder update ---
+@main.route('/api/transactions/update/<transaction_id>', methods=['POST'])
+@jwt_required()
+def update_transaction_folder_route(transaction_id):
+    """API route to update an existing transaction FOLDER."""
+    username = get_jwt_identity()
+    # Request.form contains the name, check_date, and due_date fields
+    form_data = request.form.to_dict()
+    
+    if update_transaction(username, transaction_id, form_data):
+        log_user_activity(username, f'Updated transaction folder details')
+        # Return a standard success JSON response
+        return jsonify({'success': True}), 200
+    else:
+        # Return a standard failure JSON response
+        # This will be caught by the client-side JS and display an informative error.
+        return jsonify({'success': False, 'error': 'Failed to update folder or folder not found.'}), 400
+# --- END OF FIX ---
+
+
 @main.route('/add-transaction', methods=['POST'])
 @jwt_required()
 def add_transaction_route():

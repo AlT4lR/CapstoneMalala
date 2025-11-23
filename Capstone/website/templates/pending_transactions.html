@@ -25,10 +25,6 @@
 
     <div class="flex-1 flex flex-col overflow-hidden">
         
-        <!-- --- START OF FIX: Removed the "Pending Transactions" title --- -->
-        <!-- The h3 element that was here has been deleted. -->
-        <!-- --- END OF FIX --- -->
-
         <div class="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-gray-500 mb-2">
             <span class="col-span-5">Name</span>
             <span class="col-span-2">Date Created</span>
@@ -49,9 +45,7 @@
                                     <span class="font-semibold text-gray-800 transaction-name-display break-words selectable-text">{{ t.name }}</span>
                                 </a>
                                 <div class="flex gap-4 text-gray-500 flex-shrink-0">
-                                    <!-- --- START OF FIX: Added data-modal-target to mobile button --- -->
                                     <button title="Edit" class="edit-btn hover:text-green-600" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
-                                    <!-- --- END OF FIX --- -->
                                     <button title="Archive" class="delete-btn hover:text-red-600" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </div>
@@ -68,9 +62,7 @@
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.check_date }}</a>
                         <a href="{{ url_for('main.transaction_folder_details', transaction_id=t._id) }}" class="hidden md:block col-span-2 text-gray-700 text-sm selectable-text">{{ t.due_date }}</a>
                         <div class="hidden md:flex col-span-3 justify-end gap-5 text-gray-500">
-                            <!-- --- START OF FIX: Added data-modal-target to desktop button --- -->
                             <button title="Edit" class="edit-btn hover:text-green-600 transition-colors z-10 relative" data-id="{{ t._id }}" data-modal-target="#edit-transaction-modal"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <!-- --- END OF FIX --- -->
                             <button title="Archive" class="delete-btn hover:text-red-600 transition-colors z-10 relative" data-name="{{ t.name }}" data-id="{{ t._id }}"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
@@ -95,9 +87,51 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize date pickers for the edit modal
-    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
-    flatpickr("#edit-due-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    const checkDateFlatpickr = flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    const dueDateFlatpickr = flatpickr("#edit-due-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y", });
+    const editModal = document.getElementById('edit-transaction-modal');
 
+    // --- START OF FIX: Add click listener for edit buttons ---
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', async function(event) {
+            event.preventDefault();
+            event.stopPropagation(); // Prevent the row click from navigating
+
+            const transactionId = this.dataset.id;
+            const modalTarget = document.querySelector(this.dataset.modalTarget);
+
+            if (!transactionId || !modalTarget) return;
+
+            // Clear previous errors/loading state
+            const editName = document.getElementById('edit-name');
+            editName.value = 'Loading...';
+            document.getElementById('edit-transaction-id').value = transactionId;
+            checkDateFlatpickr.clear();
+            dueDateFlatpickr.clear();
+
+            openModal(modalTarget);
+
+            try {
+                const response = await fetch(`/api/transactions/details/${transactionId}`);
+                if (!response.ok) throw new Error('Failed to fetch transaction details.');
+
+                const data = await response.json();
+                
+                editName.value = data.name || '';
+                
+                // Set Flatpickr dates using the data's raw date strings
+                if (data.check_date) checkDateFlatpickr.setDate(data.check_date);
+                if (data.due_date) dueDateFlatpickr.setDate(data.due_date);
+                
+            } catch (error) {
+                console.error('Error fetching transaction details:', error);
+                alert('Could not load transaction details for editing.');
+                closeModal(editModal);
+            }
+        });
+    });
+    // --- END OF FIX ---
+    
     // Search functionality remains the same
     const searchInput = document.getElementById('search-input');
     const transactionRows = document.querySelectorAll('.transaction-row');
@@ -122,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Edit form submission logic remains the same
+    // Edit form submission logic
     const editForm = document.getElementById('edit-transaction-form');
     if (editForm) {
         editForm.addEventListener('submit', async function(event) {
@@ -131,22 +165,30 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitButton = this.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
+            
             const formData = new FormData(this);
-
+            const urlEncodedData = new URLSearchParams(formData).toString();
+            
             try {
                 const response = await fetch(`/api/transactions/update/${transactionId}`, {
                     method: 'POST',
-                    body: new URLSearchParams(formData).toString(),
+                    // The server expects application/x-www-form-urlencoded
+                    body: urlEncodedData, 
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : ''
                     }
                 });
+                
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    const result = await response.json();
-                    alert('Error: ' + (result.error || 'Could not save changes.'));
+                    // --- START OF FIX: Graceful error reading on non-200 response ---
+                    // Attempt to read server-side error message, fallback to generic error
+                    const result = await response.json().catch(() => ({error: 'Server returned an unexpected error format.'}));
+                    alert('Error: ' + (result.error || `Server returned status ${response.status}. Could not save changes.`));
+                    // --- END OF FIX ---
+                    
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Changes';
                 }

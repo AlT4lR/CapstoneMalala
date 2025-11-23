@@ -46,7 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         scheduleIdInput.value = data.id || '';
         scheduleTitleInput.value = data.title || '';
+        // --- MODIFICATION 1: Use Flatpickr instance to set date ---
         flatpickr(scheduleDateInput).setDate(data.date || new Date());
+        // --- END MODIFICATION 1 ---
         startTimeInput.value = data.startTime || '';
         endTimeInput.value = data.endTime || '';
         allDayToggle.checked = data.allDay || false;
@@ -75,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (discardBtn) discardBtn.addEventListener('click', closeModal);
     if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // --- Debounce Helper Function ---
+    // --- MODIFICATION 2: Debounce Helper Function ---
     const debounce = (callback, delay) => {
         let timeoutId;
         return (...args) => {
@@ -85,8 +87,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }, delay);
         };
     };
+    // --- END MODIFICATION 2 ---
 
-    // --- START OF MODIFIED FUNCTION: Improved error handling and revert logic ---
+    // --- MODIFICATION 3: Raw Event Update Function with Robust Error Handling ---
     async function rawHandleEventUpdate(event) {
         const payload = {
             start: event.start.toISOString(),
@@ -119,20 +122,25 @@ document.addEventListener('DOMContentLoaded', function() {
             event.revert(); 
         }
     }
-    // --- END OF MODIFIED FUNCTION ---
+    // --- END MODIFICATION 3 ---
     
     // Create the debounced version of the update function
     const debouncedHandleEventUpdate = debounce(rawHandleEventUpdate, 500); 
 
     // --- FullCalendar Setup ---
     const calendar = window.calendar = new FullCalendar.Calendar(calendarEl, {
+        // --- MODIFICATION 4: Change initial mobile view ---
         initialView: isMobile ? 'dayGridMonth' : 'timeGridWeek',
+        // --- END MODIFICATION 4 ---
         headerToolbar: isMobile ? 
             { left: 'prev,next', center: 'title', right: 'today' } : 
             { left: 'prev,next today', center: 'title', right: '' },
         selectable: true,
         editable: true,
+        
+        // --- START OF FIX: Set height back to 100% to fill the container ---
         height: '100%',
+        // --- END OF FIX ---
         
         events: `/api/schedules`,
         eventTimeFormat: {
@@ -199,8 +207,12 @@ document.addEventListener('DOMContentLoaded', function() {
             start: allDay ? `${date}T00:00:00Z` : `${date}T${startTime}:00Z`
         };
         
+        // Only include 'end' if it's explicitly set and not an all-day event
         if (endTime && !allDay) {
             payload.end = `${date}T${endTime}:00Z`;
+        } else if (isUpdate) {
+             // For update, if it was edited to be allDay or if end time was removed, explicitly set end to null
+             payload.end = null;
         }
 
         const url = isUpdate ? `/api/schedules/update/${id}` : '/api/schedules/add';
@@ -212,19 +224,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(payload)
             });
             
-            // --- START OF MODIFICATION: Robust Error Handling for submit/save ---
-            // 1. Read JSON response regardless of status
+            // --- MODIFICATION 5: Robust Error Handling for submit/save ---
             const result = await response.json();
             
-            // 2. Check if the response was successful
             if (response.ok) {
                 closeModal();
                 calendar.refetchEvents();
             } else {
-                // 3. Display the error message returned by the server
                 alert('Error: ' + (result.error || 'Could not save schedule.'));
             }
-            // --- END OF MODIFICATION ---
+            // --- END MODIFICATION 5 ---
 
         } catch (error) {
             console.error('Save error:', error);
@@ -261,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // --- START OF MODIFICATION: Ensure listener is attached for delete button ---
+    // --- MODIFICATION 6: Ensure listener is attached for delete button ---
     if (deleteBtn) {
         deleteBtn.addEventListener('click', () => {
             const id = scheduleIdInput.value;
@@ -270,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // --- END OF MODIFICATION ---
+    // --- END MODIFICATION 6 ---
 
     // --- View Controls & Mobile Sidebar Logic ---
     function setActiveView(activeBtn) {
