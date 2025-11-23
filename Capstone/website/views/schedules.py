@@ -98,7 +98,5 @@ def delete_schedule_route(schedule_id):
     if delete_schedule(username, schedule_id):
         log_user_activity(username, "Deleted a schedule")
         return jsonify({'success': True})
-    # --- START OF MODIFICATION: Return 404 Not Found on delete failure ---
- 
+    
     return jsonify({'error': 'Schedule not found or delete failed.'}), 404
-    # --- END OF MODIFICATION ---

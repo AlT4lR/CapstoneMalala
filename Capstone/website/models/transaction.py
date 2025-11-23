@@ -23,28 +23,44 @@ def update_transaction(username, transaction_id, form_data):
             'notes': form_data.get('notes') 
         }
         
-        check_date_obj = form_data.get('check_date')
-        if check_date_obj:
-            update_fields['check_date'] = pytz.utc.localize(datetime.combine(check_date_obj, datetime.min.time()))
-
-        due_date_obj = form_data.get('due_date')
-        if due_date_obj:
-            update_fields['due_date'] = pytz.utc.localize(datetime.combine(due_date_obj, datetime.min.time()))
+        check_date_str = form_data.get('check_date')
+        if check_date_str:
+            # FIX: Convert the string 'YYYY-MM-DD' to a datetime object before combining
+            date_part = datetime.strptime(check_date_str, '%Y-%m-%d').date()
+            update_fields['check_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
+        
+        due_date_str = form_data.get('due_date')
+        if due_date_str:
+            # FIX: Convert the string 'YYYY-MM-DD' to a datetime object before combining
+            date_part = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            update_fields['due_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
         else:
             # Explicitly set to None if the field is empty
             update_fields['$unset'] = {'due_date': ""}
         # --- END OF FIX ---
 
+        # Remove keys with None value from $set operation unless they are explicitly passed from a form field that might be empty, e.g. notes
+        set_updates = {k: v for k, v in update_fields.items() if k not in ['$unset', 'notes']}
+        set_updates['notes'] = update_fields.get('notes', '') # Keep notes even if empty
+        if 'notes' in update_fields:
+            set_updates['notes'] = update_fields['notes'] # If notes were in form data (even empty)
+
+        # Handle the $unset operation
+        final_update = {}
+        if set_updates:
+            final_update['$set'] = set_updates
+        if update_fields.get('$unset'):
+            final_update['$unset'] = update_fields['$unset']
+
         result = db.transactions.update_one(
             {'_id': ObjectId(transaction_id), 'username': username},
-            {'$set': update_fields}
+            final_update
         )
         return result.modified_count == 1
     except Exception as e:
         logger.error(f"Error updating transaction {transaction_id}: {e}", exc_info=True)
         return False
 
-# (The other functions in this file are correct and remain unchanged)
 # =========================================================
 # ADD TRANSACTION (UPDATED LOGIC)
 # =========================================================

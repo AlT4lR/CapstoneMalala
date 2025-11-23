@@ -71,7 +71,6 @@ def update_schedule(username, schedule_id, data):
     db = current_app.db
     if db is None: return False
     try:
-        # --- START OF MODIFICATION ---
         
         # Helper to safely parse ISO string to datetime, handling None if key is missing or empty
         def parse_iso_datetime(iso_string):
@@ -105,7 +104,6 @@ def update_schedule(username, schedule_id, data):
                 'end': end_dt,
             }
         }
-        # --- END OF MODIFICATION ---
         
         result = db.schedules.update_one({'_id': ObjectId(schedule_id), 'username': username}, update_doc)
         return result.modified_count > 0
