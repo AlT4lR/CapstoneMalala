@@ -153,7 +153,6 @@ def paid_transaction_folder_details(transaction_id):
         show_sidebar=True
     )
 
-# --- START OF FIX: Add missing API route for folder update ---
 @main.route('/api/transactions/update/<transaction_id>', methods=['POST'])
 @jwt_required()
 def update_transaction_folder_route(transaction_id):
@@ -170,7 +169,6 @@ def update_transaction_folder_route(transaction_id):
         # Return a standard failure JSON response
         # This will be caught by the client-side JS and display an informative error.
         return jsonify({'success': False, 'error': 'Failed to update folder or folder not found.'}), 400
-# --- END OF FIX ---
 
 
 @main.route('/add-transaction', methods=['POST'])
@@ -267,24 +265,33 @@ def download_transaction_pdf(transaction_id):
 
     child_checks = get_child_transactions_by_parent_id(username, transaction_id)
     total_countered_check = sum(check.get('countered_check', 0) for check in child_checks)
+    total_folder_amount = folder.get('amount', 0.0) # Correctly get the total folder amount
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-    styles = getSampleStyleSheet()
     
     margin = 0.75 * inch
-    bottom_margin = 1 * inch
-
+    bottom_margin = 1.0 * inch
+    
+    # Define a style for right-aligned currency
+    styles = getSampleStyleSheet()
+    currency_style = ParagraphStyle(name='Currency', fontName='Helvetica', fontSize=8, alignment=TA_RIGHT)
+    
     def draw_page_header():
         p.setFont("Helvetica-Bold", 16)
         p.drawCentredString(width / 2.0, height - 0.75 * inch, "CLEARED ISSUED CHECKS")
+        
+        # --- START OF FIX: Adjust Logo Position and Alignment ---
         try:
             logo_path = os.path.join(current_app.root_path, 'static', 'imgs', 'icons', 'Cleared_check_logo.png')
             if os.path.exists(logo_path):
-                p.drawImage(logo_path, width - 2.0 * inch, height - 1.2 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
+                # Draw logo slightly lower, positioned right, within a fixed vertical space
+                p.drawImage(logo_path, width - 2.0 * inch, height - 1.8 * inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True, mask='auto')
         except Exception as e:
             logger.error(f"Could not draw logo on PDF: {e}")
+        # --- END OF FIX: Adjust Logo Position and Alignment ---
+
         p.setFont("Helvetica", 11)
         p.drawString(margin, height - 1.25 * inch, "DECOLORES RETAIL CORPORATION")
         p.drawString(margin, height - 1.45 * inch, f"#{str(folder.get('_id'))}")
@@ -298,8 +305,10 @@ def download_transaction_pdf(transaction_id):
 
     def draw_table_header(y_pos):
         p.setFont("Helvetica-Bold", 8)
+        # Define header columns and their X starting positions
         headers = ["Name Issued Check", "Check No.", "Date", "Check Amt", "EWT", "Other Ded.", "Countered Check"]
-        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
+        # Adjusted column X positions for better spacing
+        col_x = [margin, 2.2*inch, 3.2*inch, 4.0*inch, 5.0*inch, 6.0*inch, 7.0*inch]
         for i, header in enumerate(headers):
             p.drawString(col_x[i], y_pos, header)
         p.line(margin, y_pos - 5, width - margin, y_pos - 5)
@@ -311,54 +320,82 @@ def download_transaction_pdf(transaction_id):
 
     p.setFont("Helvetica", 8)
     for check in child_checks:
-        row_height = 20
-        notes = check.get('notes', '')
-        if notes:
-            row_height += 15
+        check_row_start_y = y_pos
 
-        if y_pos - row_height < bottom_margin:
+        # Check for space for the check detail and notes
+        if check_row_start_y - 30 < bottom_margin + 1.0 * inch: 
             p.showPage()
             draw_page_header()
-            y_pos = height - 2.5 * inch
-            y_pos = draw_table_header(y_pos)
+            check_row_start_y = height - 2.5 * inch
+            check_row_start_y = draw_table_header(check_row_start_y)
+            y_pos = check_row_start_y
 
-        other_deductions = sum(d['amount'] for d in check.get('deductions', []) if d['name'].upper() != 'EWT')
+        notes = check.get('notes', '')
         
-        col_x = [margin, 2.6*inch, 3.6*inch, 4.4*inch, 5.4*inch, 6.2*inch, 7.0*inch]
+        # Consistent Column X positions
+        col_x = [margin, 2.2*inch, 3.2*inch, 4.0*inch, 5.0*inch, 6.0*inch, 7.0*inch]
+        
+        # Draw check details
         p.drawString(col_x[0], y_pos, check.get('name', ''))
         p.drawString(col_x[1], y_pos, check.get('check_no', ''))
         p.drawString(col_x[2], y_pos, check.get('check_date').strftime('%m/%d/%y') if check.get('check_date') else '')
-        p.drawRightString(col_x[4] - 0.2*inch, y_pos, f"{check.get('check_amount', 0):,.2f}")
-        p.drawRightString(col_x[5] - 0.2*inch, y_pos, f"{check.get('ewt', 0):,.2f}")
-        p.drawRightString(col_x[6] - 0.2*inch, y_pos, f"{other_deductions:,.2f}")
+        
+        other_deductions = sum(d['amount'] for d in check.get('deductions', []) if d['name'].upper() != 'EWT')
+        
+        # Draw amounts (right-aligned)
+        p.drawRightString(col_x[4] - 0.05 * inch, y_pos, f"{check.get('check_amount', 0):,.2f}")
+        p.drawRightString(col_x[5] - 0.05 * inch, y_pos, f"{check.get('ewt', 0):,.2f}")
+        p.drawRightString(col_x[6] - 0.05 * inch, y_pos, f"{other_deductions:,.2f}")
         p.drawRightString(width - margin, y_pos, f"{check.get('countered_check', 0):,.2f}")
-        y_pos -= 15
-
+        
+        y_pos -= 15 # Move down after drawing check details
+        
         if notes:
             p.setFont("Helvetica-Oblique", 7)
             p.drawString(margin + 5, y_pos, f"Notes: {notes}")
-            y_pos -= 15
+            y_pos -= 15 # Move down after drawing notes
+        
+        # --- START OF FIX: Ensure separation line is below notes and there is enough gap ---
+        p.line(margin, y_pos - 2, width - margin, y_pos - 2)
+        y_pos -= 5 # Final vertical space after the line
+        # --- END OF FIX ---
         
         p.setFont("Helvetica", 8)
 
-    summary_y = y_pos - 0.3 * inch
-    if summary_y < bottom_margin:
-        p.showPage()
-        draw_page_header()
-        summary_y = height - 2.5 * inch
+    # --- START OF FIX: Use a Flowable Table for Summary (Redrawn to ensure it works) ---
+    
+    # Calculate Y position for the summary table (aligned to the bottom right of the page)
+    summary_table_y = bottom_margin + 0.1 * inch 
+    summary_table_x = width - 3.8 * inch # Start position for the table (4 inches wide)
+    
+    # Data for the summary table
+    summary_data = [
+        ['Countered Checks', f"₱ {total_countered_check:,.2f}"],
+        ['Check Amount', f"₱ {total_folder_amount:,.2f}"]
+    ]
+    
+    # Table styles
+    summary_table_style = TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica'),
+        ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, 1), 'Helvetica-Bold'),
+        ('BACKGROUND', (1, 0), (1, 1), colors.white),
+        ('BOX', (1, 0), (1, 1), 1, colors.black),
+        ('GRID', (1, 0), (1, 1), 0.5, colors.black),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ])
 
-    p.setFont("Helvetica", 10)
-    summary_label_x = width - 3.5 * inch
-    summary_box_x = width - 2.5 * inch
+    # Create the table (Column widths are 2 inches and 1.75 inches)
+    summary_table = Table(summary_data, colWidths=[2.0 * inch, 1.75 * inch])
+    summary_table.setStyle(summary_table_style)
+
+    # Draw the table on the canvas
+    summary_table.wrapOn(p, width, height)
+    summary_table.drawOn(p, summary_table_x, summary_table_y)
     
-    p.drawRightString(summary_label_x, summary_y + 0.35 * inch, "Countered Checks")
-    p.rect(summary_box_x, summary_y + 0.25 * inch, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.35 * inch, f"₱ {total_countered_check:,.2f}")
-    
-    p.setFont("Helvetica-Bold", 10)
-    p.drawRightString(summary_label_x, summary_y + 0.1 * inch, "Check Amount")
-    p.rect(summary_box_x, summary_y, 1.75 * inch, 0.25 * inch)
-    p.drawRightString(summary_box_x + 1.7 * inch, summary_y + 0.1 * inch, f"₱ {folder.get('amount', 0.0):,.2f}")
+    # --- END OF FIX: Use a Flowable Table for Summary ---
 
     p.showPage()
     p.save()
@@ -368,6 +405,7 @@ def download_transaction_pdf(transaction_id):
 @main.route('/api/transactions/child/update/<transaction_id>', methods=['POST'])
 @jwt_required()
 def update_child_transaction_route(transaction_id):
+# ... (rest of the file is correct and unchanged)
     username = get_jwt_identity()
     form_data = request.form.to_dict()
     deductions = []
