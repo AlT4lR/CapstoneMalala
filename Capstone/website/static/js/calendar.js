@@ -138,8 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
         selectable: true,
         editable: true,
         
-        // --- START OF FIX: Set height back to 100% to fill the container ---
-        height: '100%',
+        // --- START OF FIX: Remove 'height: 100%' and use a responsive approach ---
+        height: 'auto', 
+        contentHeight: 'auto',
+        dayMaxEvents: true, // Allow for more than 4 events on the day view
         // --- END OF FIX ---
         
         events: `/api/schedules`,
@@ -187,6 +189,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     calendar.render();
+    
+    // --- START OF FIX: Add responsive resize handler ---
+    window.addEventListener('resize', () => {
+        calendar.updateSize();
+    });
+    // --- END OF FIX: Add responsive resize handler ---
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -290,6 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
         activeBtn.classList.add('bg-white', 'shadow');
         activeBtn.classList.remove('text-gray-600');
     }
+    
+    // Check initial view and set active button
+    if (calendar.view.type === 'timeGridDay') setActiveView(dayViewBtn);
+    else if (calendar.view.type === 'timeGridWeek') setActiveView(weekViewBtn);
+    else if (calendar.view.type === 'dayGridMonth') setActiveView(monthViewBtn);
+    else if (calendar.view.type === 'listYear') setActiveView(yearViewBtn);
 
     dayViewBtn.addEventListener('click', () => { calendar.changeView('timeGridDay'); setActiveView(dayViewBtn); });
     weekViewBtn.addEventListener('click', () => { calendar.changeView('timeGridWeek'); setActiveView(weekViewBtn); });

@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const notificationList = document.getElementById('notification-list');
     const notificationLoader = document.getElementById('notification-loader');
     
-    // --- PWA Install Logic ---
+    // --- PWA Install Logic (Retained) ---
     let deferredPrompt;
 
     function checkInstallState() {
@@ -178,7 +178,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (notificationButton) {
-        notificationButton.addEventListener('click', askForNotificationPermission);
+        // --- START OF FIX: Add event.stopPropagation() ---
+        notificationButton.addEventListener('click', (event) => {
+            event.stopPropagation(); 
+            askForNotificationPermission();
+        });
+        // --- END OF FIX: Add event.stopPropagation() ---
     }
     // --- End PWA Install Logic ---
 

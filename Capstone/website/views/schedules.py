@@ -76,20 +76,37 @@ def add_schedule_route():
 def update_schedule_route(schedule_id):
     username = get_jwt_identity()
     data = request.get_json()
-    if not data: 
-        return jsonify({'error': 'Invalid data'}), 400
-        
-    if update_schedule(username, schedule_id, data):
-        log_user_activity(username, "Updated a schedule")
-        
-        schedule_title = data.get('title', 'an event')
-        message = f"Your event '{schedule_title}' has been updated."
-        notification_url = url_for('main.schedules', _external=False)
-        add_notification(username, "Event Updated", message, notification_url)
+    
+    try:
+        if not data: 
+            return jsonify({'error': 'Invalid data'}), 400
+            
+        if update_schedule(username, schedule_id, data):
+            log_user_activity(username, "Updated a schedule")
+            
+            # --- START OF FIX: Wrap non-critical notification logic in try/except ---
+            try:
+                schedule_title = data.get('title', 'an event')
+                message = f"Your event '{schedule_title}' has been updated."
+                notification_url = url_for('main.schedules', _external=False)
+                add_notification(username, "Event Updated", message, notification_url)
+            except Exception as e:
+                # Log the error but do not crash the request
+                logger.error(f"Failed to send notification for updated schedule {schedule_id}: {e}", exc_info=True)
+            # --- END OF FIX: Wrap non-critical notification logic in try/except ---
 
-        return jsonify({'success': True})
+            return jsonify({'success': True})
+            
+        # This handles cases where the document was not found or model returned False
+        return jsonify({'error': 'Update failed'}), 500
         
-    return jsonify({'error': 'Update failed'}), 500
+    except Exception as e:
+        # --- START OF FIX: Catch ALL unexpected exceptions and return 500 JSON ---
+        logger.error(f"CRITICAL: Uncaught exception in update_schedule_route for {schedule_id}: {e}", exc_info=True)
+        # This ensures a proper JSON response is always sent on a server crash
+        return jsonify({'error': 'Internal server error during schedule update.'}), 500
+        # --- END OF FIX: Catch ALL unexpected exceptions and return 500 JSON ---
+
 
 @main.route('/api/schedules/<schedule_id>', methods=['DELETE'])
 @jwt_required()

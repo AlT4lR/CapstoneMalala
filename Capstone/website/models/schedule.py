@@ -13,8 +13,14 @@ def add_schedule(username, branch, data):
     db = current_app.db
     if db is None: return False
     try:
-        start_dt = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
-        end_dt = datetime.fromisoformat(data['end'].replace('Z', '+00:00')) if data.get('end') else None
+        # Use a more robust parsing method if Z is missing
+        iso_string = data['start']
+        start_dt = datetime.fromisoformat(iso_string.replace('Z', '+00:00') if 'Z' in iso_string else iso_string)
+        
+        end_dt = None
+        if data.get('end'):
+            iso_string_end = data['end']
+            end_dt = datetime.fromisoformat(iso_string_end.replace('Z', '+00:00') if 'Z' in iso_string_end else iso_string_end)
 
         schedule_doc = {
             'username': username,
@@ -77,13 +83,21 @@ def update_schedule(username, schedule_id, data):
             if not iso_string:
                 return None
             try:
-                # Replace 'Z' with +00:00 to ensure full ISO 8601 compliance for parsing
-                dt_obj = datetime.fromisoformat(iso_string.replace('Z', '+00:00'))
+                # --- START OF FIX: Simplified and more robust ISO parsing ---
+                # Check for and append '+00:00' if no timezone is present
+                if 'Z' not in iso_string.upper() and '+' not in iso_string and '-' not in iso_string[-6:]:
+                    iso_string += '+00:00' 
+                elif 'Z' in iso_string.upper():
+                    iso_string = iso_string.replace('Z', '+00:00')
+                    
+                dt_obj = datetime.fromisoformat(iso_string)
                 return dt_obj
             except ValueError as e:
-                # Log the specific problematic value and re-raise to be caught by the outer block
+                # Log the specific problematic value and return None on parsing error
                 logger.error(f"ValueError during datetime parsing for string: {iso_string}. Error: {e}", exc_info=True)
-                raise # Re-raise to ensure the API handler returns an error to the client
+                return None # <--- Crucially, return None instead of raising an exception.
+                # --- END OF FIX: Simplified and more robust ISO parsing ---
+
 
         start_dt = parse_iso_datetime(data.get('start'))
         end_dt = parse_iso_datetime(data.get('end'))
@@ -108,6 +122,7 @@ def update_schedule(username, schedule_id, data):
         result = db.schedules.update_one({'_id': ObjectId(schedule_id), 'username': username}, update_doc)
         return result.modified_count > 0
     except Exception as e:
+        # This catches MongoDB connection or other critical errors.
         logger.error(f"Error updating schedule {schedule_id}: {e}", exc_info=True)
         return False
 
