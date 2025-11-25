@@ -65,9 +65,6 @@
                     data-deductions='{{ (check.deductions or []) | tojson }}'
                     data-check-date="{{ check.check_date.strftime('%m/%d/%Y') }}">
                     <p class="font-semibold truncate">{{ check.name }}</p>
-                    <!-- START OF MODIFICATION: Check Date REMOVED from list item -->
-                    <!-- <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p> -->
-                    <!-- END OF MODIFICATION -->
                     {% if check.is_incomplete %}
                         <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-yellow-400" title="This check has incomplete details."></div>
                     {% endif %}
@@ -118,7 +115,7 @@
 {% include "_add_check_modal.html" %}
 {% include "_edit_check_modal.html" %}
 
-<!-- START OF FIX: Transaction Overview Modal HTML -->
+<!-- Transaction Overview Modal HTML -->
 <div id="overview-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
     <div class="modal-content bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col p-6 overflow-hidden">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -175,8 +172,6 @@
         </div>
     </div>
 </div>
-<!-- END OF FIX: Transaction Overview Modal HTML -->
-
 
 {% endblock %}
 
@@ -184,13 +179,52 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- START OF FIX: Initialize Flatpickr for the Edit Check Modal's date field here ---
+    // --- START OF MODIFICATION: Helper function for dynamic flash messages ---
+    function showFlashMessage(message, type = 'success') {
+        let container = document.getElementById('flash-messages-overlay-container');
+        
+        // Create container if it doesn't exist (though it should from base.html)
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'flash-messages-overlay-container';
+            container.className = 'absolute top-5 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4';
+            document.body.appendChild(container);
+        }
+
+        const msgDiv = document.createElement('div');
+        
+        // Conditional styling based on type
+        let bgClass, textClass, borderClass;
+        if (type === 'error') {
+            bgClass = 'bg-red-100';
+            textClass = 'text-red-800';
+            borderClass = 'border-red-200';
+        } else {
+            bgClass = 'bg-white';
+            textClass = 'text-[#3a4d39]';
+            borderClass = 'border-[#d4d8c4]';
+        }
+
+        msgDiv.className = `flex items-center justify-center p-4 mb-2 rounded-lg shadow-lg border ${bgClass} ${borderClass} animate-fade-in-down`;
+        msgDiv.innerHTML = `<span class="text-sm font-medium ${textClass}">${message}</span>`;
+        
+        container.appendChild(msgDiv);
+
+        // Remove after 5 seconds
+        setTimeout(() => {
+            msgDiv.style.transition = 'opacity 0.5s ease';
+            msgDiv.style.opacity = '0';
+            setTimeout(() => msgDiv.remove(), 500);
+        }, 5000);
+    }
+    // --- END OF MODIFICATION ---
+
+    // Initialize Flatpickr for the Edit Check Modal's date field
     const editCheckDateFlatpickrInstance = flatpickr("#edit-check-modal input[name='check_date']", { 
         dateFormat: "Y-m-d", 
         altInput: true, 
         altFormat: "F j, Y" 
     });
-    // --- END OF FIX ---
     
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
     const previewBtn = document.getElementById('preview-transaction-btn');
@@ -272,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkDetailsContent = document.getElementById('check-details-content');
     if(detailActions) detailActions.classList.add('hidden');
     
-    let selectedCheckData = null; // Store the data of the currently selected check
+    let selectedCheckData = null;
     
     checkItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -280,7 +314,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('selected');
             const data = this.dataset;
             
-            // Store the full check data for easy access on Edit/Delete
             selectedCheckData = {
                 id: data.id,
                 name: data.name,
@@ -290,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ewt: data.ewt,
                 notes: data.notes,
                 deductions: JSON.parse(data.deductions || '[]'),
-                check_date: data.checkDate // The date string in MM/DD/YYYY format
+                check_date: data.checkDate
             };
             
             const deductions = JSON.parse(data.deductions || '[]');
@@ -302,7 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="bg-[#fafaf5] p-4 rounded-lg border">
                     <div class="space-y-2 text-gray-800 text-sm">
                         <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
-                        <!-- Check Date removed from list, but kept in data for modal -->
                         <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
                         <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
                         <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
@@ -320,22 +352,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>`;
             detailActions.classList.remove('hidden');
             
-            // Update data-id and data-name on buttons
             detailEditBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.name = data.name;
             
-            // Final step: Re-validate pay button in case the click re-renders all checks
             validateForPayment(); 
         });
     });
     
-    // --- Final Validate Pay Button Logic (Must be updated to use the latest folder.amount) ---
     const payBtn = document.getElementById('pay-btn');
     function validateForPayment() {
         if (!payBtn) return;
-        // Read folder amount from the attribute set by the server-side template
-        const folderAmount = parseFloat("{{ folder.amount or 0 }}"); // The parent's total check amount (Target Debt)
+        const folderAmount = parseFloat("{{ folder.amount or 0 }}");
         
         let totalCounteredCheck = 0;
         document.querySelectorAll('.check-item').forEach(item => {
@@ -344,17 +372,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const remainingBalance = folderAmount - totalCounteredCheck;
         
-        // Update the display fields with the calculated values
         document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
         document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
         
-        // Pay button logic: The difference must be negligible
         const canPay = Math.abs(remainingBalance) < 0.01;
         payBtn.disabled = !canPay;
         payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
     }
-    validateForPayment(); // Initial call to set state
-    // --- END Final Validate Pay Button Logic ---
+    validateForPayment();
     
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
@@ -426,14 +451,18 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
     flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
     flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
+    
     const editCheckForm = document.getElementById('edit-check-form');
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             const checkId = document.getElementById('edit-check-id').value;
             const submitButton = this.querySelector('button[type="submit"]');
+            
+            // Disable button to prevent double submit
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
+            
             const formData = new FormData(this);
             try {
                 const response = await fetch(`/api/transactions/child/update/${checkId}`, {
@@ -441,16 +470,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: new URLSearchParams(formData), 
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken() }
                 });
-                if (response.ok) { window.location.reload(); }
-                else {
-                    const result = await response.json();
-                    alert('Error: ' + (result.error || 'Could not save changes.'));
+                
+                const result = await response.json();
+
+                if (response.ok && result.success) { 
+                    window.location.reload(); 
+                } else {
+                    // --- START OF MODIFICATION: Use styled flash message instead of alert ---
+                    showFlashMessage(result.error || 'Could not save changes.', 'error');
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Changes';
+                    // --- END OF MODIFICATION ---
                 }
             } catch (error) {
                 console.error('Error submitting edit check form:', error);
-                alert('A network error occurred.');
+                showFlashMessage('A network error occurred.', 'error');
                 submitButton.disabled = false;
                 submitButton.textContent = 'Save Changes';
             }
