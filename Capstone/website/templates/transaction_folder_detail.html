@@ -18,7 +18,7 @@
 
 {% block content %}
 <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col bg-[#f8f6f2] text-[#3a4d39]">
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6 border-b border-[#d4d8c4] pb-3">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-3 border-b border-[#d4d8c4] pb-3">
         <div>
             <h2 class="text-2xl font-semibold uppercase tracking-wide">Transactions</h2>
             <a href="{{ url_for('main.transactions_pending') }}" class="text-gray-600 hover:text-[#3a4d39] text-sm font-semibold flex items-center gap-2 mt-2">
@@ -31,17 +31,24 @@
                 <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
-            <!-- START OF FIX: Eye Icon Button (Preview) -->
-            <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
-                <i class="fa-solid fa-eye fa-lg"></i>
-            </button>
-            <!-- END OF FIX: Eye Icon Button (Preview) -->
-            <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
-            {% include "_notification_button.html" %}
+            
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive">
+                    <i class="fa-solid fa-box-archive fa-lg"></i>
+                </a>
+                {% include "_notification_button.html" %}
+            </div>
         </div>
     </header>
 
-    <h3 class="text-lg font-semibold text-center mb-4">{{ folder.name }}</h3>
+    <!-- Folder Name and Eye Icon (New Alignment) -->
+    <div class="flex justify-between items-center mb-4 pt-1">
+        <h3 class="text-lg font-semibold text-center">{{ folder.name }}</h3>
+        <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
+            <i class="fa-solid fa-eye fa-lg"></i>
+        </button>
+    </div>
+
 
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
         <div class="lg:col-span-3 flex flex-col gap-4">
@@ -58,7 +65,9 @@
                     data-deductions='{{ (check.deductions or []) | tojson }}'
                     data-check-date="{{ check.check_date.strftime('%m/%d/%Y') }}">
                     <p class="font-semibold truncate">{{ check.name }}</p>
-                    <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p>
+                    <!-- START OF MODIFICATION: Check Date REMOVED from list item -->
+                    <!-- <p class="text-xs text-gray-500">{{ check.check_date.strftime('%m/%d/%Y') }}</p> -->
+                    <!-- END OF MODIFICATION -->
                     {% if check.is_incomplete %}
                         <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-yellow-400" title="This check has incomplete details."></div>
                     {% endif %}
@@ -293,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="bg-[#fafaf5] p-4 rounded-lg border">
                     <div class="space-y-2 text-gray-800 text-sm">
                         <div class="flex justify-between"><span>Check No.</span><span class="font-mono">: ${data.checkNo || 'N/A'}</span></div>
-                        <div class="flex justify-between"><span>Check Date</span><span class="font-mono">: ${data.checkDate}</span></div>
+                        <!-- Check Date removed from list, but kept in data for modal -->
                         <div class="flex justify-between"><span>Check Amount</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.checkAmount))}</span></div>
                         <div class="flex justify-between"><span>Countered Check</span><span class="font-mono">: ${currencyFormatter.format(parseFloat(data.counteredCheck))}</span></div>
                         <div class="flex justify-between"><span>EWT</span><span class="font-mono">: ${currencyFormatter.format(ewtAmount)}</span></div>
@@ -336,8 +345,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const remainingBalance = folderAmount - totalCounteredCheck;
         
         // Update the display fields with the calculated values
-        // NOTE: total-countered-field and remaining-balance-field are set on initial load via jinja, 
-        // but this function provides a real-time update based on the data attributes.
         document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
         document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
         
