@@ -221,7 +221,7 @@
 <!-- We still include the generic modal for non-folder/file archived items if needed -->
 {% include "_transaction_details_modal.html" %} 
 {% include "_invoice_details_modal.html" %}
-
+{% include "_archive_transaction_file_modal.html" %} 
 
 <!-- START OF FIX: Full Transaction Overview Modal (Copied from transaction_folder_detail) -->
 <div id="archive-transaction-overview-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -285,10 +285,10 @@
 
 {% endblock %}
 
-<!-- website/templates/_archive.html (The entire script block) -->
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // NOTE: openModal and closeModal are globally defined in common.js
     const csrfToken = window.getCSRFToken ? window.getCSRFToken() : '';
     const toggleSelectionBtn = document.getElementById('toggle-selection-btn');
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
@@ -319,9 +319,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const overviewTotalCountered = document.getElementById('archive-overview-total-countered');
     const overviewRemaining = document.getElementById('archive-overview-remaining');
     
+    // NEW FILE MODAL REFERENCES (Assuming the new modal is included)
+    const fileModal = document.getElementById('archive-transaction-file-modal');
+    const fileModalRecipient = document.getElementById('file-modal-recipient');
+    const fileModalCheckDate = document.getElementById('file-modal-check-date');
+    const fileModalEwt = document.getElementById('file-modal-ewt');
+    const fileModalCounteredCheck = document.getElementById('file-modal-countered-check');
+    const fileModalNotes = document.getElementById('file-modal-notes');
+    
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
     function showConfirm({ title, message, iconHTML, onConfirm }) {
+        if (toastSuccess) {
+            // Immediately hide the toast message to prevent overlap
+            toastSuccess.style.display = 'none'; 
+        }
         confirmTitle.textContent = title;
         confirmMessage.textContent = message;
         confirmIconContainer.innerHTML = iconHTML;
@@ -430,11 +442,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.archive-item').forEach(item => {
         item.addEventListener('click', async (e) => {
+            const itemData = item.dataset;
+            const isFolder = itemData.isFolder === 'true';
+
             // Check for selection mode or restore button click
             if (isSelectionMode || e.target.closest('.restore-btn')) {
-                // If it's a link (Folder) and not a button, we still prevent default to open modal
                 if (item.tagName === 'A' && !e.target.closest('button, input')) {
-                    e.preventDefault(); 
+                    e.preventDefault(); // Keep preventDefault here for modal logic
                 } else if (item.tagName !== 'A' && isSelectionMode) {
                     const checkbox = item.querySelector('.item-checkbox');
                     if (checkbox && !e.target.closest('button')) {
@@ -447,9 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            const itemData = item.dataset;
-            
-            // --- START OF FIX: ROUTE CLICK TO CORRECT MODAL ---
             if (itemData.type === 'Invoice') {
                 // INVOICE LOGIC - Uses Invoice Modal
                 const modal = invoiceModal;
@@ -498,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else if (itemData.type === 'Transaction') {
                 
-                if (itemData.isFolder === 'true') {
+                if (isFolder) {
                     // TRANSACTION FOLDER LOGIC - Use Overview Modal (Full Table)
                     const modal = overviewModal;
                     overviewFolderName.textContent = 'Loading...';
@@ -558,37 +569,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         overviewTableBody.innerHTML = '<p class="text-center text-red-500 p-8">Failed to load detailed transaction data.</p>';
                     }
                 } else {
-                    // TRANSACTION FILE/CHECK LOGIC - Use Transaction Details Modal (Simple View)
-                    const modal = transactionModal;
-                    const recipientEl = modal.querySelector('#modal-recipient');
-                    
-                    // Hide download button and set loading state
-                    const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
-                    if (downloadBtn) downloadBtn.style.display = 'none';
+                    // TRANSACTION FILE/CHECK LOGIC - Use dedicated File Modal
+                    const modal = fileModal;
                     
                     openModal(modal);
-                    recipientEl.textContent = 'Loading...';
+                    fileModalRecipient.textContent = 'Loading...';
 
                     try {
                         // Call the single-item details API
                         const response = await fetch(`/api/archive/details/transaction/${itemData.id}`);
+                        if (!response.ok) throw new Error('Failed to fetch transaction details.');
                         const data = await response.json();
                         
-                        recipientEl.textContent = data.name || 'N/A';
-                        modal.querySelector('#modal-check-date').textContent = data.check_date || 'N/A';
-                        modal.querySelector('#modal-ewt').textContent = currencyFormatter.format(data.ewt || 0);
-                        modal.querySelector('#modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
-                        modal.querySelector('#modal-notes').textContent = data.notes || 'No notes provided.';
-                        modal.querySelector('#modal-status-text').textContent = data.status || 'Archived';
-                        
-                        // Force Status Box to Archived Look
-                        const statusBox = modal.querySelector('#modal-status-box');
-                        statusBox.classList.remove('bg-green-100', 'border-green-200', 'text-green-800');
-                        statusBox.classList.add('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
-                        statusBox.querySelector('#modal-status-icon').className = 'fas fa-box-archive';
+                        fileModalRecipient.textContent = data.name || 'N/A';
+                        // NOTE: Check Date is no longer in the file modal HTML, so we don't try to set it.
+                        fileModalEwt.textContent = currencyFormatter.format(data.ewt || 0);
+                        fileModalCounteredCheck.textContent = currencyFormatter.format(data.countered_check || 0);
+                        fileModalNotes.textContent = data.notes || 'No notes provided.';
                         
                     } catch (error) {
-                        recipientEl.textContent = 'Failed to load details.';
+                        fileModalRecipient.textContent = 'Failed to load details.';
                     }
                 }
             }
@@ -596,43 +596,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    [transactionModal, invoiceModal, overviewModal].forEach(modal => {
+    [transactionModal, invoiceModal, overviewModal, fileModal].forEach(modal => {
         if (modal) {
-            modal.querySelector('#close-modal-btn')?.addEventListener('click', () => {
+            // Use generic close-modal-btn for easy binding
+            const closeBtn = modal.querySelector('.close-modal-btn') || document.getElementById('close-file-modal-btn'); 
+            
+            closeBtn?.addEventListener('click', () => {
                 closeModal(modal);
-                // Reset status box look when closing transaction modal (only applies to _transaction_details_modal)
-                if (modal.id === 'transaction-details-modal') {
-                    const statusBox = modal.querySelector('#modal-status-box');
-                    if(statusBox) {
-                        statusBox.classList.remove('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
-                        statusBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
-                        statusBox.querySelector('#modal-status-icon').className = 'fas fa-check-circle';
-                    }
-                    
-                    const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
-                    if (downloadBtn) downloadBtn.style.display = 'flex'; 
-                }
+                // Reset logic only applies to _transaction_details_modal, handled in the next block
             });
+            
+            // Add a dedicated listener for the new modal's close button ID as well
+            if(modal.id === 'archive-transaction-file-modal') {
+                 document.getElementById('close-file-modal-btn')?.addEventListener('click', () => closeModal(modal));
+            }
+
             modal.addEventListener('click', (e) => {
                 if(e.target === modal) {
                     closeModal(modal);
-                    // Perform reset on backdrop click as well
-                    if (modal.id === 'transaction-details-modal') {
-                         const statusBox = modal.querySelector('#modal-status-box');
-                         if(statusBox) {
-                            statusBox.classList.remove('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
-                            statusBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
-                            statusBox.querySelector('#modal-status-icon').className = 'fas fa-check-circle';
-                         }
-                        
-                        const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
-                        if (downloadBtn) downloadBtn.style.display = 'flex'; 
-                    }
                 }
             });
         }
     });
 
+    // Reset logic for transactionModal on close/backdrop click
+    [transactionModal].forEach(modal => {
+        if (modal) {
+            const resetLogic = () => {
+                 const statusBox = modal.querySelector('#modal-status-box');
+                 if(statusBox) {
+                    statusBox.classList.remove('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+                    statusBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
+                    statusBox.querySelector('#modal-status-icon').className = 'fas fa-check-circle';
+                 }
+                
+                const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
+                if (downloadBtn) downloadBtn.style.display = 'flex'; 
+            };
+
+            modal.querySelector('#close-modal-btn')?.addEventListener('click', resetLogic);
+            modal.addEventListener('click', (e) => {
+                if(e.target === modal) resetLogic();
+            });
+        }
+    });
+    
     const searchInput = document.getElementById('search-input');
     const archiveItems = document.querySelectorAll('.archive-item');
     const noResultsMessage = document.getElementById('no-results-message');

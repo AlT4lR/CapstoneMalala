@@ -94,138 +94,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- END OF MODIFICATION ---
 
     const now = new Date();
-    let currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    let currentWeek;
-
-    const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-
-    function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        return weekNo;
-    }
-
-    async function updateBillingSummary(year, week) {
-        // --- START OF MODIFICATION: Update new summary elements ---
-        summaryCounteredCheckEl.textContent = '...';
-        summaryEwtEl.textContent = '...';
-        summaryCheckAmountEl.textContent = '...';
-        // --- END OF MODIFICATION ---
-        
-        try {
-            const response = await fetch(`/api/billings/summary?year=${year}&week=${week}`);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            
-            // --- START OF MODIFICATION: Populate the new summary cards ---
-            summaryCounteredCheckEl.textContent = currencyFormatter.format(data.countered_check || 0);
-            summaryEwtEl.textContent = currencyFormatter.format(data.ewt_collected || 0);
-            summaryCheckAmountEl.textContent = currencyFormatter.format(data.check_amount || 0);
-            // Note: The 'other_loans' part is removed as requested.
-            // --- END OF MODIFICATION ---
-
-        } catch (error) {
-            console.error('Failed to fetch billing summary:', error);
-            // --- START OF MODIFICATION: Update new elements on error ---
-            summaryCounteredCheckEl.textContent = 'Error';
-            summaryEwtEl.textContent = 'Error';
-            summaryCheckAmountEl.textContent = 'Error';
-            // --- END OF MODIFICATION ---
-        }
-
-        // Update active button style
-        weekButtonsContainer.querySelectorAll('.week-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (parseInt(btn.dataset.weekIndex) === week) {
-                btn.classList.add('active');
-            }
-        });
-    }
-
-    function renderControls() {
-        const year = currentDate.getUTCFullYear();
-        const month = currentDate.getUTCMonth();
-        const monthName = currentDate.toLocaleString('default', { month: 'long', timeZone: 'UTC' }).toUpperCase();
-        
-        monthYearDisplay.textContent = `${monthName} ${year}`;
-        weekButtonsContainer.innerHTML = '';
-
-        const firstDayOfMonth = new Date(Date.UTC(year, month, 1));
-        const startWeekNum = getWeekNumber(firstDayOfMonth);
-
-        for (let i = 0; i < 4; i++) {
-            const weekNum = startWeekNum + i;
-            const button = document.createElement('button');
-            button.dataset.weekIndex = weekNum;
-            button.textContent = `Week ${i + 1}`;
-            // --- START OF MODIFICATION: New simpler button style ---
-            button.className = 'week-btn w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-center font-medium hover:border-[#3a4d39] transition-colors';
-            // --- END OF MODIFICATION ---
-            weekButtonsContainer.appendChild(button);
-        }
-        
-        const today = new Date();
-        if (today.getUTCFullYear() === year && today.getUTCMonth() === month) {
-             const todayWeekNum = getWeekNumber(today);
-             if (todayWeekNum >= startWeekNum && todayWeekNum < startWeekNum + 4) {
-                currentWeek = todayWeekNum;
-             } else {
-                currentWeek = startWeekNum;
-             }
-        } else {
-            currentWeek = startWeekNum;
-        }
-
-        updateBillingSummary(year, currentWeek);
-    }
-
-    prevMonthBtn.addEventListener('click', () => {
-        currentDate.setUTCMonth(currentDate.getUTCMonth() - 1);
-        renderControls();
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-        currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
-        renderControls();
-    });
-
-    weekButtonsContainer.addEventListener('click', (e) => {
-        if (e.target.matches('.week-btn')) {
-            currentWeek = parseInt(e.target.dataset.weekIndex);
-            updateBillingSummary(currentDate.getUTCFullYear(), currentWeek);
-        }
-    });
-    
-    // Initial render
-    renderControls();
-
-    // --- START OF MODIFICATION: All loan-related JavaScript has been removed ---
-    // --- END OF MODIFICATION ---
-});
-</script>
-{% endblock %}
-
-<!--  
-
-                                Replace after the defense
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const monthYearDisplay = document.getElementById('billing-month-year');
-    const prevMonthBtn = document.getElementById('prev-month-btn');
-    const nextMonthBtn = document.getElementById('next-month-btn');
-    const weekButtonsContainer = document.getElementById('week-buttons-container');
-
-    // --- START OF MODIFICATION: New summary element references ---
-    const summaryCounteredCheckEl = document.getElementById('summary-countered-check');
-    const summaryEwtEl = document.getElementById('summary-ewt');
-    const summaryCheckAmountEl = document.getElementById('summary-check-amount');
-    // --- END OF MODIFICATION ---
-
-    const now = new Date();
     // Initialize to the 1st of the current month (UTC to avoid local time zone issues)
     let currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     let currentWeek;
@@ -294,14 +162,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         let activeWeekNum;
         
-        // If the current month is the month being displayed, default to today's week
+        // If the current month is the month being displayed, set active week to today's week
         if (today.getUTCFullYear() === year && today.getUTCMonth() === month) {
              activeWeekNum = getWeekNumber(today);
-             // Safety check: ensure today's week falls within the first 5 buttons starting from month's start week
+             // Safety check: ensure today's week falls within the expected range for the month's UI
              if (activeWeekNum < startWeekNum || activeWeekNum >= startWeekNum + 5) {
                  activeWeekNum = startWeekNum;
              }
         } else {
+            // Otherwise, default to the week the 1st of the month falls into
             activeWeekNum = startWeekNum;
         }
 
@@ -309,16 +178,14 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < 5; i++) { 
             const weekNum = startWeekNum + i;
             
-            // Basic logic to stop if the week number rolls over unexpectedly high into the next year, 
-            // though the model should handle this. 
+            // Safety break for unexpected year-end roll-overs
             if (weekNum > 53 && i > 1) break; 
             
             const button = document.createElement('button');
             button.dataset.weekIndex = weekNum;
             
-            // --- FIX: Use the actual ISO week number for a less confusing display ---
-            button.textContent = `ISO Week ${weekNum}`; 
-            // Alternative less-misleading label: `Week ${i + 1} (ISO ${weekNum})`
+            // --- FIX: Change label back to 'Week ${i + 1}' ---
+            button.textContent = `Week ${i + 1}`; 
             // --- END FIX ---
             
             button.className = 'week-btn w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-center font-medium hover:border-[#3a4d39] transition-colors';
@@ -352,5 +219,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-
--->
