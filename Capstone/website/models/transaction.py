@@ -3,10 +3,55 @@
 import logging
 from datetime import datetime
 import pytz
+from bson import ObjectId
 from bson.objectid import ObjectId
 from flask import current_app
 
 logger = logging.getLogger(__name__)
+
+
+# --- START OF NEW FUNCTION: Recalculate Parent Folder Amount ---
+def _recalculate_parent_folder_amount(db, parent_id, username):
+    """
+    Aggregates the 'amount' (which is 'countered_check') of all non-archived children
+    and updates the parent folder's 'amount' field.
+    """
+    if not parent_id:
+        return
+    
+    try:
+        # Ensure parent_id is an ObjectId for the query
+        parent_obj_id = ObjectId(parent_id)
+        
+        # Aggregate the sum of 'countered_check' from all non-archived children
+        pipeline = [
+            {'$match': {
+                'parent_id': parent_obj_id,
+                'username': username,
+                '$or': [{'isArchived': {'$exists': False}}, {'isArchived': False}]
+            }},
+            {'$group': {
+                '_id': '$parent_id',
+                'new_parent_amount': {'$sum': '$countered_check'}
+            }}
+        ]
+        
+        # Execute the aggregation
+        result = list(db.transactions.aggregate(pipeline))
+        
+        # Get the new total, defaulting to 0.0 if no children are found
+        new_amount = result[0]['new_parent_amount'] if result else 0.0
+        
+        # Update the parent folder with the new aggregated amount
+        db.transactions.update_one(
+            {'_id': parent_obj_id, 'username': username},
+            {'$set': {'amount': new_amount}}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error recalculating parent amount for {parent_id}: {e}", exc_info=True)
+# --- END OF NEW FUNCTION ---
+
 
 # =========================================================
 # UPDATE TRANSACTION (for Folders) - FIXED
@@ -39,13 +84,11 @@ def update_transaction(username, transaction_id, form_data):
             update_fields['$unset'] = {'due_date': ""}
         # --- END OF FIX ---
 
-        # Remove keys with None value from $set operation unless they are explicitly passed from a form field that might be empty, e.g. notes
         set_updates = {k: v for k, v in update_fields.items() if k not in ['$unset', 'notes']}
-        set_updates['notes'] = update_fields.get('notes', '') # Keep notes even if empty
+        set_updates['notes'] = update_fields.get('notes', '')
         if 'notes' in update_fields:
-            set_updates['notes'] = update_fields['notes'] # If notes were in form data (even empty)
+            set_updates['notes'] = update_fields['notes']
 
-        # Handle the $unset operation
         final_update = {}
         if set_updates:
             final_update['$set'] = set_updates
@@ -109,6 +152,12 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
             doc['ewt'] = sum(d.get('amount', 0) for d in deductions if d.get('name', '').upper() == 'EWT')
 
         db.transactions.insert_one(doc)
+        
+        # --- START OF FIX: Recalculate parent folder amount on child creation ---
+        if parent_id:
+            _recalculate_parent_folder_amount(db, parent_id, username)
+        # --- END OF FIX: Recalculate parent folder amount on child creation ---
+        
         return True
     except Exception as e:
         logger.error(f"Error adding transaction: {e}", exc_info=True)
@@ -259,7 +308,16 @@ def update_child_transaction(username, transaction_id, form_data):
             {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': update_fields}
         )
-        return result.modified_count == 1
+        
+        if result.modified_count == 1:
+            # --- START OF FIX: Recalculate parent folder amount on child update ---
+            child_doc = db.transactions.find_one({'_id': ObjectId(transaction_id)})
+            if child_doc and child_doc.get('parent_id'):
+                _recalculate_parent_folder_amount(db, child_doc['parent_id'], username)
+            # --- END OF FIX: Recalculate parent folder amount on child update ---
+            return True
+            
+        return False
     except Exception as e:
         logger.error(f"Error updating child transaction {transaction_id}: {e}", exc_info=True)
         return False
@@ -309,11 +367,24 @@ def archive_transaction(username, transaction_id):
     if db is None:
         return False
     try:
+        # --- START OF FIX: Check if it is a child check and grab parent_id before archiving ---
+        doc = db.transactions.find_one({'_id': ObjectId(transaction_id)})
+        parent_id = doc.get('parent_id') if doc else None
+        # --- END OF FIX ---
+        
         result = db.transactions.update_one(
             {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': {'isArchived': True, 'archivedAt': datetime.now(pytz.utc)}}
         )
-        return result.modified_count == 1
+        
+        if result.modified_count == 1:
+            # --- START OF FIX: Recalculate parent folder amount after child archive ---
+            if parent_id:
+                _recalculate_parent_folder_amount(db, parent_id, username)
+            # --- END OF FIX: Recalculate parent folder amount after child archive ---
+            return True
+            
+        return False
     except Exception as e:
         logger.error(f"Error archiving transaction {transaction_id}: {e}", exc_info=True)
         return False
