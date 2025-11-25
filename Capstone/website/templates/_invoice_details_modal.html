@@ -5,7 +5,9 @@
         
         <header class="bg-[#eef2e9] text-[#3a4d39] flex justify-between items-center p-2 pl-4 flex-shrink-0 border-b border-gray-300">
             <div class="flex items-center gap-3">
-                <button id="close-modal-btn" class="hover:bg-gray-300 rounded-full p-2 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                <!-- START OF FIX: Added 'close-modal-btn' class so the archive JS can find it -->
+                <button id="close-modal-btn" class="close-modal-btn hover:bg-gray-300 rounded-full p-2 transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                <!-- END OF FIX -->
                 <i class="fa-solid fa-image text-lg"></i>
                 <h2 id="modal-invoice-title" class="text-lg font-semibold truncate">Invoice Title</h2>
             </div>
@@ -36,11 +38,9 @@
                         <span id="detail-date" class="font-semibold text-right"></span>
                     </div>
                 </div>
-                <!-- --- START OF MODIFICATION: Added max-height and custom scrollbar --- -->
                 <div id="thumbnail-container" class="flex-1 p-3 overflow-y-auto space-y-2 max-h-80 custom-scrollbar">
                     <!-- Thumbnails will be injected here by JS -->
                 </div>
-                <!-- --- END OF MODIFICATION --- -->
             </aside>
         </main>
 
