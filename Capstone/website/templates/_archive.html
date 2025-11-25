@@ -75,6 +75,15 @@
         15%, 85% { opacity: 1; transform: translate(-50%, 0); }
         100% { opacity: 0; transform: translate(-50%, -20px); }
     }
+    
+    /* ADDED CSS FOR OVERVIEW MODAL TABLE (to match transaction_folder_detail) */
+    #archive-transaction-overview-modal #overview-table-body tr td, 
+    #archive-transaction-overview-modal #overview-table-body tr th {
+        border: 1px solid #3a4d39;
+    }
+    #archive-transaction-overview-modal #overview-table-header tr th {
+        border: 1px solid #3a4d39;
+    }
 </style>
 {% endblock %}
 
@@ -145,10 +154,11 @@
             {% for item in archived_items %}
             
             {% if item.display_category == 'Folder' %}
-                <a href="{{ url_for('main.view_archived_transaction_folder', transaction_id=item.id) }}" class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50" 
+                <a href="#" class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50" 
                    data-id="{{ item.id }}" 
                    data-type="{{ item.type }}"
-                   data-name="{{ item.name | escape }}">
+                   data-name="{{ item.name | escape }}"
+                   data-is-folder="true">
             {% else %}
                 <div class="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200 items-center table-row-item archive-item hover:bg-gray-50 cursor-pointer" 
                      data-id="{{ item.id }}" 
@@ -208,11 +218,74 @@
 
 </main>
 
-{% include "_transaction_details_modal.html" %}
+<!-- We still include the generic modal for non-folder/file archived items if needed -->
+{% include "_transaction_details_modal.html" %} 
 {% include "_invoice_details_modal.html" %}
+
+
+<!-- START OF FIX: Full Transaction Overview Modal (Copied from transaction_folder_detail) -->
+<div id="archive-transaction-overview-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col p-6 overflow-hidden">
+        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h2 class="text-xl font-bold text-[#3a4d39]">Archived Transaction Overview</h2>
+            <button class="close-modal-btn text-3xl font-light text-gray-500 hover:text-red-600">&times;</button>
+        </div>
+        <h3 id="archive-overview-folder-name" class="text-center font-bold text-lg mb-4 flex-shrink-0"></h3>
+        
+        <div class="flex-1 border-2 border-[#3a4d39] overflow-auto custom-scrollbar bg-white min-h-0">
+            <table class="w-full text-sm text-left">
+                <thead id="archive-overview-table-header" class="bg-[#3a4d39] text-white sticky top-0 z-10">
+                    <tr>
+                        <th class="p-2 font-semibold">Name of Issued Checked</th>
+                        <th class="p-2 font-semibold">Check No.</th>
+                        <th class="p-2 font-semibold">Check Amount</th>
+                        <th class="p-2 font-semibold">Countered Check</th>
+                        <th class="p-2 font-semibold">Notes</th>
+                        <th class="p-2 font-semibold" colspan="2">Deduction</th>
+                    </tr>
+                    <tr class="bg-[#3a4d39] text-white">
+                        <th class="p-2"></th>
+                        <th class="p-2"></th>
+                        <th class="p-2"></th>
+                        <th class="p-2"></th>
+                        <th class="p-2"></th>
+                        <th class="p-2 font-semibold">Name</th>
+                        <th class="p-2 font-semibold text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="archive-overview-table-body">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4 flex justify-end flex-shrink-0">
+            <div class="w-full max-w-sm space-y-1 text-sm">
+                <div class="grid grid-cols-2 items-center">
+                    <span class="font-semibold text-right pr-4">EWT</span>
+                    <input type="text" id="archive-overview-ewt" class="p-1 border border-[#3a4d39] rounded-sm text-right font-mono" readonly>
+                </div>
+                <div class="grid grid-cols-2 items-center">
+                    <span class="font-semibold text-right pr-4">Total Check Amount To Pay</span>
+                    <input type="text" id="archive-overview-total-pay" class="p-1 border border-[#3a4d39] rounded-sm text-right font-mono" readonly>
+                </div>
+                <div class="grid grid-cols-2 items-center">
+                    <span class="font-semibold text-right pr-4">Total Countered Check</span>
+                    <input type="text" id="archive-overview-total-countered" class="p-1 border border-[#3a4d39] rounded-sm text-right font-mono" readonly>
+                </div>
+                <div class="grid grid-cols-2 items-center">
+                    <span class="font-semibold text-right pr-4">Remaining Check Balance</span>
+                    <input type="text" id="archive-overview-remaining" class="p-1 border border-[#3a4d39] rounded-sm text-right font-mono" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- END OF FIX: Full Transaction Overview Modal -->
+
 
 {% endblock %}
 
+<!-- website/templates/_archive.html (The entire script block) -->
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -234,8 +307,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let confirmCallback = null;
     let isSelectionMode = false;
     
+    // MODAL REFERENCES
     const transactionModal = document.getElementById('transaction-details-modal');
     const invoiceModal = document.getElementById('invoice-details-modal');
+    // OVERVIEW MODAL REFERENCES
+    const overviewModal = document.getElementById('archive-transaction-overview-modal');
+    const overviewFolderName = document.getElementById('archive-overview-folder-name');
+    const overviewTableBody = document.getElementById('archive-overview-table-body');
+    const overviewEwt = document.getElementById('archive-overview-ewt');
+    const overviewTotalPay = document.getElementById('archive-overview-total-pay');
+    const overviewTotalCountered = document.getElementById('archive-overview-total-countered');
+    const overviewRemaining = document.getElementById('archive-overview-remaining');
+    
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
     function showConfirm({ title, message, iconHTML, onConfirm }) {
@@ -245,13 +328,13 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmModal.classList.add('active');
         confirmCallback = onConfirm;
     }
-    confirmNo.onclick = () => confirmModal.classList.remove('active');
+    confirmNo.onclick = () => closeModal(confirmModal);
     confirmYes.onclick = () => {
-        confirmModal.classList.remove('active');
+        closeModal(confirmModal);
         if (confirmCallback) confirmCallback();
     };
     confirmModal.onclick = (e) => {
-        if (e.target === confirmModal) confirmModal.classList.remove('active');
+        if (e.target === confirmModal) closeModal(confirmModal);
     };
 
     function updateFooterVisibility() {
@@ -347,74 +430,147 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('.archive-item').forEach(item => {
         item.addEventListener('click', async (e) => {
-            if (item.tagName === 'A' && !e.target.closest('button, input')) {
-                return;
-            }
-            e.preventDefault();
-
-            if (isSelectionMode) {
-                const checkbox = item.querySelector('.item-checkbox');
-                if (checkbox && !e.target.closest('button')) {
-                    checkbox.checked = !checkbox.checked;
-                    updateFooterVisibility();
+            // Check for selection mode or restore button click
+            if (isSelectionMode || e.target.closest('.restore-btn')) {
+                // If it's a link (Folder) and not a button, we still prevent default to open modal
+                if (item.tagName === 'A' && !e.target.closest('button, input')) {
+                    e.preventDefault(); 
+                } else if (item.tagName !== 'A' && isSelectionMode) {
+                    const checkbox = item.querySelector('.item-checkbox');
+                    if (checkbox && !e.target.closest('button')) {
+                        checkbox.checked = !checkbox.checked;
+                        updateFooterVisibility();
+                    }
+                    return;
+                } else {
+                     return;
                 }
-                return;
             }
+            
+            const itemData = item.dataset;
+            
+            // --- START OF FIX: ROUTE CLICK TO CORRECT MODAL ---
+            if (itemData.type === 'Invoice') {
+                // INVOICE LOGIC - Uses Invoice Modal
+                const modal = invoiceModal;
+                const titleEl = modal.querySelector('#modal-invoice-title');
+                
+                // Hide buttons for archived item view (read-only)
+                modal.querySelector('#modal-edit-btn').style.display = 'none';
+                modal.querySelector('#modal-delete-btn').style.display = 'none';
+                modal.querySelector('#modal-download-btn').style.display = 'none';
+                
+                openModal(modal);
+                titleEl.textContent = 'Loading...';
 
-            if (item.tagName !== 'A') {
-                const itemData = item.dataset;
-                if (itemData.type === 'Invoice') {
-                    const modal = invoiceModal;
-                    const titleEl = modal.querySelector('#modal-invoice-title');
+                try {
+                    const response = await fetch(`/api/archive/details/invoice/${itemData.id}`);
+                    const data = await response.json();
+
+                    titleEl.textContent = data.folder_name || 'Archived Invoice';
+                    modal.querySelector('#detail-folder-name').textContent = data.folder_name || 'N/A';
+                    modal.querySelector('#detail-category').textContent = data.category || 'N/A';
+                    modal.querySelector('#detail-date').textContent = data.date ? new Date(data.date).toLocaleDateString() : 'N/A';
                     
-                    modal.querySelector('#modal-edit-btn').style.display = 'none';
-                    modal.querySelector('#modal-delete-btn').style.display = 'none';
-                    modal.querySelector('#modal-download-btn').style.display = 'none';
+                    const mainImage = modal.querySelector('#modal-invoice-image');
+                    const thumbContainer = modal.querySelector('#thumbnail-container');
+                    thumbContainer.innerHTML = '';
+
+                    if (data.files && data.files.length > 0) {
+                        mainImage.src = `/invoices/uploads/${data.files[0].filename}`;
+                        data.files.forEach((file, index) => {
+                            const thumb = document.createElement('img');
+                            thumb.src = `/invoices/uploads/${file.filename}`;
+                            thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39]';
+                            if (index === 0) { thumb.classList.add('border-[#3a4d39]'); }
+                            thumb.addEventListener('click', () => {
+                                mainImage.src = thumb.src;
+                                thumbContainer.querySelectorAll('img').forEach(t => t.classList.remove('border-[#3a4d39]'));
+                                thumb.classList.add('border-[#3a4d39]');
+                            });
+                            thumbContainer.appendChild(thumb);
+                        });
+                    } else {
+                        mainImage.src = '';
+                    }
+                } catch (error) {
+                    titleEl.textContent = 'Failed to load details.';
+                }
+            } else if (itemData.type === 'Transaction') {
+                
+                if (itemData.isFolder === 'true') {
+                    // TRANSACTION FOLDER LOGIC - Use Overview Modal (Full Table)
+                    const modal = overviewModal;
+                    overviewFolderName.textContent = 'Loading...';
+                    overviewTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-8">Loading data...</td></tr>';
                     
-                    modal.classList.remove('hidden');
-                    titleEl.textContent = 'Loading...';
+                    openModal(modal);
 
                     try {
-                        const response = await fetch(`/api/archive/details/invoice/${itemData.id}`);
+                        // Call the aggregated API for the table view
+                        const response = await fetch(`/api/transactions/overview/${itemData.id}`);
+                        if (!response.ok) throw new Error('Failed to fetch overview data');
                         const data = await response.json();
-
-                        titleEl.textContent = data.folder_name || 'Archived Invoice';
-                        modal.querySelector('#detail-folder-name').textContent = data.folder_name || 'N/A';
-                        modal.querySelector('#detail-category').textContent = data.category || 'N/A';
-                        modal.querySelector('#detail-date').textContent = data.date ? new Date(data.date).toLocaleDateString() : 'N/A';
                         
-                        const mainImage = modal.querySelector('#modal-invoice-image');
-                        const thumbContainer = modal.querySelector('#thumbnail-container');
-                        thumbContainer.innerHTML = '';
+                        overviewFolderName.textContent = data.folder_name || 'Archived Transaction';
+                        overviewEwt.value = currencyFormatter.format(data.summaries.total_ewt || 0);
+                        overviewTotalPay.value = currencyFormatter.format(data.summaries.total_check_amount_to_pay || 0);
+                        overviewTotalCountered.value = currencyFormatter.format(data.summaries.total_countered_check || 0);
+                        overviewRemaining.value = currencyFormatter.format(data.summaries.remaining_balance || 0);
+                        overviewTableBody.innerHTML = '';
 
-                        if (data.files && data.files.length > 0) {
-                            mainImage.src = `/invoices/uploads/${data.files[0].filename}`;
-                            data.files.forEach((file, index) => {
-                                const thumb = document.createElement('img');
-                                thumb.src = `/invoices/uploads/${file.filename}`;
-                                thumb.className = 'w-full h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-[#3a4d39]';
-                                if (index === 0) { thumb.classList.add('border-[#3a4d39]'); }
-                                thumb.addEventListener('click', () => {
-                                    mainImage.src = thumb.src;
-                                    thumbContainer.querySelectorAll('img').forEach(t => t.classList.remove('border-[#3a4d39]'));
-                                    thumb.classList.add('border-[#3a4d39]');
-                                });
-                                thumbContainer.appendChild(thumb);
-                            });
+                        if (data.child_checks.length === 0) {
+                            overviewTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-8">No issued checks found for this transaction.</td></tr>';
                         } else {
-                            mainImage.src = '';
+                            data.child_checks.forEach(check => {
+                                const otherDeductions = check.deductions.filter(d => d.name.toUpperCase() !== 'EWT');
+                                const rowCount = Math.max(1, otherDeductions.length);
+                                
+                                for (let i = 0; i < rowCount; i++) {
+                                    const tr = document.createElement('tr');
+                                    tr.className = 'border-b';
+                                    const deduction = otherDeductions[i] || { name: '', amount: '' };
+                                    const deductionAmount = (deduction.amount !== '') ? currencyFormatter.format(deduction.amount) : '';
+
+                                    if (i === 0) {
+                                        tr.innerHTML = `
+                                            <td class="p-2 align-top" rowspan="${rowCount}">${check.name || 'N/A'}</td>
+                                            <td class="p-2 align-top" rowspan="${rowCount}">${check.check_no || 'N/A'}</td>
+                                            <td class="p-2 align-top text-right" rowspan="${rowCount}">${currencyFormatter.format(check.check_amount || 0)}</td>
+                                            <td class="p-2 align-top text-right" rowspan="${rowCount}">${currencyFormatter.format(check.countered_check || 0)}</td>
+                                            <td class="p-2 align-top" rowspan="${rowCount}">${check.notes || 'N/A'}</td>
+                                            <td class="p-2">${deduction.name || ''}</td>
+                                            <td class="p-2 text-right">${deductionAmount}</td>
+                                        `;
+                                    } else {
+                                        tr.innerHTML = `
+                                            <td class="p-2">${deduction.name}</td>
+                                            <td class="p-2 text-right">${deductionAmount}</td>
+                                        `;
+                                    }
+                                    overviewTableBody.appendChild(tr);
+                                }
+                            });
                         }
                     } catch (error) {
-                        titleEl.textContent = 'Failed to load details.';
+                        console.error('Error fetching archived transaction overview:', error);
+                        overviewFolderName.textContent = 'Failed to load details.';
+                        overviewTableBody.innerHTML = '<p class="text-center text-red-500 p-8">Failed to load detailed transaction data.</p>';
                     }
-                } else if (itemData.type === 'Transaction') {
+                } else {
+                    // TRANSACTION FILE/CHECK LOGIC - Use Transaction Details Modal (Simple View)
                     const modal = transactionModal;
                     const recipientEl = modal.querySelector('#modal-recipient');
                     
-                    modal.classList.remove('hidden');
+                    // Hide download button and set loading state
+                    const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
+                    if (downloadBtn) downloadBtn.style.display = 'none';
+                    
+                    openModal(modal);
                     recipientEl.textContent = 'Loading...';
 
                     try {
+                        // Call the single-item details API
                         const response = await fetch(`/api/archive/details/transaction/${itemData.id}`);
                         const data = await response.json();
                         
@@ -424,19 +580,55 @@ document.addEventListener('DOMContentLoaded', function() {
                         modal.querySelector('#modal-countered-check').textContent = currencyFormatter.format(data.countered_check || 0);
                         modal.querySelector('#modal-notes').textContent = data.notes || 'No notes provided.';
                         modal.querySelector('#modal-status-text').textContent = data.status || 'Archived';
+                        
+                        // Force Status Box to Archived Look
+                        const statusBox = modal.querySelector('#modal-status-box');
+                        statusBox.classList.remove('bg-green-100', 'border-green-200', 'text-green-800');
+                        statusBox.classList.add('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+                        statusBox.querySelector('#modal-status-icon').className = 'fas fa-box-archive';
+                        
                     } catch (error) {
                         recipientEl.textContent = 'Failed to load details.';
                     }
                 }
             }
+            // --- END OF FIX: ROUTE CLICK TO CORRECT MODAL ---
         });
     });
 
-    [transactionModal, invoiceModal].forEach(modal => {
+    [transactionModal, invoiceModal, overviewModal].forEach(modal => {
         if (modal) {
-            modal.querySelector('#close-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.querySelector('#close-modal-btn')?.addEventListener('click', () => {
+                closeModal(modal);
+                // Reset status box look when closing transaction modal (only applies to _transaction_details_modal)
+                if (modal.id === 'transaction-details-modal') {
+                    const statusBox = modal.querySelector('#modal-status-box');
+                    if(statusBox) {
+                        statusBox.classList.remove('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+                        statusBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
+                        statusBox.querySelector('#modal-status-icon').className = 'fas fa-check-circle';
+                    }
+                    
+                    const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
+                    if (downloadBtn) downloadBtn.style.display = 'flex'; 
+                }
+            });
             modal.addEventListener('click', (e) => {
-                if(e.target === modal) modal.classList.add('hidden');
+                if(e.target === modal) {
+                    closeModal(modal);
+                    // Perform reset on backdrop click as well
+                    if (modal.id === 'transaction-details-modal') {
+                         const statusBox = modal.querySelector('#modal-status-box');
+                         if(statusBox) {
+                            statusBox.classList.remove('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+                            statusBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
+                            statusBox.querySelector('#modal-status-icon').className = 'fas fa-check-circle';
+                         }
+                        
+                        const downloadBtn = modal.querySelector('.w-full.bg-\\[\\#6f8a6e\\]');
+                        if (downloadBtn) downloadBtn.style.display = 'flex'; 
+                    }
+                }
             });
         }
     });

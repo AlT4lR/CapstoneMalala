@@ -31,9 +31,11 @@
                 <input type="text" id="search-input" placeholder="Search Issued Checked..." class="w-full pl-10 pr-4 py-2 bg-white border border-[#d4d8c4] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f8a6e]">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
+            <!-- START OF FIX: Eye Icon Button (Preview) -->
             <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
                 <i class="fa-solid fa-eye fa-lg"></i>
             </button>
+            <!-- END OF FIX: Eye Icon Button (Preview) -->
             <a href="{{ url_for('main.archive', back=request.path) }}" class="text-gray-500 hover:text-[#3a4d39]" title="Archive"><i class="fa-solid fa-box-archive fa-lg"></i></a>
             {% include "_notification_button.html" %}
         </div>
@@ -107,6 +109,7 @@
 {% include "_add_check_modal.html" %}
 {% include "_edit_check_modal.html" %}
 
+<!-- START OF FIX: Transaction Overview Modal HTML -->
 <div id="overview-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
     <div class="modal-content bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col p-6 overflow-hidden">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -163,6 +166,8 @@
         </div>
     </div>
 </div>
+<!-- END OF FIX: Transaction Overview Modal HTML -->
+
 
 {% endblock %}
 
@@ -171,8 +176,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // --- START OF FIX: Initialize Flatpickr for the Edit Check Modal's date field here ---
-    // The input for the check date in the edit modal must have a known selector, e.g. input[name="check_date"].
-    // Assuming the date input in _edit_check_modal.html has a common name and is correctly imported:
     const editCheckDateFlatpickrInstance = flatpickr("#edit-check-modal input[name='check_date']", { 
         dateFormat: "Y-m-d", 
         altInput: true, 
@@ -191,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const overviewRemaining = document.getElementById('overview-remaining');
     const currentTransactionId = "{{ folder._id }}";
     
-    // --- Start Overview Logic (Unchanged) ---
+    // --- Start Overview Logic (For Eye Icon) ---
     if (previewBtn) {
         previewBtn.addEventListener('click', async function() {
             overviewFolderName.textContent = 'Loading...';
@@ -201,6 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`/api/transactions/overview/${currentTransactionId}`);
                 if (!response.ok) throw new Error('Failed to fetch overview data');
                 const data = await response.json();
+                
                 overviewFolderName.textContent = data.folder_name;
                 overviewEwt.value = currencyFormatter.format(data.summaries.total_ewt);
                 overviewTotalPay.value = currencyFormatter.format(data.summaries.total_check_amount_to_pay);
@@ -311,39 +315,40 @@ document.addEventListener('DOMContentLoaded', function() {
             detailEditBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.id = data.id;
             detailDeleteBtn.dataset.name = data.name;
+            
+            // Final step: Re-validate pay button in case the click re-renders all checks
+            validateForPayment(); 
         });
     });
     
-    // --- START OF FIX: Removed unnecessary local event listener and its faulty logic.
-    // The global listener in common.js will now handle the edit button click.
-    // The correct Flatpickr instance must be retrieved within the common.js listener, 
-    // or by a globally accessible function if its initialization is local. 
-    // We already initialized the instance with a global variable, which can be retrieved.
-    // The deduction population logic MUST be accessible globally.
-    if (detailEditBtn) {
-         // The event listener from common.js will run. No need for a local one anymore.
-         // We only keep the logic that MUST run on this page if the global listener didn't cover it.
-    }
-    // --- END OF FIX ---
-    
-    // ... (rest of the script is correct and unchanged)
-    
+    // --- Final Validate Pay Button Logic (Must be updated to use the latest folder.amount) ---
     const payBtn = document.getElementById('pay-btn');
     function validateForPayment() {
         if (!payBtn) return;
-        const folderAmount = parseFloat(payBtn.dataset.folderAmount) || 0;
+        // Read folder amount from the attribute set by the server-side template
+        const folderAmount = parseFloat("{{ folder.amount or 0 }}"); // The parent's total check amount (Target Debt)
+        
         let totalCounteredCheck = 0;
         document.querySelectorAll('.check-item').forEach(item => {
             totalCounteredCheck += parseFloat(item.dataset.counteredCheck) || 0;
         });
+        
         const remainingBalance = folderAmount - totalCounteredCheck;
+        
+        // Update the display fields with the calculated values
+        // NOTE: total-countered-field and remaining-balance-field are set on initial load via jinja, 
+        // but this function provides a real-time update based on the data attributes.
         document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
         document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
+        
+        // Pay button logic: The difference must be negligible
         const canPay = Math.abs(remainingBalance) < 0.01;
         payBtn.disabled = !canPay;
         payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
     }
-    validateForPayment();
+    validateForPayment(); // Initial call to set state
+    // --- END Final Validate Pay Button Logic ---
+    
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             const folderId = "{{ folder._id }}";
@@ -412,42 +417,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     setupDeductionHandlers('add_check', 'deductions-container', 'add-deduction-btn');
     setupDeductionHandlers('edit_check', 'edit-deductions-container', 'edit-add-deduction-btn');
-    // NOTE: editCheckDateFlatpickrInstance is now declared at the top of the script block.
-    
+    flatpickr("#check_date", { dateFormat: "Y-m-d", defaultDate: "today", altInput: true, altFormat: "F j, Y" });
+    flatpickr("#edit-check-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "F j, Y" });
     const editCheckForm = document.getElementById('edit-check-form');
     if (editCheckForm) {
         editCheckForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            const transactionId = document.getElementById('edit-check-id').value;
+            const checkId = document.getElementById('edit-check-id').value;
             const submitButton = this.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
             const formData = new FormData(this);
             try {
-                const response = await fetch(`/api/transactions/child/update/${transactionId}`, {
+                const response = await fetch(`/api/transactions/child/update/${checkId}`, {
                     method: 'POST',
-                    body: formData,
-                    headers: { 'X-CSRF-Token': window.getCSRFToken ? window.getCSRFToken() : '' }
+                    body: new URLSearchParams(formData), 
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': window.getCSRFToken() }
                 });
-                const result = await response.json();
-                if (response.ok && result.success) {
-                    window.location.reload();
-                } else {
+                if (response.ok) { window.location.reload(); }
+                else {
+                    const result = await response.json();
                     alert('Error: ' + (result.error || 'Could not save changes.'));
                     submitButton.disabled = false;
-                    submitButton.textContent = 'Save';
+                    submitButton.textContent = 'Save Changes';
                 }
             } catch (error) {
-                console.error('Error submitting edit form:', error);
+                console.error('Error submitting edit check form:', error);
                 alert('A network error occurred.');
                 submitButton.disabled = false;
-                    submitButton.textContent = 'Save';
+                submitButton.textContent = 'Save Changes';
             }
         });
     }
 
-    // The explicit local click handler logic has been removed as the global handler in common.js is sufficient.
-    // The Flatpickr initialization fix addresses the TypeError.
 });
 </script>
 {% endblock %}
