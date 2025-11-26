@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # =========================================================
-# HELPER: Recompute and store folder totals (FINAL FIX)
+# HELPER: Recompute and store folder totals
 # =========================================================
 def recompute_folder_totals(username, parent_id):
     """
@@ -59,11 +59,6 @@ def recompute_folder_totals(username, parent_id):
         countered_check_sum = totals.get('total_countered_check', 0.0)
         ewt_sum = totals.get('total_ewt', 0.0)
         
-        # NOTE: The UI requires 'Total Check Amount To Pay' to be the sum of check_amount
-        # and 'Total Countered Check' to be the sum of countered_check.
-        # We will use the parent's 'amount' field for the true Total Check Amount To Pay (Debt)
-        # and use the dedicated aggregation for the Countered Check Total.
-        
         # Update the parent folder with the correct, separate running totals
         update_fields = {
             'amount': round(check_amount_sum, 2),        # Parent.amount = SUM(Child.check_amount) -> Total Debt
@@ -87,7 +82,7 @@ def recompute_folder_totals(username, parent_id):
 
 
 # =========================================================
-# UPDATE TRANSACTION (for Folders) - FIXED
+# UPDATE TRANSACTION (for Folders)
 # =========================================================
 def update_transaction(username, transaction_id, form_data):
     """Updates an existing transaction FOLDER in the database."""
@@ -95,35 +90,36 @@ def update_transaction(username, transaction_id, form_data):
     if db is None:
         return False
     try:
-        # --- START OF FIX: Date conversion logic ---
         update_fields = {
             'name': form_data.get('name'),
             'notes': form_data.get('notes') 
         }
         
+        if 'amount' in form_data:
+            try:
+                update_fields['amount'] = float(form_data['amount'])
+            except (ValueError, TypeError):
+                pass 
+
         check_date_str = form_data.get('check_date')
         if check_date_str:
-            # FIX: Convert the string 'YYYY-MM-DD' to a datetime object before combining
-            date_part = datetime.strptime(check_date_str, '%Y-%m-%d').date()
-            update_fields['check_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
+            try:
+                date_part = datetime.strptime(check_date_str, '%Y-%m-%d').date()
+                update_fields['check_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
+            except ValueError: pass
         
         due_date_str = form_data.get('due_date')
         if due_date_str:
-            # FIX: Convert the string 'YYYY-MM-DD' to a datetime object before combining
-            date_part = datetime.strptime(due_date_str, '%Y-%m-%d').date()
-            update_fields['due_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
+            try:
+                date_part = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                update_fields['due_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
+            except ValueError: pass
         else:
-            # Explicitly set to None if the field is empty
             update_fields['$unset'] = {'due_date': ""}
-        # --- END OF FIX ---
 
-        # Remove keys with None value from $set operation unless they are explicitly passed from a form field that might be empty, e.g. notes
         set_updates = {k: v for k, v in update_fields.items() if k not in ['$unset', 'notes']}
         set_updates['notes'] = update_fields.get('notes', '')
-        if 'notes' in update_fields:
-            set_updates['notes'] = update_fields['notes']
-
-        # Handle the $unset operation
+        
         final_update = {}
         if set_updates:
             final_update['$set'] = set_updates
@@ -165,33 +161,40 @@ def add_transaction(username, branch, transaction_data, parent_id=None):
         }
 
         if parent_id is None: # This is a FOLDER
-            # Initialize with fields that will be dynamically updated by children
-            doc['amount'] = 0.0          # Total Check Amount To Pay (Target Debt)
-            doc['countered_check'] = 0.0 # Total Countered Check (Covered Debt)
-            doc['ewt'] = 0.0             # Total EWT
+            doc['amount'] = float(transaction_data.get('amount') or 0.0)
+            doc['countered_check'] = 0.0 
+            doc['ewt'] = 0.0             
             doc['check_amount'] = 0.0
             doc['deductions'] = []
-            doc['total_to_pay'] = 0.0    # Legacy/Redundant, but initialized for safety
-        else: # This is a CHILD CHECK (New Logic Applied)
+            doc['total_to_pay'] = 0.0    
+        else: # This is a CHILD CHECK
             check_amount = float(transaction_data.get('check_amount') or 0.0)
             deductions = transaction_data.get('deductions', [])
-            total_deductions = sum(d.get('amount', 0) for d in deductions)
             
             doc['check_amount'] = round(check_amount, 2)
             doc['deductions'] = deductions
             
-            countered_check = round(check_amount - total_deductions, 2)
+            # --- START OF MODIFICATION: No Auto-Balancing ---
+            # Only use manual input. If empty or invalid, default to 0.0
+            manual_countered = transaction_data.get('countered_check')
+            if manual_countered is not None and str(manual_countered).strip() != '':
+                try:
+                    countered_check = round(float(manual_countered), 2)
+                except ValueError:
+                    countered_check = 0.0
+            else:
+                countered_check = 0.0
+            # --- END OF MODIFICATION ---
+
             doc['countered_check'] = countered_check
-            doc['amount'] = countered_check # Child's amount tracks its own countered check value
+            doc['amount'] = countered_check 
             
             doc['ewt'] = round(sum(d.get('amount', 0) for d in deductions if d.get('name', '').upper() == 'EWT'), 2)
 
         db.transactions.insert_one(doc)
         
-        # --- START OF FIX: Recalculate parent folder amount on child creation ---
         if parent_id:
             recompute_folder_totals(username, parent_id)
-        # --- END OF FIX: Recalculate parent folder amount on child creation ---
         
         return True
     except Exception as e:
@@ -238,7 +241,7 @@ def get_transaction_by_id(username, transaction_id, full_document=False):
             'status': doc.get('status')
         }
     except Exception as e:
-        logger.error(f"CRITICAL ERROR fetching transaction {transaction_id}: {e}", exc_info=True)
+        logger.error(f"Error fetching transaction {transaction_id}: {e}", exc_info=True)
         return None
 
 # =========================================================
@@ -313,7 +316,7 @@ def get_child_transactions_by_parent_id(username, parent_id):
 # UPDATE CHILD TRANSACTION (UPDATED LOGIC)
 # =========================================================
 def update_child_transaction(username, transaction_id, form_data):
-    """Updates an existing child check in the database, calculating amounts from check_amount and deductions."""
+    """Updates an existing child check in the database."""
     db = current_app.db
     if db is None:
         return False
@@ -324,48 +327,49 @@ def update_child_transaction(username, transaction_id, form_data):
 
         check_amount = float(form_data.get('check_amount') or 0.0)
         deductions = form_data.get('deductions', []) 
-        total_deductions = sum(d.get('amount', 0) for d in deductions)
         
-        # --- CALCULATION LOGIC (ALWAYS USED, overriding any manual input) ---
-        countered_check = round(check_amount - total_deductions, 2)
+        # --- START OF MODIFICATION: No Auto-Balancing ---
+        manual_countered = form_data.get('countered_check')
+        if manual_countered is not None and str(manual_countered).strip() != '':
+            try:
+                countered_check = round(float(manual_countered), 2)
+            except ValueError:
+                countered_check = 0.0
+        else:
+            countered_check = 0.0
+        # --- END OF MODIFICATION ---
+        
         ewt = round(sum(d.get('amount', 0) for d in deductions if d.get('name', '').upper() == 'EWT'), 2)
-        # --- END CALCULATION LOGIC ---
         
         update_fields = {
             'name': form_data.get('name_of_issued_check'),
             'check_no': form_data.get('check_no'),
             'notes': form_data.get('notes'),
             'check_amount': round(check_amount, 2),
-            'deductions': deductions, # Deductions are passed as a list of dicts from the view
-            'countered_check': countered_check, # Use the calculated value
-            'amount': countered_check,         # Child's amount tracks its own countered check value
-            'ewt': ewt                         # Use the calculated EWT value
+            'deductions': deductions, 
+            'countered_check': countered_check, 
+            'amount': countered_check,         
+            'ewt': ewt                         
         }
         
-        # --- FIX: Date Parsing (retained from previous fix) ---
         check_date_str = form_data.get('check_date')
         if check_date_str:
             try:
-                # Convert the string 'YYYY-MM-DD' to a datetime.date object
                 date_part = datetime.strptime(check_date_str, '%Y-%m-%d').date()
                 update_fields['check_date'] = pytz.utc.localize(datetime.combine(date_part, datetime.min.time()))
             except ValueError:
                 logger.warning(f"Failed to parse check_date string '{check_date_str}' in update_child_transaction.")
-        # --- END FIX ---
 
         result = db.transactions.update_one(
             {'_id': ObjectId(transaction_id), 'username': username},
             {'$set': update_fields}
         )
         
-        if result.modified_count == 1:
-            # --- START OF FIX: Recalculate parent folder amount on child update ---
-            if parent_id:
-                recompute_folder_totals(username, parent_id)
-            # --- END OF FIX: Recalculate parent folder amount on child update ---
+        if result.modified_count == 1 and parent_id:
+            recompute_folder_totals(username, parent_id)
             return True
             
-        return False
+        return result.matched_count == 1 
     except Exception as e:
         logger.error(f"Error updating child transaction {transaction_id}: {e}", exc_info=True)
         return False
@@ -419,7 +423,6 @@ def archive_transaction(username, transaction_id):
     if db is None:
         return False
     try:
-        # Fetch doc to know if it's a child and what parent it has
         doc = db.transactions.find_one({'_id': ObjectId(transaction_id), 'username': username})
         if not doc:
             logger.warning(f"archive_transaction: transaction {transaction_id} not found for user {username}")
@@ -434,7 +437,6 @@ def archive_transaction(username, transaction_id):
 
         success = result.modified_count == 1
 
-        # If this was a child, recompute parent totals
         if success and parent_id:
             try:
                 recompute_folder_totals(username, parent_id)

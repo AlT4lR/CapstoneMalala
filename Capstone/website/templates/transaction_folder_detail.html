@@ -7,6 +7,11 @@
         background-color: #eef2e9;
         border-right: 4px solid #3a4d39;
     }
+    /* Visual indicator for incomplete checks in the list */
+    .check-item.incomplete-data {
+        border-left: 4px solid #f59e0b; /* Amber/Yellow warning color */
+        background-color: #fffbeb;
+    }
     #overview-table-body tr td, #overview-table-body tr th {
         border: 1px solid #3a4d39;
     }
@@ -41,7 +46,7 @@
         </div>
     </header>
 
-    <!-- Folder Name and Eye Icon (New Alignment) -->
+    <!-- Folder Name and Eye Icon -->
     <div class="flex justify-between items-center mb-4 pt-1">
         <h3 class="text-lg font-semibold text-center">{{ folder.name }}</h3>
         <button id="preview-transaction-btn" class="text-gray-800 hover:text-blue-600" title="Overview of this transaction">
@@ -51,6 +56,7 @@
 
 
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+        <!-- Left Column: List of Issued Checks -->
         <div class="lg:col-span-3 flex flex-col gap-4">
             <div id="checks-list-container" class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-2 max-h-96 overflow-y-auto custom-scrollbar">
                 {% for check in child_checks %}
@@ -64,10 +70,11 @@
                     data-notes="{{ check.notes or '' }}"
                     data-deductions='{{ (check.deductions or []) | tojson }}'
                     data-check-date="{{ check.check_date.strftime('%m/%d/%Y') }}">
-                    <p class="font-semibold truncate">{{ check.name }}</p>
-                    {% if check.is_incomplete %}
-                        <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-yellow-400" title="This check has incomplete details."></div>
-                    {% endif %}
+                    
+                    <div class="flex justify-between items-center">
+                        <p class="font-semibold truncate">{{ check.name }}</p>
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs hidden warning-icon" title="Incomplete Details"></i>
+                    </div>
                 </div>
                 {% else %}
                 <p id="no-checks-message" class="text-center text-gray-400 p-10">No checks have been issued yet.</p>
@@ -79,6 +86,7 @@
             </button>
         </div>
 
+        <!-- Middle Column: Check Details Panel -->
         <div id="check-details-panel" class="lg:col-span-6 bg-white rounded-md border border-gray-200 shadow-sm p-6 flex flex-col">
             <div class="flex justify-between items-center border-b pb-2 mb-4">
                 <h4 id="detail-name" class="text-xl font-bold">Select a Check</h4>
@@ -92,6 +100,7 @@
             </div>
         </div>
 
+        <!-- Right Column: Totals & Pay Button -->
         <div class="lg:col-span-3 flex flex-col gap-4">
             <div class="flex-1 bg-white rounded-md border border-gray-200 shadow-sm p-4 space-y-4">
                 <div><label class="block text-sm font-medium text-gray-500">EWT</label>
@@ -107,15 +116,18 @@
                     <input type="text" id="remaining-balance-field" value="₱ {{ '{:,.2f}'.format(remaining_balance) }}" class="mt-1 w-full p-2 bg-gray-100 border-gray-300 rounded-md font-mono text-right" readonly>
                 </div>
             </div>
+            
+            <!-- Pay Button -->
             <button id="pay-btn" data-folder-amount="{{ folder.amount or 0 }}" class="w-full px-5 py-3 bg-[#3a4d39] text-white font-bold rounded-md shadow hover:bg-opacity-90 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Pay</button>
         </div>
     </div>
 </main>
 
+<!-- Include Modals -->
 {% include "_add_check_modal.html" %}
 {% include "_edit_check_modal.html" %}
 
-<!-- Transaction Overview Modal HTML -->
+<!-- Transaction Overview Modal (Full Table) -->
 <div id="overview-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
     <div class="modal-content bg-[#fafaf5] rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col p-6 overflow-hidden">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -179,11 +191,16 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- START OF MODIFICATION: Helper function for dynamic flash messages ---
+    // Initialize Flatpickr for Edit Modal
+    const editCheckDateFlatpickrInstance = flatpickr("#edit-check-modal input[name='check_date']", { 
+        dateFormat: "Y-m-d", 
+        altInput: true, 
+        altFormat: "F j, Y" 
+    });
+    
+    // Flash Message Helper
     function showFlashMessage(message, type = 'success') {
         let container = document.getElementById('flash-messages-overlay-container');
-        
-        // Create container if it doesn't exist (though it should from base.html)
         if (!container) {
             container = document.createElement('div');
             container.id = 'flash-messages-overlay-container';
@@ -192,8 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const msgDiv = document.createElement('div');
-        
-        // Conditional styling based on type
         let bgClass, textClass, borderClass;
         if (type === 'error') {
             bgClass = 'bg-red-100';
@@ -207,24 +222,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         msgDiv.className = `flex items-center justify-center p-4 mb-2 rounded-lg shadow-lg border ${bgClass} ${borderClass} animate-fade-in-down`;
         msgDiv.innerHTML = `<span class="text-sm font-medium ${textClass}">${message}</span>`;
-        
         container.appendChild(msgDiv);
 
-        // Remove after 5 seconds
         setTimeout(() => {
             msgDiv.style.transition = 'opacity 0.5s ease';
             msgDiv.style.opacity = '0';
             setTimeout(() => msgDiv.remove(), 500);
         }, 5000);
     }
-    // --- END OF MODIFICATION ---
-
-    // Initialize Flatpickr for the Edit Check Modal's date field
-    const editCheckDateFlatpickrInstance = flatpickr("#edit-check-modal input[name='check_date']", { 
-        dateFormat: "Y-m-d", 
-        altInput: true, 
-        altFormat: "F j, Y" 
-    });
     
     const currencyFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
     const previewBtn = document.getElementById('preview-transaction-btn');
@@ -237,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const overviewRemaining = document.getElementById('overview-remaining');
     const currentTransactionId = "{{ folder._id }}";
     
-    // --- Start Overview Logic (For Eye Icon) ---
+    // --- Overview Modal Logic ---
     if (previewBtn) {
         previewBtn.addEventListener('click', async function() {
             overviewFolderName.textContent = 'Loading...';
@@ -291,13 +296,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // --- End Overview Logic ---
     
     const createCheckModal = document.getElementById('add-check-modal');
     const openCreateBtn = document.getElementById('create-issued-check-btn');
     if (createCheckModal && openCreateBtn) {
         openCreateBtn.addEventListener('click', () => openModal(createCheckModal));
     }
+    
+    // --- Check Detail View Logic ---
     const checkItems = document.querySelectorAll('.check-item');
     const detailName = document.getElementById('detail-name');
     const detailActions = document.getElementById('detail-actions');
@@ -306,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkDetailsContent = document.getElementById('check-details-content');
     if(detailActions) detailActions.classList.add('hidden');
     
-    let selectedCheckData = null;
+    let selectedCheckData = null; 
     
     checkItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -323,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ewt: data.ewt,
                 notes: data.notes,
                 deductions: JSON.parse(data.deductions || '[]'),
-                check_date: data.checkDate
+                check_date: data.checkDate 
             };
             
             const deductions = JSON.parse(data.deductions || '[]');
@@ -361,26 +367,89 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     const payBtn = document.getElementById('pay-btn');
+    
+    // --- VALIDATE FUNCTION (Enforces Complete Data) ---
     function validateForPayment() {
         if (!payBtn) return;
+        
+        // 1. Get Total Folder Debt (Target)
         const folderAmount = parseFloat("{{ folder.amount or 0 }}");
         
         let totalCounteredCheck = 0;
-        document.querySelectorAll('.check-item').forEach(item => {
-            totalCounteredCheck += parseFloat(item.dataset.counteredCheck) || 0;
+        let allChecksComplete = true; // Flag to track if any check is missing data
+        
+        const checkItems = document.querySelectorAll('.check-item');
+        
+        if (checkItems.length === 0) {
+            allChecksComplete = false; // Can't pay empty folder
+        }
+
+        checkItems.forEach(item => {
+            const checkAmount = parseFloat(item.dataset.checkAmount) || 0;
+            const counteredCheck = parseFloat(item.dataset.counteredCheck) || 0;
+            const checkNo = (item.dataset.checkNo || '').trim();
+            const warningIcon = item.querySelector('.warning-icon');
+            
+            // Add to running total
+            totalCounteredCheck += counteredCheck;
+            
+            // --- VALIDATION RULES PER CHECK ---
+            // 1. Check No must not be empty
+            // 2. Check Amount must be > 0
+            // 3. Countered Check must be > 0
+            // NOTE: EWT (item.dataset.ewt) is allowed to be 0
+            
+            if (checkNo === '' || checkAmount <= 0 || counteredCheck <= 0) {
+                allChecksComplete = false;
+                // Add visual feedback class to the list item
+                item.classList.add('incomplete-data');
+                if (warningIcon) warningIcon.classList.remove('hidden');
+            } else {
+                item.classList.remove('incomplete-data');
+                if (warningIcon) warningIcon.classList.add('hidden');
+            }
         });
         
+        // 3. Calculate Remaining Balance
         const remainingBalance = folderAmount - totalCounteredCheck;
         
-        document.getElementById('total-countered-field').value = currencyFormatter.format(totalCounteredCheck);
-        document.getElementById('remaining-balance-field').value = currencyFormatter.format(remainingBalance);
+        // 4. Update Sidebar UI
+        const totalCounteredField = document.getElementById('total-countered-field');
+        const remainingBalanceField = document.getElementById('remaining-balance-field');
+        if (totalCounteredField) totalCounteredField.value = currencyFormatter.format(totalCounteredCheck);
+        if (remainingBalanceField) remainingBalanceField.value = currencyFormatter.format(remainingBalance);
         
-        const canPay = Math.abs(remainingBalance) < 0.01;
-        payBtn.disabled = !canPay;
-        payBtn.title = canPay ? 'Mark folder as Paid' : 'Remaining Balance must be zero to enable Pay.';
+        // 5. Final Decision Logic
+        const hasDebt = folderAmount > 0.01;
+        const isBalanceZero = Math.abs(remainingBalance) < 0.01;
+        
+        if (isBalanceZero && hasDebt && allChecksComplete) {
+            // ENABLE
+            payBtn.disabled = false;
+            payBtn.title = 'Mark folder as Paid';
+            payBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            payBtn.classList.add('bg-[#3a4d39]', 'hover:bg-opacity-90');
+        } else {
+            // DISABLE
+            payBtn.disabled = true;
+            payBtn.classList.remove('bg-[#3a4d39]', 'hover:bg-opacity-90');
+            payBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            
+            // Helpful Tooltip logic
+            if (!hasDebt) {
+                payBtn.title = 'Total Check Amount (Debt) is zero.';
+            } else if (!allChecksComplete) {
+                payBtn.title = 'All checks must have a Check No., Check Amount, and Countered Check > 0.';
+            } else {
+                payBtn.title = 'Remaining Balance must be zero.';
+            }
+        }
     }
-    validateForPayment();
     
+    // Run initially
+    validateForPayment(); 
+    
+    // --- Pay Button Click Event ---
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             const folderId = "{{ folder._id }}";
@@ -407,9 +476,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     const searchInput = document.getElementById('search-input');
     const noResultsMessage = document.getElementById('no-results-message');
     const noChecksMessage = document.getElementById('no-checks-message');
+    
     if (searchInput && checkItems.length > 0) {
         searchInput.addEventListener('input', function() {
             const term = this.value.toLowerCase().trim();
@@ -423,6 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (noChecksMessage) noChecksMessage.style.display = (checkItems.length > 0 && visible > 0) ? 'none' : 'block';
         });
     }
+
     function setupDeductionHandlers(modalId, containerId, addBtnId) {
         const addDeductionBtn = document.getElementById(addBtnId);
         const deductionsContainer = document.getElementById(containerId);
@@ -458,11 +530,8 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
             const checkId = document.getElementById('edit-check-id').value;
             const submitButton = this.querySelector('button[type="submit"]');
-            
-            // Disable button to prevent double submit
             submitButton.disabled = true;
             submitButton.textContent = 'Saving...';
-            
             const formData = new FormData(this);
             try {
                 const response = await fetch(`/api/transactions/child/update/${checkId}`, {
@@ -472,15 +541,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 const result = await response.json();
-
+                
                 if (response.ok && result.success) { 
                     window.location.reload(); 
                 } else {
-                    // --- START OF MODIFICATION: Use styled flash message instead of alert ---
                     showFlashMessage(result.error || 'Could not save changes.', 'error');
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Changes';
-                    // --- END OF MODIFICATION ---
                 }
             } catch (error) {
                 console.error('Error submitting edit check form:', error);
